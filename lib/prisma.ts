@@ -1,15 +1,30 @@
 import { PrismaClient } from '@prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import pg from 'pg'
-
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL!,
-})
-
-const adapter = new PrismaPg(pool, { schema: 'comercial' })
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
-export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter })
+function getPrismaClient() {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pg = require('pg')
+  const { PrismaPg } = require('@prisma/adapter-pg')
+
+  const pool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL!,
+  })
+  const adapter = new PrismaPg(pool, { schema: 'comercial' })
+  const client = new PrismaClient({ adapter })
+
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = client
+  }
+
+  return client
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient()
+    return (client as unknown as Record<string | symbol, unknown>)[prop]
+  },
+})
