@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const plantillas = await prisma.crm_plantillas.findMany({
     orderBy: { fecha_creacion: 'desc' },
