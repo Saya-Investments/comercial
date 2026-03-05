@@ -10,7 +10,7 @@ interface User {
   id: string
   username: string
   name: string
-  role: 'Admin' | 'Manager' | 'Agente'
+  role: 'Admin' | 'Call Center' | 'Asesor'
   email: string
   active: boolean
   joinDate: string
@@ -52,9 +52,9 @@ export function UsersModule() {
     switch (role) {
       case 'Admin':
         return 'bg-accent/10 text-accent border border-accent/20'
-      case 'Manager':
+      case 'Call Center':
         return 'bg-primary/10 text-primary border border-primary/20'
-      case 'Agente':
+      case 'Asesor':
         return 'bg-blue-50 text-blue-700 border border-blue-200'
       default:
         return ''

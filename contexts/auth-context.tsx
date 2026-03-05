@@ -6,13 +6,15 @@ interface User {
   id: string
   email: string
   name: string
-  role: 'admin' | 'manager' | 'agent'
+  role: 'admin' | 'call center' | 'asesor'
+  username?: string
 }
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ setupRequired?: boolean }>
+  setupPassword: (email: string, password: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
 }
@@ -31,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ setupRequired?: boolean }> => {
     setLoading(true)
     try {
       const res = await fetch('/api/auth/login', {
@@ -41,16 +43,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (!res.ok) {
-        // Fallback: allow login with any credentials for development
-        const userData: User = {
-          id: '1',
-          email,
-          name: email.split('@')[0],
-          role: 'admin'
+        const data = await res.json()
+        if (data.error === 'SETUP_REQUIRED') {
+          return { setupRequired: true }
         }
-        setUser(userData)
-        localStorage.setItem('user', JSON.stringify(userData))
-        return
+        throw new Error(data.error || 'Credenciales incorrectas')
+      }
+
+      const userData = await res.json()
+      setUser(userData)
+      localStorage.setItem('user', JSON.stringify(userData))
+      return {}
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const setupPassword = async (email: string, password: string) => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/setup-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Error al configurar contraseña')
       }
 
       const userData = await res.json()
@@ -67,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, setupPassword, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Clock, MapPin, User } from 'lucide-react'
 import { AppointmentModal } from './modals/appointment-modal'
+import { useAuth } from '@/contexts/auth-context'
 
 interface Appointment {
   id: string
@@ -19,15 +20,19 @@ interface Appointment {
 }
 
 export function CalendarModule() {
+  const { user } = useAuth()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+
   const fetchAppointments = () => {
-    fetch('/api/calendar')
+    const isAdmin = user?.role === 'admin'
+    const url = isAdmin ? '/api/calendar' : `/api/calendar?userId=${user?.id}`
+    fetch(url)
       .then(res => res.json())
       .then(data => setAppointments(data))
       .catch(console.error)
   }
 
-  useEffect(() => { fetchAppointments() }, [])
+  useEffect(() => { if (user) fetchAppointments() }, [user])
 
   const [showModal, setShowModal] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())

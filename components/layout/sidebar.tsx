@@ -15,53 +15,20 @@ interface SidebarProps {
 export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = false, onToggleCollapse }: SidebarProps) {
   const { user, logout } = useAuth()
 
-  const modules = [
-    {
-      id: 'leads',
-      label: 'Leads',
-      icon: MessageSquare,
-    },
-    {
-      id: 'tasks',
-      label: 'Tareas',
-      icon: ListTasks,
-    },
-    {
-      id: 'campaigns',
-      label: 'Campañas',
-      icon: Mail,
-    },
-    {
-      id: 'calendar',
-      label: 'Calendario',
-      icon: Calendar,
-    },
-    {
-      id: 'templates',
-      label: 'Plantillas',
-      icon: Mail,
-    },
-    {
-      id: 'advisors-activity',
-      label: 'Asesores',
-      icon: TrendingUp,
-    },
-    {
-      id: 'bot-cost',
-      label: 'Costo Bot',
-      icon: DollarSign,
-    },
-    {
-      id: 'routing-rules',
-      label: 'Reglas Enrutamiento',
-      icon: Settings,
-    },
-    {
-      id: 'users',
-      label: 'Usuarios',
-      icon: Users2,
-    },
+  const allModules = [
+    { id: 'leads', label: 'Leads', icon: MessageSquare, adminOnly: false },
+    { id: 'tasks', label: 'Tareas', icon: ListTasks, adminOnly: false },
+    { id: 'campaigns', label: 'Campañas', icon: Mail, adminOnly: true },
+    { id: 'calendar', label: 'Calendario', icon: Calendar, adminOnly: false },
+    { id: 'templates', label: 'Plantillas', icon: Mail, adminOnly: true },
+    { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, adminOnly: true },
+    { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, adminOnly: true },
+    { id: 'routing-rules', label: 'Reglas Enrutamiento', icon: Settings, adminOnly: true },
+    { id: 'users', label: 'Usuarios', icon: Users2, adminOnly: true },
   ]
+
+  const isAdmin = user?.role === 'admin'
+  const modules = allModules.filter(m => !m.adminOnly || isAdmin)
 
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-primary text-primary-foreground flex flex-col border-r border-border h-screen transition-all duration-300`}>

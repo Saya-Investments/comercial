@@ -11,7 +11,7 @@ interface User {
   id: string
   username: string
   name: string
-  role: 'Admin' | 'Manager' | 'Agente'
+  role: 'Admin' | 'Call Center' | 'Asesor'
   email: string
   active: boolean
   joinDate: string
@@ -28,7 +28,7 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
     username: user?.username || '',
     name: user?.name || '',
     email: user?.email || '',
-    role: user?.role || 'Agente',
+    role: user?.role || 'Asesor',
     password: '',
     confirmPassword: '',
   })
@@ -133,8 +133,8 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:border-primary"
             >
-              <option value="Agente">Agente</option>
-              <option value="Manager">Manager</option>
+              <option value="Asesor">Asesor</option>
+              <option value="Call Center">Call Center</option>
               <option value="Admin">Admin</option>
             </select>
           </div>

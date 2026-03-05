@@ -229,7 +229,7 @@ model crm_usuarios {
   nombre              String           @db.VarChar(100)
   email               String           @unique @db.VarChar(150)
   password_hash       String           @db.VarChar(255)
-  rol                 String           @default("Agente") @db.VarChar(20)
+  rol                 String           @default("Asesor") @db.VarChar(20)
   activo              Boolean?         @default(true)
   id_asesor           String?          @db.Uuid
   fecha_ingreso       DateTime?        @default(dbgenerated("CURRENT_DATE")) @db.Date

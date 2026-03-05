@@ -11,30 +11,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email y contraseña son requeridos' }, { status: 400 })
   }
 
+  if (password.length < 6) {
+    return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+  }
+
   const user = await prisma.crm_usuarios.findFirst({
     where: { email, activo: true },
   })
 
   if (!user) {
-    return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
-  }
-
-  // Si el usuario aún tiene el hash temporal, necesita configurar su contraseña
-  if (user.password_hash === 'temp_hash') {
     return NextResponse.json(
-      { error: 'SETUP_REQUIRED', message: 'Debes configurar tu contraseña' },
-      { status: 403 }
+      { error: 'No existe una cuenta con este correo. Contacta al administrador.' },
+      { status: 404 }
     )
   }
 
-  const passwordValid = await bcrypt.compare(password, user.password_hash)
-  if (!passwordValid) {
-    return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 })
+  if (user.password_hash !== 'temp_hash') {
+    return NextResponse.json(
+      { error: 'Esta cuenta ya tiene contraseña configurada. Usa el login normal.' },
+      { status: 400 }
+    )
   }
+
+  const hashedPassword = await bcrypt.hash(password, 10)
 
   await prisma.crm_usuarios.update({
     where: { id_usuario: user.id_usuario },
-    data: { ultimo_login: new Date() },
+    data: {
+      password_hash: hashedPassword,
+      ultimo_login: new Date(),
+      fecha_actualizacion: new Date(),
+    },
   })
 
   return NextResponse.json({

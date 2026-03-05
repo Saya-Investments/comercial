@@ -17,8 +17,10 @@ import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity'
 
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity']
+
 export default function Home() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const [activeModule, setActiveModule] = useState<ModuleType>('leads')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -38,13 +40,19 @@ export default function Home() {
     return <LoginForm />
   }
 
+  const isAdmin = user?.role === 'admin'
+  const handleModuleChange = (mod: ModuleType) => {
+    if (!isAdmin && ADMIN_ONLY_MODULES.includes(mod)) return
+    setActiveModule(mod)
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar Desktop */}
       <div className="hidden md:block">
         <Sidebar 
           activeModule={activeModule} 
-          onModuleChange={setActiveModule}
+          onModuleChange={handleModuleChange}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />

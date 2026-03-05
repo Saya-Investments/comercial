@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +13,7 @@ export async function GET() {
     id: u.id_usuario,
     username: u.username,
     name: u.nombre,
-    role: u.rol as 'Admin' | 'Manager' | 'Agente',
+    role: u.rol as 'Admin' | 'Call Center' | 'Asesor',
     email: u.email,
     active: u.activo ?? true,
     joinDate: u.fecha_ingreso?.toISOString().split('T')[0] || '',
@@ -24,13 +25,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body = await req.json()
 
+  const passwordHash = body.password
+    ? await bcrypt.hash(body.password, 10)
+    : 'temp_hash'
+
   const user = await prisma.crm_usuarios.create({
     data: {
       username: body.username,
       nombre: body.name,
       email: body.email,
-      password_hash: body.password || 'temp_hash',
-      rol: body.role || 'Agente',
+      password_hash: passwordHash,
+      rol: body.role || 'Asesor',
     },
   })
 
