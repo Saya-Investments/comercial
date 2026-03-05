@@ -7,6 +7,7 @@ import { Eye, MessageSquare, Briefcase } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
+import { useAuth } from '@/contexts/auth-context'
 
 interface Lead {
   id: string
@@ -28,6 +29,7 @@ interface LeadsTableProps {
 }
 
 export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '', filterDate = '' }: LeadsTableProps) {
+  const { user } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
@@ -37,6 +39,8 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     try {
       const params = new URLSearchParams()
       if (searchTerm) params.set('search', searchTerm)
+      if (user?.id) params.set('userId', user.id)
+      if (user?.role) params.set('role', user.role)
       const res = await fetch(`/api/leads?${params}`)
       if (res.ok) {
         const data = await res.json()
@@ -47,7 +51,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     } finally {
       setLoading(false)
     }
-  }, [searchTerm])
+  }, [searchTerm, user?.id, user?.role])
 
   useEffect(() => {
     fetchLeads()

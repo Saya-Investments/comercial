@@ -8,16 +8,51 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search') || ''
   const estado = searchParams.get('estado') || ''
   const producto = searchParams.get('producto') || ''
+  const userId = searchParams.get('userId') || ''
+  const role = searchParams.get('role') || ''
 
   const where: Record<string, unknown> = {}
 
+  // If user is an asesor, only show leads assigned via matching
+  if (userId && role === 'asesor') {
+    const usuario = await prisma.crm_usuarios.findUnique({
+      where: { id_usuario: userId },
+      select: { id_asesor: true },
+    })
+
+    if (usuario?.id_asesor) {
+      // Get lead IDs assigned to this asesor via matching (asignado = true)
+      const matchings = await prisma.matching.findMany({
+        where: { id_asesor: usuario.id_asesor, asignado: true },
+        select: { id_lead: true },
+      })
+      const leadIds = matchings.map((m) => m.id_lead)
+
+      // Also include leads directly assigned via ultimo_asesor_asignado
+      where.OR = [
+        { id_lead: { in: leadIds } },
+        { ultimo_asesor_asignado: usuario.id_asesor },
+      ]
+    } else {
+      // User has no linked asesor, show nothing
+      return NextResponse.json([])
+    }
+  }
+
   if (search) {
-    where.OR = [
+    const searchFilter = [
       { nombre: { contains: search, mode: 'insensitive' } },
       { apellido: { contains: search, mode: 'insensitive' } },
       { dni: { contains: search } },
       { numero: { contains: search } },
     ]
+    // Combine search with existing OR (asesor filter) using AND
+    if (where.OR) {
+      where.AND = [{ OR: where.OR }, { OR: searchFilter }]
+      delete where.OR
+    } else {
+      where.OR = searchFilter
+    }
   }
   if (estado) where.estado_de_lead = estado
   if (producto) where.producto = producto

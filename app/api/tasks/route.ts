@@ -3,8 +3,20 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const userId = searchParams.get('userId') || ''
+  const role = searchParams.get('role') || ''
+
+  const where: Record<string, unknown> = {}
+
+  // Asesores solo ven sus tareas asignadas
+  if (userId && role === 'asesor') {
+    where.id_usuario_asignado = userId
+  }
+
   const tareas = await prisma.crm_tareas.findMany({
+    where,
     include: {
       bd_leads: { select: { id_lead: true, dni: true, nombre: true, apellido: true, numero: true, producto: true, estado_de_lead: true } },
     },

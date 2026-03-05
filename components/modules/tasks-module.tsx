@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { ActionModal } from './modals/action-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
+import { useAuth } from '@/contexts/auth-context'
 
 interface Lead {
   id: string
@@ -20,6 +21,7 @@ interface Lead {
 }
 
 export function TasksModule() {
+  const { user } = useAuth()
   const [allLeads, setAllLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
@@ -28,7 +30,11 @@ export function TasksModule() {
   const [expandedPriority, setExpandedPriority] = useState<'Alta' | 'Media' | 'Baja' | null>(null)
 
   useEffect(() => {
-    fetch('/api/tasks')
+    const params = new URLSearchParams()
+    if (user?.id) params.set('userId', user.id)
+    if (user?.role) params.set('role', user.role)
+
+    fetch(`/api/tasks?${params}`)
       .then(res => res.json())
       .then(data => {
         setAllLeads(data.map((t: Record<string, unknown>) => ({
@@ -44,12 +50,12 @@ export function TasksModule() {
       })
       .catch(() => {
         // Fallback: fetch leads directly
-        fetch('/api/leads')
+        fetch(`/api/leads?${params}`)
           .then(res => res.json())
           .then(data => setAllLeads(data))
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [user?.id, user?.role])
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail') => {
     setSelectedLead(lead)
