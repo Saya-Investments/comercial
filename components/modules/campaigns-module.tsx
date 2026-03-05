@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Plus, Edit2, Trash2, Eye } from 'lucide-react'
@@ -18,36 +18,25 @@ interface Campaign {
   createdDate: string
 }
 
-const mockCampaigns: Campaign[] = [
-  {
-    id: '1',
-    name: 'Campaña Spring 2024',
-    database: 'Clientes Premium',
-    filters: 'Edad 25-45, Zona Madrid',
-    template: 'Welcome Email',
-    status: 'Activa',
-    leads: 150,
-    createdDate: '2024-02-01',
-  },
-  {
-    id: '2',
-    name: 'Reactivación Q1',
-    database: 'Clientes Inactivos',
-    filters: 'Último contacto hace 90 días',
-    template: 'Come Back Offer',
-    status: 'Pausada',
-    leads: 200,
-    createdDate: '2024-01-15',
-  },
-]
-
 export function CampaignsModule() {
-  const [campaigns, setCampaigns] = useState(mockCampaigns)
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchCampaigns = () => {
+    fetch('/api/campaigns')
+      .then(res => res.json())
+      .then(data => setCampaigns(data))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchCampaigns() }, [])
   const [showModal, setShowModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/campaigns?id=${id}`, { method: 'DELETE' })
     setCampaigns(campaigns.filter((c) => c.id !== id))
   }
 

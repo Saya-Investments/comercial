@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Plus, Trash2, Edit2 } from 'lucide-react'
@@ -16,51 +16,36 @@ interface User {
   joinDate: string
 }
 
-const mockUsers: User[] = [
-  {
-    id: '1',
-    username: 'jperez',
-    name: 'Juan Pérez',
-    role: 'Admin',
-    email: 'juan@maquiplus.com',
-    active: true,
-    joinDate: '2024-01-01',
-  },
-  {
-    id: '2',
-    username: 'mrodriguez',
-    name: 'María Rodríguez',
-    role: 'Manager',
-    email: 'maria@maquiplus.com',
-    active: true,
-    joinDate: '2024-01-15',
-  },
-  {
-    id: '3',
-    username: 'cmartinez',
-    name: 'Carlos Martínez',
-    role: 'Agente',
-    email: 'carlos@maquiplus.com',
-    active: true,
-    joinDate: '2024-02-01',
-  },
-]
-
 export function UsersModule() {
-  const [users, setUsers] = useState(mockUsers)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchUsers = () => {
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchUsers() }, [])
   const [showModal, setShowModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/users?id=${id}`, { method: 'DELETE' })
     setUsers(users.filter((u) => u.id !== id))
   }
 
-  const handleToggleActive = (id: string) => {
-    setUsers(
-      users.map((u) =>
-        u.id === id ? { ...u, active: !u.active } : u
-      )
-    )
+  const handleToggleActive = async (id: string) => {
+    const user = users.find(u => u.id === id)
+    if (!user) return
+    await fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, active: !user.active }),
+    })
+    setUsers(users.map((u) => u.id === id ? { ...u, active: !u.active } : u))
   }
 
   const getRoleColor = (role: string) => {
@@ -184,6 +169,7 @@ export function UsersModule() {
             setShowModal(false)
             setSelectedUser(null)
           }}
+          onSaved={() => fetchUsers()}
         />
       )}
     </div>

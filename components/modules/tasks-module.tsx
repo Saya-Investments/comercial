@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Eye, MessageSquare, Briefcase } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ActionModal } from './modals/action-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
@@ -19,58 +19,37 @@ interface Lead {
   priority: 'Alta' | 'Media' | 'Baja'
 }
 
-const allLeads: Lead[] = [
-  {
-    id: '1',
-    dni: '12345678',
-    name: 'Juan García López',
-    phone: '+34 612 345 678',
-    status: 'En Contacto',
-    assignedDate: '2024-02-01',
-    product: 'Plan Premium',
-    priority: 'Alta',
-  },
-  {
-    id: '2',
-    dni: '11223344',
-    name: 'Carlos Martínez',
-    phone: '+34 632 567 890',
-    status: 'Nuevo',
-    assignedDate: '2024-02-03',
-    product: 'Plan Basic',
-    priority: 'Alta',
-  },
-  {
-    id: '3',
-    dni: '87654321',
-    name: 'María Rodríguez',
-    phone: '+34 622 456 789',
-    status: 'Cualificado',
-    assignedDate: '2024-02-02',
-    product: 'Plan Standard',
-    priority: 'Media',
-  },
-  {
-    id: '4',
-    dni: '55667788',
-    name: 'Ana Fernández',
-    phone: '+34 645 234 567',
-    status: 'Interesado',
-    assignedDate: '2024-02-04',
-    product: 'Plan Basic',
-    priority: 'Media',
-  },
-]
-
-const mockLeads = allLeads.filter(lead => lead.priority === 'Alta')
-const mediaPriorityLeads = allLeads.filter(lead => lead.priority === 'Media')
-const lowPriorityLeads = allLeads.filter(lead => lead.priority === 'Baja')
-
 export function TasksModule() {
+  const [allLeads, setAllLeads] = useState<Lead[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | null>(null)
   const [selectedPriority, setSelectedPriority] = useState<'Alta' | 'Media' | 'Baja' | null>(null)
   const [expandedPriority, setExpandedPriority] = useState<'Alta' | 'Media' | 'Baja' | null>(null)
+
+  useEffect(() => {
+    fetch('/api/tasks')
+      .then(res => res.json())
+      .then(data => {
+        setAllLeads(data.map((t: Record<string, unknown>) => ({
+          id: t.id as string,
+          dni: t.dni as string,
+          name: t.name as string,
+          phone: t.phone as string,
+          status: t.status as string,
+          assignedDate: t.assignedDate as string,
+          product: t.product as string,
+          priority: t.priority as 'Alta' | 'Media' | 'Baja',
+        })))
+      })
+      .catch(() => {
+        // Fallback: fetch leads directly
+        fetch('/api/leads')
+          .then(res => res.json())
+          .then(data => setAllLeads(data))
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail') => {
     setSelectedLead(lead)

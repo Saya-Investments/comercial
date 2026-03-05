@@ -1,12 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Search, TrendingUp, Phone, CheckCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { ChartContainer, ChartTooltip, ChartLegend } from '@/components/ui/chart'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface AdvisorActivity {
@@ -18,45 +16,6 @@ interface AdvisorActivity {
   pending: number
   performance: 'excellent' | 'good' | 'average' | 'needs-improvement'
 }
-
-const mockAdvisors: AdvisorActivity[] = [
-  {
-    id: '1',
-    name: 'Carlos Rodriguez',
-    role: 'Asesor Senior',
-    calls: 45,
-    tasksCompleted: 23,
-    pending: 5,
-    performance: 'excellent',
-  },
-  {
-    id: '2',
-    name: 'Marina López',
-    role: 'Asesor',
-    calls: 38,
-    tasksCompleted: 18,
-    pending: 8,
-    performance: 'good',
-  },
-  {
-    id: '3',
-    name: 'Juan Martínez',
-    role: 'Asesor Junior',
-    calls: 22,
-    tasksCompleted: 12,
-    pending: 4,
-    performance: 'average',
-  },
-  {
-    id: '4',
-    name: 'Patricia González',
-    role: 'Asesor',
-    calls: 52,
-    tasksCompleted: 31,
-    pending: 3,
-    performance: 'excellent',
-  },
-]
 
 const performanceBadgeColors = {
   excellent: 'bg-green-100 text-green-800',
@@ -73,31 +32,37 @@ const performanceLabels = {
 }
 
 export function AdvisorsActivityModule() {
+  const [advisors, setAdvisors] = useState<AdvisorActivity[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedAdvisor, setSelectedAdvisor] = useState<AdvisorActivity | null>(null)
 
-  const filteredAdvisors = mockAdvisors.filter(
+  useEffect(() => {
+    fetch('/api/advisors')
+      .then(res => res.json())
+      .then(data => setAdvisors(data))
+      .catch(console.error)
+  }, [])
+
+  const filteredAdvisors = advisors.filter(
     (advisor) =>
       advisor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       advisor.role.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const totalCalls = mockAdvisors.reduce((sum, a) => sum + a.calls, 0)
-  const totalTasksCompleted = mockAdvisors.reduce((sum, a) => sum + a.tasksCompleted, 0)
+  const totalCalls = advisors.reduce((sum, a) => sum + a.calls, 0)
+  const totalTasksCompleted = advisors.reduce((sum, a) => sum + a.tasksCompleted, 0)
 
-  // Preparar datos para gráfica de barras
-  const barChartData = mockAdvisors.map((advisor) => ({
-    name: advisor.name.split(' ')[0], // Solo primer nombre
+  const barChartData = advisors.map((advisor) => ({
+    name: advisor.name.split(' ')[0],
     calls: advisor.calls,
     completadas: advisor.tasksCompleted,
     pendientes: advisor.pending,
   }))
 
-  // Preparar datos para gráfica de pastel (resumen general)
   const pieChartData = [
     { name: 'Llamadas', value: totalCalls },
     { name: 'Completadas', value: totalTasksCompleted },
-    { name: 'Pendientes', value: mockAdvisors.reduce((sum, a) => sum + a.pending, 0) },
+    { name: 'Pendientes', value: advisors.reduce((sum, a) => sum + a.pending, 0) },
   ]
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b']
@@ -140,7 +105,7 @@ export function AdvisorsActivityModule() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">Asesores Activos</p>
-                <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{mockAdvisors.length}</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{advisors.length}</p>
               </div>
               <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-accent flex-shrink-0" />
             </div>
@@ -203,7 +168,7 @@ export function AdvisorsActivityModule() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {pieChartData.map((entry, index) => (
+                  {pieChartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index]} />
                   ))}
                 </Pie>

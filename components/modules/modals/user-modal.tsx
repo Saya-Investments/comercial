@@ -20,9 +20,10 @@ interface User {
 interface UserModalProps {
   user: User | null
   onClose: () => void
+  onSaved?: () => void
 }
 
-export function UserModal({ user, onClose }: UserModalProps) {
+export function UserModal({ user, onClose, onSaved }: UserModalProps) {
   const [formData, setFormData] = useState({
     username: user?.username || '',
     name: user?.name || '',
@@ -39,8 +40,34 @@ export function UserModal({ user, onClose }: UserModalProps) {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (user) {
+      await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
+          username: formData.username,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+        }),
+      })
+    } else {
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          password: formData.password,
+        }),
+      })
+    }
+    onSaved?.()
     onClose()
   }
 

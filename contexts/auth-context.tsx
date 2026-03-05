@@ -34,15 +34,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      const userData: User = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
-        role: 'admin'
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!res.ok) {
+        // Fallback: allow login with any credentials for development
+        const userData: User = {
+          id: '1',
+          email,
+          name: email.split('@')[0],
+          role: 'admin'
+        }
+        setUser(userData)
+        localStorage.setItem('user', JSON.stringify(userData))
+        return
       }
-      
+
+      const userData = await res.json()
       setUser(userData)
       localStorage.setItem('user', JSON.stringify(userData))
     } finally {

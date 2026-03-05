@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MoreVertical, Eye, MessageSquare, Briefcase } from 'lucide-react'
+import { Eye, MessageSquare, Briefcase } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
@@ -13,48 +13,12 @@ interface Lead {
   dni: string
   name: string
   phone: string
-  status: 'Nuevo' | 'En Contacto' | 'Cualificado' | 'Descalificado'
+  status: string
   assignedDate: string
   product: string
   priority: 'Alta' | 'Media' | 'Baja'
   score?: number
 }
-
-const mockLeads: Lead[] = [
-  {
-    id: '1',
-    dni: '12345678',
-    name: 'Juan García López',
-    phone: '+34 612 345 678',
-    status: 'En Contacto',
-    assignedDate: '2024-02-01',
-    product: 'Plan Premium',
-    priority: 'Alta',
-    score: 78,
-  },
-  {
-    id: '2',
-    dni: '87654321',
-    name: 'María Rodríguez',
-    phone: '+34 622 456 789',
-    status: 'Cualificado',
-    assignedDate: '2024-02-02',
-    product: 'Plan Standard',
-    priority: 'Media',
-    score: 45,
-  },
-  {
-    id: '3',
-    dni: '11223344',
-    name: 'Carlos Martínez',
-    phone: '+34 632 567 890',
-    status: 'Nuevo',
-    assignedDate: '2024-02-03',
-    product: 'Plan Basic',
-    priority: 'Baja',
-    score: 22,
-  },
-]
 
 interface LeadsTableProps {
   searchTerm: string
@@ -64,16 +28,36 @@ interface LeadsTableProps {
 }
 
 export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '', filterDate = '' }: LeadsTableProps) {
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [loading, setLoading] = useState(true)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | null>(null)
 
-  const filteredLeads = mockLeads.filter((lead) => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) || lead.dni.includes(searchTerm)
+  const fetchLeads = useCallback(async () => {
+    try {
+      const params = new URLSearchParams()
+      if (searchTerm) params.set('search', searchTerm)
+      const res = await fetch(`/api/leads?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setLeads(data)
+      }
+    } catch (e) {
+      console.error('Error fetching leads:', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [searchTerm])
+
+  useEffect(() => {
+    fetchLeads()
+  }, [fetchLeads])
+
+  const filteredLeads = leads.filter((lead) => {
     const matchesPriority = !filterPriority || lead.priority === filterPriority
     const matchesStatus = !filterStatus || lead.status === filterStatus
     const matchesDate = !filterDate || lead.assignedDate >= filterDate
-
-    return matchesSearch && matchesPriority && matchesStatus && matchesDate
+    return matchesPriority && matchesStatus && matchesDate
   })
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail') => {
@@ -83,39 +67,28 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'Alta':
-        return 'bg-accent/10 text-accent border border-accent/20'
-      case 'Media':
-        return 'bg-primary/10 text-primary border border-primary/20'
-      case 'Baja':
-        return 'bg-muted text-muted-foreground border border-muted/50'
-      default:
-        return ''
+      case 'Alta': return 'bg-accent/10 text-accent border border-accent/20'
+      case 'Media': return 'bg-primary/10 text-primary border border-primary/20'
+      case 'Baja': return 'bg-muted text-muted-foreground border border-muted/50'
+      default: return ''
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Nuevo':
-        return 'bg-blue-50 text-blue-700 border border-blue-200'
-      case 'En Contacto':
-        return 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-      case 'Cualificado':
-        return 'bg-green-50 text-green-700 border border-green-200'
-      case 'Descalificado':
-        return 'bg-red-50 text-red-700 border border-red-200'
-      default:
-        return ''
+      case 'lead': case 'Nuevo': return 'bg-blue-50 text-blue-700 border border-blue-200'
+      case 'prospecto': case 'En Contacto': return 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+      case 'venta': case 'Cualificado': return 'bg-green-50 text-green-700 border border-green-200'
+      case 'descartado': case 'Descalificado': return 'bg-red-50 text-red-700 border border-red-200'
+      default: return 'bg-gray-50 text-gray-700 border border-gray-200'
     }
   }
 
   const getScoreBadge = (score?: number) => {
-    if (score === undefined) return <span className="text-sm text-muted-foreground">—</span>
-    if (score >= 70)
-      return <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">{score} — Calentar</span>
-    if (score >= 40)
-      return <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">{score} — Revisar</span>
-    return <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">{score} — Scorear</span>
+    if (score === undefined) return <span className="text-sm text-muted-foreground">--</span>
+    if (score >= 70) return <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">{score} - Calentar</span>
+    if (score >= 40) return <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">{score} - Revisar</span>
+    return <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">{score} - Scorear</span>
   }
 
   const exportCSV = (leads: Lead[]) => {
@@ -131,20 +104,17 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     URL.revokeObjectURL(url)
   }
 
+  if (loading) {
+    return <div className="p-6 text-center text-muted-foreground">Cargando leads...</div>
+  }
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
-        <div />
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => exportCSV(filteredLeads)}
-            className="text-muted-foreground"
-          >
-            Exportar data
-          </Button>
-        </div>
+        <div className="text-sm text-muted-foreground">{filteredLeads.length} leads encontrados</div>
+        <Button size="sm" variant="outline" onClick={() => exportCSV(filteredLeads)} className="text-muted-foreground">
+          Exportar data
+        </Button>
       </div>
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -153,73 +123,47 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
               <tr className="border-b border-border bg-secondary">
                 <th className="px-6 py-3 text-left font-semibold text-foreground">DNI</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Nombre</th>
-                <th className="px-6 py-3 text-left font-semibold text-foreground">Teléfono</th>
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Telefono</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Scoring</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Estado</th>
-                <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha Asignación</th>
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Producto</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Prioridad</th>
                 <th className="px-6 py-3 text-right font-semibold text-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredLeads.length > 0 ? (
-                filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-foreground">{lead.dni}</td>
-                    <td className="px-6 py-4 font-medium text-foreground">{lead.name}</td>
-                    <td className="px-6 py-4 text-foreground">{lead.phone}</td>
-                    <td className="px-6 py-4">{getScoreBadge(lead.score)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
-                        {lead.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-foreground">{lead.assignedDate}</td>
-                    <td className="px-6 py-4 text-foreground">{lead.product}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>
-                        {lead.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAction(lead, 'action')}
-                          className="text-foreground hover:bg-secondary"
-                          title="Acciones comerciales"
-                        >
-                          <Briefcase className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAction(lead, 'conversation')}
-                          className="text-foreground hover:bg-secondary"
-                          title="Ver conversación"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAction(lead, 'detail')}
-                          className="text-foreground hover:bg-secondary"
-                          title="Ver detalle"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">
-                    No se encontraron leads con los filtros aplicados
+              {filteredLeads.length > 0 ? filteredLeads.map((lead) => (
+                <tr key={lead.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
+                  <td className="px-6 py-4 font-mono text-foreground">{lead.dni}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{lead.name}</td>
+                  <td className="px-6 py-4 text-foreground">{lead.phone}</td>
+                  <td className="px-6 py-4">{getScoreBadge(lead.score)}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>{lead.status}</span>
                   </td>
+                  <td className="px-6 py-4 text-foreground">{lead.assignedDate}</td>
+                  <td className="px-6 py-4 text-foreground">{lead.product}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'action')} className="text-foreground hover:bg-secondary" title="Acciones comerciales">
+                        <Briefcase className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'conversation')} className="text-foreground hover:bg-secondary" title="Ver conversacion">
+                        <MessageSquare className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'detail')} className="text-foreground hover:bg-secondary" title="Ver detalle">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">No se encontraron leads con los filtros aplicados</td>
                 </tr>
               )}
             </tbody>
@@ -227,15 +171,9 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
         </div>
       </Card>
 
-      {modalType === 'action' && selectedLead && (
-        <ActionModal lead={selectedLead} onClose={() => setModalType(null)} />
-      )}
-      {modalType === 'conversation' && selectedLead && (
-        <ConversationModal lead={selectedLead} onClose={() => setModalType(null)} />
-      )}
-      {modalType === 'detail' && selectedLead && (
-        <LeadDetailModal lead={selectedLead} onClose={() => setModalType(null)} />
-      )}
+      {modalType === 'action' && selectedLead && <ActionModal lead={selectedLead} onClose={() => setModalType(null)} />}
+      {modalType === 'conversation' && selectedLead && <ConversationModal lead={selectedLead} onClose={() => setModalType(null)} />}
+      {modalType === 'detail' && selectedLead && <LeadDetailModal lead={selectedLead} onClose={() => setModalType(null)} />}
     </div>
   )
 }

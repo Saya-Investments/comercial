@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Clock, MapPin, User, X } from 'lucide-react'
+import { Plus, Clock, MapPin, User } from 'lucide-react'
 import { AppointmentModal } from './modals/appointment-modal'
 
 interface Appointment {
@@ -19,29 +19,15 @@ interface Appointment {
 }
 
 export function CalendarModule() {
-  const [appointments, setAppointments] = useState<Appointment[]>([
-    {
-      id: '1',
-      title: 'Seguimiento de propuesta',
-      leadName: 'Juan González',
-      date: '2026-02-10',
-      time: '10:00',
-      location: 'Oficina Principal',
-      description: 'Seguimiento a propuesta enviada',
-      type: 'reunion',
-      status: 'active'
-    },
-    {
-      id: '2',
-      title: 'Llamada de ventas',
-      leadName: 'María Rodriguez',
-      date: '2026-02-11',
-      time: '14:00',
-      description: 'Llamada para cerrar venta',
-      type: 'llamada',
-      status: 'active'
-    },
-  ])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const fetchAppointments = () => {
+    fetch('/api/calendar')
+      .then(res => res.json())
+      .then(data => setAppointments(data))
+      .catch(console.error)
+  }
+
+  useEffect(() => { fetchAppointments() }, [])
 
   const [showModal, setShowModal] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -64,18 +50,25 @@ export function CalendarModule() {
   const firstDay = getFirstDayOfMonth(currentDate)
   const days = Array(firstDay).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1))
 
-  const handleAddAppointment = (appointment: Appointment) => {
+  const handleAddAppointment = async (appointment: Appointment) => {
     if (editingAppointment) {
+      await fetch('/api/calendar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointment),
+      })
       setAppointments(appointments.map(a => a.id === editingAppointment.id ? appointment : a))
       setEditingAppointment(null)
     } else {
-      setAppointments([...appointments, appointment])
+      const res = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointment),
+      })
+      const saved = await res.json()
+      setAppointments([...appointments, saved])
     }
     setShowModal(false)
-  }
-
-  const handleDelete = (id: string) => {
-    setAppointments(appointments.filter(a => a.id !== id))
   }
 
   const handleEdit = (appointment: Appointment) => {
@@ -83,13 +76,19 @@ export function CalendarModule() {
     setShowModal(true)
   }
 
-  const handleToggleCancel = (id: string) => {
-    setAppointments(appointments.map(a => 
-      a.id === id ? { ...a, status: a.status === 'active' ? 'cancelled' : 'active' } : a
+  const handleToggleCancel = async (id: string) => {
+    const apt = appointments.find(a => a.id === id)
+    if (!apt) return
+    const newStatus = apt.status === 'active' ? 'cancelled' : 'active'
+    await fetch('/api/calendar', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...apt, status: newStatus }),
+    })
+    setAppointments(appointments.map(a =>
+      a.id === id ? { ...a, status: newStatus } : a
     ))
   }
-
-  const appointmentsToday = appointments.filter(a => a.date === currentDate.toISOString().split('T')[0])
 
   const appointmentsByDate = (date: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`
@@ -101,7 +100,7 @@ export function CalendarModule() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-foreground">Calendario de Citas</h1>
-          <Button 
+          <Button
             onClick={() => {
               setEditingAppointment(null)
               setShowModal(true)
@@ -200,8 +199,8 @@ export function CalendarModule() {
                   .slice(0, 10)
                   .map(apt => (
                     <div key={apt.id} className={`p-3 bg-secondary rounded-lg border transition-all ${
-                      apt.status === 'cancelled' 
-                        ? 'border-red-500/30 opacity-60' 
+                      apt.status === 'cancelled'
+                        ? 'border-red-500/30 opacity-60'
                         : 'border-border hover:border-primary'
                     }`}>
                       <div className="flex items-start justify-between">
@@ -243,8 +242,8 @@ export function CalendarModule() {
                             variant="ghost"
                             onClick={() => handleToggleCancel(apt.id)}
                             className={`text-xs h-7 ${
-                              apt.status === 'cancelled' 
-                                ? 'text-green-600 hover:text-green-700' 
+                              apt.status === 'cancelled'
+                                ? 'text-green-600 hover:text-green-700'
                                 : 'text-red-600 hover:text-red-700'
                             }`}
                           >

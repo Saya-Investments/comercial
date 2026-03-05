@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Plus, Edit2, Trash2, Eye } from 'lucide-react'
@@ -14,41 +14,25 @@ interface Template {
   createdDate: string
 }
 
-const mockTemplates: Template[] = [
-  {
-    id: '1',
-    name: 'Welcome Email',
-    subject: 'Bienvenido a maqui+',
-    content: 'Hola {nombre}, te damos la bienvenida a nuestra plataforma...',
-    createdDate: '2024-02-01',
-  },
-  {
-    id: '2',
-    name: 'Come Back Offer',
-    subject: 'Te echamos de menos - 20% descuento',
-    content: 'Hemos notado que no has visitado en un tiempo. Aquí tienes un descuento especial...',
-    createdDate: '2024-02-02',
-  },
-  {
-    id: '3',
-    name: 'SMS Reminder',
-    content: 'Hola {nombre}, recordatorio: tu cita es mañana a las {hora}',
-    subject: '',
-    createdDate: '2024-02-03',
-  },
-]
-
 export function TemplatesModule() {
-  const [templates, setTemplates] = useState(mockTemplates)
+  const [templates, setTemplates] = useState<Template[]>([])
   const [showModal, setShowModal] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
   const [viewTemplate, setViewTemplate] = useState<Template | null>(null)
 
-  const handleDelete = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id))
+  const fetchTemplates = () => {
+    fetch('/api/templates')
+      .then(res => res.json())
+      .then(data => setTemplates(data))
+      .catch(console.error)
   }
 
+  useEffect(() => { fetchTemplates() }, [])
 
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/templates?id=${id}`, { method: 'DELETE' })
+    setTemplates(templates.filter((t) => t.id !== id))
+  }
 
   return (
     <div className="flex flex-col h-full">
