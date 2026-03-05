@@ -3,12 +3,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Plus, Search, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { LeadsTable } from './leads-table'
-import { LeadModal } from './modals/lead-modal'
 
 export function LeadsModule() {
-  const [showLeadModal, setShowLeadModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPriority, setFilterPriority] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('')
@@ -34,13 +32,6 @@ export function LeadsModule() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Leads</h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">Gestión de leads comerciales</p>
           </div>
-          <Button
-            onClick={() => setShowLeadModal(true)}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground w-full md:w-auto"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Lead
-          </Button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-2 md:gap-3 flex-wrap">
@@ -111,7 +102,6 @@ export function LeadsModule() {
         />
       </div>
 
-      {showLeadModal && <LeadModal onClose={() => setShowLeadModal(false)} />}
     </div>
   )
 }
