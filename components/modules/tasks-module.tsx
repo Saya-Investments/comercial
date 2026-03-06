@@ -18,6 +18,7 @@ interface Lead {
   assignedDate: string
   product: string
   priority: 'Alta' | 'Media' | 'Baja'
+  taskStatus?: string
 }
 
 export function TasksModule() {
@@ -46,6 +47,7 @@ export function TasksModule() {
           assignedDate: t.assignedDate as string,
           product: t.product as string,
           priority: t.priority as 'Alta' | 'Media' | 'Baja',
+          taskStatus: t.taskStatus as string,
         })))
       })
       .catch(() => {
@@ -74,9 +76,9 @@ export function TasksModule() {
   const mediaLeads = allLeads.filter(l => l.priority === 'Media')
   const bajaLeads = allLeads.filter(l => l.priority === 'Baja')
 
-  const altaCompletados = Math.floor(altaLeads.length * 0.4)
-  const mediaCompletados = Math.floor(mediaLeads.length * 0.3)
-  const bajaCompletados = Math.floor(bajaLeads.length * 0.2)
+  const altaCompletados = altaLeads.filter(l => l.taskStatus === 'completada').length
+  const mediaCompletados = mediaLeads.filter(l => l.taskStatus === 'completada').length
+  const bajaCompletados = bajaLeads.filter(l => l.taskStatus === 'completada').length
 
   const PriorityBox = ({ 
     title, 
