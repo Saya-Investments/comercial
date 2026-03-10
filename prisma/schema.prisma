@@ -77,6 +77,7 @@ model bd_leads {
   situacion_laboral                 String?                    @db.VarChar(30)
   fecha_creacion                    DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion               DateTime                   @default(now()) @db.Timestamptz(6)
+  nickname_wsp                      String?                    @db.VarChar(200)
   bd_asesores                       bd_asesores?               @relation(fields: [ultimo_asesor_asignado], references: [id_asesor], onUpdate: NoAction, map: "fk_leads_asesor")
   crm_acciones_comerciales          crm_acciones_comerciales[]
   crm_campana_leads                 crm_campana_leads[]
@@ -134,7 +135,6 @@ model crm_campanas {
   nombre              String              @db.VarChar(200)
   base_datos          String?             @db.VarChar(100)
   filtros             String?
-  plantilla           String?             @db.VarChar(100)
   cluster             String?             @default("default") @db.VarChar(50)
   estado              String              @default("Activa") @db.VarChar(20)
   total_leads         Int?                @default(0)
@@ -143,8 +143,11 @@ model crm_campanas {
   fecha_fin           DateTime?           @db.Date
   fecha_creacion      DateTime            @default(now()) @db.Timestamptz(6)
   fecha_actualizacion DateTime            @default(now()) @db.Timestamptz(6)
+  id_plantilla        String?             @db.Uuid
+  variables           Json?               @default("{}")
   crm_campana_leads   crm_campana_leads[]
   crm_usuarios        crm_usuarios?       @relation(fields: [id_usuario_creador], references: [id_usuario], onUpdate: NoAction, map: "fk_campana_creador")
+  crm_plantillas      crm_plantillas?     @relation(fields: [id_plantilla], references: [id_plantilla], onUpdate: NoAction, map: "fk_campana_plantilla")
 
   @@index([estado], map: "idx_campanas_estado")
   @@index([fecha_creacion(sort: Desc)], map: "idx_campanas_fecha")
@@ -191,15 +194,16 @@ model crm_notas {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model crm_plantillas {
-  id_plantilla        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre              String        @db.VarChar(200)
-  asunto              String?       @db.VarChar(300)
+  id_plantilla        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre              String         @db.VarChar(200)
+  asunto              String?        @db.VarChar(300)
   contenido           String
-  tipo                String?       @default("email") @db.VarChar(20)
-  id_usuario_creador  String?       @db.Uuid
-  fecha_creacion      DateTime      @default(now()) @db.Timestamptz(6)
-  fecha_actualizacion DateTime      @default(now()) @db.Timestamptz(6)
-  crm_usuarios        crm_usuarios? @relation(fields: [id_usuario_creador], references: [id_usuario], onUpdate: NoAction, map: "fk_plantilla_creador")
+  tipo                String?        @default("email") @db.VarChar(20)
+  id_usuario_creador  String?        @db.Uuid
+  fecha_creacion      DateTime       @default(now()) @db.Timestamptz(6)
+  fecha_actualizacion DateTime       @default(now()) @db.Timestamptz(6)
+  crm_campanas        crm_campanas[]
+  crm_usuarios        crm_usuarios?  @relation(fields: [id_usuario_creador], references: [id_usuario], onUpdate: NoAction, map: "fk_plantilla_creador")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -431,4 +435,32 @@ model hist_estado_asesor {
   @@index([estado_nuevo], map: "idx_hist_ea_estado")
   @@index([fecha_cambio(sort: Desc)], map: "idx_hist_ea_fecha")
   @@index([id_lead], map: "idx_hist_ea_lead")
+}
+
+model mensaje_status_event {
+  id                BigInt   @id @default(autoincrement())
+  id_msg            String?
+  estado            String?
+  ts_unix           BigInt?
+  recipient_id      String?
+  pricing_json      Json?
+  conversation_json Json?
+  errors_json       Json?
+  created_at        DateTime @default(now()) @db.Timestamp(6)
+
+  @@index([created_at], map: "idx_mse_created")
+  @@index([estado], map: "idx_mse_estado")
+  @@index([id_msg], map: "idx_mse_id_msg")
+}
+
+model webhook_logs {
+  id         Int      @id @default(autoincrement())
+  event_type String   @default("unknown") @db.VarChar(100)
+  payload    Json?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  wamid      String?
+
+  @@index([created_at], map: "idx_webhook_logs_created")
+  @@index([event_type], map: "idx_webhook_logs_event")
+  @@index([wamid], map: "idx_webhook_logs_wamid")
 }

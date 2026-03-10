@@ -145,7 +145,12 @@ export function CampaignsModule() {
         </Card>
       </div>
 
-      {showModal && <CampaignModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <CampaignModal
+          onClose={() => setShowModal(false)}
+          onCreated={() => fetchCampaigns()}
+        />
+      )}
       {showDetailModal && selectedCampaign && (
         <CampaignDetailModal 
           campaign={selectedCampaign}

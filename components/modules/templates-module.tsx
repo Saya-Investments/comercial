@@ -132,6 +132,7 @@ export function TemplatesModule() {
             setShowModal(false)
             setSelectedTemplate(null)
           }}
+          onSaved={() => fetchTemplates()}
         />
       )}
 
