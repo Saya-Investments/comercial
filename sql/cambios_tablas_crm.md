@@ -191,4 +191,4 @@ crm_campanas (nueva)
 ```
 
 Todas las tablas nuevas tienen prefijo `crm_` para diferenciarlas de las tablas del bot (`bd_`, `hist_`, `config_`, `matching`).
-o
+oo
