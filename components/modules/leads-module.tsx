@@ -63,11 +63,9 @@ export function LeadsModule() {
             className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:flex-none"
           >
             <option value="">Estado</option>
-            <option value="Nuevo">Nuevo</option>
-            <option value="En Contacto">En Contacto</option>
-            <option value="Cualificado">Cualificado</option>
-            <option value="Ganado">Ganado</option>
-            <option value="Perdido">Perdido</option>
+            <option value="asignado">Asignado</option>
+            <option value="en_gestion">En Gestión</option>
+            <option value="descartado">Descartado</option>
           </select>
 
           {activeFilters.length > 0 && (

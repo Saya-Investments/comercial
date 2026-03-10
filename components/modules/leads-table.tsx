@@ -80,10 +80,9 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'lead': case 'Nuevo': return 'bg-blue-50 text-blue-700 border border-blue-200'
-      case 'prospecto': case 'En Contacto': return 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-      case 'venta': case 'Cualificado': return 'bg-green-50 text-green-700 border border-green-200'
-      case 'descartado': case 'Descalificado': return 'bg-red-50 text-red-700 border border-red-200'
+      case 'asignado': return 'bg-green-50 text-green-700 border border-green-200'
+      case 'en_gestion': return 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+      case 'descartado': return 'bg-red-50 text-red-700 border border-red-200'
       default: return 'bg-gray-50 text-gray-700 border border-gray-200'
     }
   }
