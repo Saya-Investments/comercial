@@ -56,6 +56,34 @@ function normalizePhone(raw: unknown): string | null {
 }
 
 // Map a BigQuery row to bd_leads fields
+// BigQuery column name → bd_leads field name
+const BQ_TO_PRISMA: Record<string, string> = {
+  'Nombres': 'nombre',
+  'Apellidos': 'apellido',
+  'Telefono': 'numero',
+  'telefono_normalizado': 'numero',
+  'Email': 'correo',
+  'email_normalizado': 'correo',
+  'Sede': 'zona',
+  'Origen': 'origen_lead',
+  'SubOrigen': 'suborigen_lead',
+  'Linea': 'linea',
+  'Estado': 'estado_de_lead',
+  'Motivo_Descarte': 'motivo_de_descarte',
+  'DNI': 'dni',
+}
+
+// Convert variable mapping from BQ column names to bd_leads field names
+function normalizeVariables(variables: Record<string, string>): Record<string, string> {
+  const normalized: Record<string, string> = {}
+  for (const [key, bqColumn] of Object.entries(variables)) {
+    // Strip {{ }} if present to get just the index
+    const cleanKey = key.replace(/[{}]/g, '')
+    normalized[cleanKey] = BQ_TO_PRISMA[bqColumn] || bqColumn.toLowerCase()
+  }
+  return normalized
+}
+
 function mapBQRowToLead(row: Record<string, unknown>) {
   const str = (v: unknown, max?: number) => {
     if (v == null || v === '') return null
@@ -72,7 +100,7 @@ function mapBQRowToLead(row: Record<string, unknown>) {
     origen_lead: str(row.Origen, 50),
     suborigen_lead: str(row.SubOrigen, 50),
     linea: str(row.Linea, 50),
-    estado_de_lead: str(row.Estado, 30) || 'lead',
+    estado_de_lead: 'en_gestion',
     motivo_de_descarte: str(row.Motivo_Descarte, 100),
   }
 }
@@ -100,7 +128,7 @@ export async function POST(req: NextRequest) {
       filtros: JSON.stringify(filters),
       total_leads: 0,
       id_plantilla: body.templateId || null,
-      variables: body.variables || {},
+      variables: body.variables ? normalizeVariables(body.variables) : {},
     },
   })
 

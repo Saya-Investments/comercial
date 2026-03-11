@@ -112,17 +112,20 @@ model config_modelo {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model crm_campana_leads {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  id_campana     String       @db.Uuid
-  id_lead        String       @db.Uuid
-  estado_envio   String?      @default("pendiente") @db.VarChar(20)
-  fecha_envio    DateTime?    @db.Timestamptz(6)
-  entregado      Boolean?     @default(false)
-  leido          Boolean?     @default(false)
-  respondio      Boolean?     @default(false)
-  fecha_creacion DateTime     @default(now()) @db.Timestamptz(6)
-  crm_campanas   crm_campanas @relation(fields: [id_campana], references: [id_campana], onDelete: Cascade, onUpdate: NoAction, map: "fk_cl_campana")
-  bd_leads       bd_leads     @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction, map: "fk_cl_lead")
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_campana          String       @db.Uuid
+  id_lead             String       @db.Uuid
+  estado_envio        String?      @default("pendiente") @db.VarChar(20)
+  fecha_envio         DateTime?    @db.Timestamptz(6)
+  entregado           Boolean?     @default(false)
+  leido               Boolean?     @default(false)
+  respondio           Boolean?     @default(false)
+  fecha_creacion      DateTime     @default(now()) @db.Timestamptz(6)
+  whatsapp_message_id String?      @db.VarChar(100)
+  error_code          String?      @db.VarChar(50)
+  error_descripcion   String?
+  crm_campanas        crm_campanas @relation(fields: [id_campana], references: [id_campana], onDelete: Cascade, onUpdate: NoAction, map: "fk_cl_campana")
+  bd_leads            bd_leads     @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction, map: "fk_cl_lead")
 
   @@unique([id_campana, id_lead], map: "uq_campana_lead")
   @@index([id_campana], map: "idx_cl_campana")

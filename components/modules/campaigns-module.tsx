@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Plus, Edit2, Trash2, Eye } from 'lucide-react'
 import { CampaignModal } from './modals/campaign-modal'
-import { CampaignDetailModal } from './modals/campaign-detail-modal'
+import { CampaignDetailView } from './campaign-detail-view'
 
 interface Campaign {
   id: string
@@ -20,20 +20,17 @@ interface Campaign {
 
 export function CampaignsModule() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [loading, setLoading] = useState(true)
+  const [viewingCampaignId, setViewingCampaignId] = useState<string | null>(null)
 
   const fetchCampaigns = () => {
     fetch('/api/campaigns')
       .then(res => res.json())
       .then(data => setCampaigns(data))
       .catch(console.error)
-      .finally(() => setLoading(false))
   }
 
   useEffect(() => { fetchCampaigns() }, [])
   const [showModal, setShowModal] = useState(false)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/campaigns?id=${id}`, { method: 'DELETE' })
@@ -51,6 +48,19 @@ export function CampaignsModule() {
       default:
         return ''
     }
+  }
+
+  // If viewing a campaign detail, show full-page detail view
+  if (viewingCampaignId) {
+    return (
+      <CampaignDetailView
+        campaignId={viewingCampaignId}
+        onBack={() => {
+          setViewingCampaignId(null)
+          fetchCampaigns() // Refresh list when coming back
+        }}
+      />
+    )
   }
 
   return (
@@ -102,10 +112,7 @@ export function CampaignsModule() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => {
-                            setSelectedCampaign(campaign)
-                            setShowDetailModal(true)
-                          }}
+                          onClick={() => setViewingCampaignId(campaign.id)}
                           className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                         >
                           <Eye className="w-4 h-4" />
@@ -149,12 +156,6 @@ export function CampaignsModule() {
         <CampaignModal
           onClose={() => setShowModal(false)}
           onCreated={() => fetchCampaigns()}
-        />
-      )}
-      {showDetailModal && selectedCampaign && (
-        <CampaignDetailModal 
-          campaign={selectedCampaign}
-          onClose={() => setShowDetailModal(false)}
         />
       )}
     </div>
