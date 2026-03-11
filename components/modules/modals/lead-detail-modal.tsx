@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { X, Phone, CalendarClock, Handshake, ArrowRight, Loader2 } from 'lucide-react'
+import { X, Phone, CalendarClock, Handshake, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 interface LeadDetailModalProps {
@@ -39,6 +39,18 @@ interface HistEstado {
   observaciones: string | null
 }
 
+interface HistScoring {
+  id: string
+  scoringAnterior: number | null
+  scoringNuevo: number | null
+  deltaScoring: number | null
+  eventoTrigger: string | null
+  nivelInteres: number | null
+  sentimiento: string | null
+  contactabilidad: number | null
+  timestamp: string
+}
+
 const ESTADO_LABELS: Record<string, string> = {
   No_contesta: 'No contesta',
   No_interesado: 'No interesado',
@@ -61,6 +73,30 @@ const TIPO_ICONS: Record<string, typeof Phone> = {
   Cita: Handshake,
 }
 
+const EVENTO_LABELS: Record<string, string> = {
+  respuesta_bot: 'Respuesta Bot',
+  decaimiento: 'Decaimiento',
+  nlp_update: 'NLP Update',
+  campana: 'Campaña',
+  manual: 'Manual',
+  reciclaje: 'Reciclaje',
+}
+
+const EVENTO_COLORS: Record<string, string> = {
+  respuesta_bot: 'bg-blue-500',
+  decaimiento: 'bg-red-500',
+  nlp_update: 'bg-purple-500',
+  campana: 'bg-amber-500',
+  manual: 'bg-gray-500',
+  reciclaje: 'bg-cyan-500',
+}
+
+const SENTIMIENTO_COLORS: Record<string, string> = {
+  positivo: 'text-green-600',
+  neutral: 'text-gray-600',
+  negativo: 'text-red-600',
+}
+
 const ESTADO_COLORS: Record<string, string> = {
   No_contesta: 'bg-gray-100 text-gray-700 border-gray-200',
   No_interesado: 'bg-red-50 text-red-700 border-red-200',
@@ -72,11 +108,13 @@ const ESTADO_COLORS: Record<string, string> = {
 }
 
 export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
-  const [tab, setTab] = useState<'info' | 'acciones' | 'historial'>('info')
+  const [tab, setTab] = useState<'info' | 'acciones' | 'historial' | 'scoring'>('info')
   const [acciones, setAcciones] = useState<AccionComercial[]>([])
   const [historial, setHistorial] = useState<HistEstado[]>([])
+  const [histScoring, setHistScoring] = useState<HistScoring[]>([])
   const [loadingAcciones, setLoadingAcciones] = useState(false)
   const [loadingHistorial, setLoadingHistorial] = useState(false)
+  const [loadingScoring, setLoadingScoring] = useState(false)
 
   useEffect(() => {
     if (tab === 'acciones' && acciones.length === 0) {
@@ -93,7 +131,14 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
         .then(setHistorial)
         .finally(() => setLoadingHistorial(false))
     }
-  }, [tab, lead.id, acciones.length, historial.length])
+    if (tab === 'scoring' && histScoring.length === 0) {
+      setLoadingScoring(true)
+      fetch(`/api/hist-scoring?leadId=${lead.id}`)
+        .then((r) => r.json())
+        .then(setHistScoring)
+        .finally(() => setLoadingScoring(false))
+    }
+  }, [tab, lead.id, acciones.length, historial.length, histScoring.length])
 
   const formatDate = (iso: string) => {
     const d = new Date(iso)
@@ -102,7 +147,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <Card className="w-full max-w-2xl flex flex-col max-h-[90vh]">
+      <Card className="w-full max-w-3xl flex flex-col max-h-[90vh]">
         <div className="flex justify-between items-center p-6 border-b border-border flex-shrink-0">
           <h2 className="text-xl font-bold text-foreground">Detalle del Lead</h2>
           <button
@@ -115,7 +160,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
 
         {/* Tabs */}
         <div className="flex border-b border-border flex-shrink-0">
-          {(['info', 'acciones', 'historial'] as const).map((t) => (
+          {(['info', 'acciones', 'historial', 'scoring'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -125,7 +170,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {t === 'info' ? 'Informacion' : t === 'acciones' ? 'Acciones Comerciales' : 'Historial Estado'}
+              {t === 'info' ? 'Informacion' : t === 'acciones' ? 'Acciones Comerciales' : t === 'historial' ? 'Historial Estado' : 'Historial Scoring'}
             </button>
           ))}
         </div>
@@ -239,6 +284,99 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                     )}
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* TAB: Historial Scoring */}
+          {tab === 'scoring' && (
+            <div>
+              {loadingScoring ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : histScoring.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No hay historial de scoring</p>
+              ) : (
+                <div className="relative">
+                  {/* Linea vertical de la timeline */}
+                  <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-border" />
+
+                  <div className="space-y-0">
+                    {histScoring.map((s) => {
+                      const delta = s.deltaScoring ?? 0
+                      const isUp = delta > 0
+                      const isDown = delta < 0
+                      const DeltaIcon = isUp ? TrendingUp : isDown ? TrendingDown : Minus
+                      const dotColor = isUp ? 'bg-green-500' : isDown ? 'bg-red-500' : 'bg-gray-400'
+                      const deltaColor = isUp ? 'text-green-600' : isDown ? 'text-red-600' : 'text-gray-500'
+                      const eventColor = EVENTO_COLORS[s.eventoTrigger || ''] || 'bg-gray-500'
+
+                      return (
+                        <div key={s.id} className="relative flex gap-4 pb-6 last:pb-0">
+                          {/* Dot del timeline */}
+                          <div className="relative z-10 flex-shrink-0 mt-1">
+                            <div className={`w-[10px] h-[10px] rounded-full ${dotColor} ring-4 ring-background`} />
+                          </div>
+
+                          {/* Contenido */}
+                          <div className="flex-1 min-w-0 pb-1">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-foreground text-lg tabular-nums">
+                                  {s.scoringNuevo !== null ? (s.scoringNuevo * 100).toFixed(1) + '%' : '-'}
+                                </span>
+                                {delta !== 0 && (
+                                  <span className={`flex items-center gap-0.5 text-xs font-medium ${deltaColor}`}>
+                                    <DeltaIcon className="w-3 h-3" />
+                                    {isUp ? '+' : ''}{(delta * 100).toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(s.timestamp)}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white ${eventColor}`}>
+                                {EVENTO_LABELS[s.eventoTrigger || ''] || s.eventoTrigger || 'Desconocido'}
+                              </span>
+                              {s.sentimiento && (
+                                <span className={`text-xs font-medium ${SENTIMIENTO_COLORS[s.sentimiento] || 'text-gray-500'}`}>
+                                  {s.sentimiento.charAt(0).toUpperCase() + s.sentimiento.slice(1)}
+                                </span>
+                              )}
+                            </div>
+
+                            {(s.nivelInteres !== null || s.contactabilidad !== null) && (
+                              <div className="flex gap-4 mt-1.5 text-xs text-muted-foreground">
+                                {s.nivelInteres !== null && (
+                                  <span>Interes: <span className="font-medium text-foreground">{(s.nivelInteres * 100).toFixed(0)}%</span></span>
+                                )}
+                                {s.contactabilidad !== null && (
+                                  <span>Contactabilidad: <span className="font-medium text-foreground">{(s.contactabilidad * 100).toFixed(0)}%</span></span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Barra visual del scoring */}
+                            {s.scoringNuevo !== null && (
+                              <div className="mt-2 h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    s.scoringNuevo >= 0.7 ? 'bg-green-500' : s.scoringNuevo >= 0.4 ? 'bg-amber-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min(s.scoringNuevo * 100, 100)}%` }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           )}

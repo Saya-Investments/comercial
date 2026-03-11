@@ -169,6 +169,7 @@ model crm_citas {
   descripcion              String?
   tipo                     String                     @default("llamada") @db.VarChar(20)
   estado                   String                     @default("active") @db.VarChar(20)
+  recordatorio_enviado     Boolean                    @default(false)
   fecha_creacion           DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
   crm_acciones_comerciales crm_acciones_comerciales[]

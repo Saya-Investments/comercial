@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json()
 
-  const { leadId, userId, tipoAccion, estadoAsesor, observaciones, duracionSeg, cita } = body
+  const { leadId, userId, tipoAccion, estadoAsesor, observaciones, duracionSeg, cita, citaId: bodyCitaId } = body
 
   if (!leadId || !userId || !tipoAccion || !estadoAsesor) {
     return NextResponse.json(
@@ -76,12 +76,12 @@ export async function POST(req: NextRequest) {
     orderBy: { fecha_asignacion: 'desc' },
   })
 
-  let citaId: string | null = null
+  let citaId: string | null = bodyCitaId || null
 
   // If scheduling a call, create the cita first
   if (tipoAccion === 'Agendar_llamada' && cita) {
     const [hours, minutes] = (cita.time || '09:00').split(':').map(Number)
-    const horaDate = new Date(1970, 0, 1, hours, minutes, 0)
+    const horaDate = new Date(Date.UTC(1970, 0, 1, hours, minutes, 0))
 
     const nuevaCita = await prisma.crm_citas.create({
       data: {

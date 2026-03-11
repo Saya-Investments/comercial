@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
 
   const [hours, minutes] = (body.time || '09:00').split(':').map(Number)
-  const horaDate = new Date(1970, 0, 1, hours, minutes, 0)
+  const horaDate = new Date(Date.UTC(1970, 0, 1, hours, minutes, 0))
 
   const cita = await prisma.crm_citas.create({
     data: {
@@ -73,7 +73,7 @@ export async function PUT(req: NextRequest) {
   if (body.date) data.fecha = new Date(body.date)
   if (body.time) {
     const [h, m] = body.time.split(':').map(Number)
-    data.hora = new Date(1970, 0, 1, h, m, 0)
+    data.hora = new Date(Date.UTC(1970, 0, 1, h, m, 0))
   }
   if (body.location !== undefined) data.ubicacion = body.location
   if (body.description !== undefined) data.descripcion = body.description
