@@ -22,7 +22,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
     { id: 'calendar', label: 'Calendario', icon: Calendar, adminOnly: false },
     { id: 'templates', label: 'Plantillas', icon: Mail, adminOnly: true },
     { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, adminOnly: true },
-    { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, adminOnly: true },
+    // { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, adminOnly: true },
     { id: 'routing-rules', label: 'Enrutamiento', icon: Settings, adminOnly: true },
     { id: 'users', label: 'Usuarios', icon: Users2, adminOnly: true },
   ]
