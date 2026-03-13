@@ -7,8 +7,20 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId')
 
+  const asesorId = searchParams.get('asesorId')
+
   const where: Record<string, unknown> = {}
-  if (userId) where.id_usuario = userId
+  if (asesorId) {
+    // Find the user linked to this asesor
+    const usuario = await prisma.crm_usuarios.findFirst({
+      where: { id_asesor: asesorId },
+      select: { id_usuario: true },
+    })
+    if (usuario) where.id_usuario = usuario.id_usuario
+    else return NextResponse.json([])
+  } else if (userId) {
+    where.id_usuario = userId
+  }
 
   const citas = await prisma.crm_citas.findMany({
     where,

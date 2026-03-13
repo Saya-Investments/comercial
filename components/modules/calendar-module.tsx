@@ -19,20 +19,44 @@ interface Appointment {
   status: 'active' | 'cancelled'
 }
 
+interface AsesorOption {
+  id: string
+  name: string
+}
+
 export function CalendarModule() {
   const { user } = useAuth()
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [asesores, setAsesores] = useState<AsesorOption[]>([])
+  const [filterAsesor, setFilterAsesor] = useState('')
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/advisors')
+        .then(res => res.json())
+        .then(data => setAsesores(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string }))))
+        .catch(console.error)
+    }
+  }, [isAdmin])
 
   const fetchAppointments = () => {
-    const isAdmin = user?.role === 'admin'
-    const url = isAdmin ? '/api/calendar' : `/api/calendar?userId=${user?.id}`
+    let url: string
+    if (filterAsesor) {
+      url = `/api/calendar?asesorId=${filterAsesor}`
+    } else if (isAdmin) {
+      url = '/api/calendar'
+    } else {
+      url = `/api/calendar?userId=${user?.id}`
+    }
     fetch(url)
       .then(res => res.json())
       .then(data => setAppointments(data))
       .catch(console.error)
   }
 
-  useEffect(() => { if (user) fetchAppointments() }, [user])
+  useEffect(() => { if (user) fetchAppointments() }, [user, filterAsesor])
 
   const [showModal, setShowModal] = useState(false)
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -103,8 +127,21 @@ export function CalendarModule() {
   return (
     <div className="p-6 h-full overflow-auto">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-foreground">Calendario de Citas</h1>
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <select
+                value={filterAsesor}
+                onChange={(e) => setFilterAsesor(e.target.value)}
+                className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm md:w-64"
+              >
+                <option value="">Todos los asesores</option>
+                {asesores.map(a => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            )}
           <Button
             onClick={() => {
               setEditingAppointment(null)
@@ -115,6 +152,7 @@ export function CalendarModule() {
             <Plus className="w-4 h-4 mr-2" />
             Nueva Cita
           </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

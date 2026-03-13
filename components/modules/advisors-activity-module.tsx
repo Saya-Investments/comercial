@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Search, TrendingUp, Phone, CheckCircle } from 'lucide-react'
+import { Search, TrendingUp, Phone, CheckCircle, Briefcase } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -14,6 +14,7 @@ interface AdvisorActivity {
   calls: number
   tasksCompleted: number
   pending: number
+  accionesComerciales: number
   performance: 'excellent' | 'good' | 'average' | 'needs-improvement'
 }
 
@@ -51,21 +52,24 @@ export function AdvisorsActivityModule() {
 
   const totalCalls = advisors.reduce((sum, a) => sum + a.calls, 0)
   const totalTasksCompleted = advisors.reduce((sum, a) => sum + a.tasksCompleted, 0)
+  const totalAcciones = advisors.reduce((sum, a) => sum + (a.accionesComerciales || 0), 0)
 
   const barChartData = advisors.map((advisor) => ({
     name: advisor.name.split(' ')[0],
     calls: advisor.calls,
+    acciones: advisor.accionesComerciales || 0,
     completadas: advisor.tasksCompleted,
     pendientes: advisor.pending,
   }))
 
   const pieChartData = [
     { name: 'Llamadas', value: totalCalls },
+    { name: 'Acc. Comerciales', value: totalAcciones },
     { name: 'Completadas', value: totalTasksCompleted },
     { name: 'Pendientes', value: advisors.reduce((sum, a) => sum + a.pending, 0) },
   ]
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b']
+  const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b']
 
   return (
     <div className="flex flex-col h-full">
@@ -80,7 +84,7 @@ export function AdvisorsActivityModule() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card className="p-3 md:p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -88,6 +92,16 @@ export function AdvisorsActivityModule() {
                 <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{totalCalls}</p>
               </div>
               <Phone className="w-4 h-4 md:w-5 md:h-5 text-accent flex-shrink-0" />
+            </div>
+          </Card>
+
+          <Card className="p-3 md:p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs md:text-sm text-muted-foreground">Acciones Comerciales</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{totalAcciones}</p>
+              </div>
+              <Briefcase className="w-4 h-4 md:w-5 md:h-5 text-accent flex-shrink-0" />
             </div>
           </Card>
 
@@ -147,6 +161,7 @@ export function AdvisorsActivityModule() {
                 />
                 <Legend />
                 <Bar dataKey="calls" fill="#3b82f6" name="Llamadas" />
+                <Bar dataKey="acciones" fill="#8b5cf6" name="Acc. Comerciales" />
                 <Bar dataKey="completadas" fill="#10b981" name="Completadas" />
                 <Bar dataKey="pendientes" fill="#f59e0b" name="Pendientes" />
               </BarChart>
@@ -212,13 +227,21 @@ export function AdvisorsActivityModule() {
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                       <div className="bg-muted/50 rounded-lg p-2 md:p-3">
                         <div className="flex items-center gap-2 mb-1">
                           <Phone className="w-3 h-3 md:w-4 md:h-4 text-accent" />
                           <p className="text-xs text-muted-foreground">Llamadas</p>
                         </div>
                         <p className="text-lg md:text-xl font-bold text-foreground">{advisor.calls}</p>
+                      </div>
+
+                      <div className="bg-muted/50 rounded-lg p-2 md:p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Briefcase className="w-3 h-3 md:w-4 md:h-4 text-accent" />
+                          <p className="text-xs text-muted-foreground">Acc. Comerciales</p>
+                        </div>
+                        <p className="text-lg md:text-xl font-bold text-foreground">{advisor.accionesComerciales || 0}</p>
                       </div>
 
                       <div className="bg-muted/50 rounded-lg p-2 md:p-3">

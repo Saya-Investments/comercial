@@ -10,11 +10,22 @@ export async function GET(req: NextRequest) {
   const producto = searchParams.get('producto') || ''
   const userId = searchParams.get('userId') || ''
   const role = searchParams.get('role') || ''
+  const asesorId = searchParams.get('asesorId') || ''
 
   const where: Record<string, unknown> = {}
 
-  // If user is an asesor, only show leads assigned via matching
-  if (userId && role === 'asesor') {
+  // Filter by specific asesor (admin filtering)
+  if (asesorId) {
+    const matchings = await prisma.matching.findMany({
+      where: { id_asesor: asesorId, asignado: true },
+      select: { id_lead: true },
+    })
+    const leadIds = matchings.map((m) => m.id_lead)
+    where.OR = [
+      { id_lead: { in: leadIds } },
+      { ultimo_asesor_asignado: asesorId },
+    ]
+  } else if (userId && role === 'asesor') {
     const usuario = await prisma.crm_usuarios.findUnique({
       where: { id_usuario: userId },
       select: { id_asesor: true },

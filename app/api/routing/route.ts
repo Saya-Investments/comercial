@@ -24,16 +24,23 @@ export async function GET(req: NextRequest) {
     take: 500,
   })
 
-  // Agrupar por lead
-  const leadsMap = new Map<string, {
-    lead: { id: string; dni: string; name: string; producto: string; scoring: number; estado: string }
-    asesores: Array<{
+  // Agrupar por asesor
+  const asesoresMap = new Map<string, {
+    asesor: {
       id: string
       nombre: string
       cod: string
       especialidad: string
       disponibilidad: string
       leadsEnCola: number
+    }
+    leads: Array<{
+      id: string
+      dni: string
+      name: string
+      producto: string
+      scoring: number
+      estado: string
       scoreTotal: number
       scoreK: number
       scoreC: number
@@ -45,28 +52,28 @@ export async function GET(req: NextRequest) {
   }>()
 
   for (const m of matchings) {
-    const leadKey = m.id_lead
-    if (!leadsMap.has(leadKey)) {
-      leadsMap.set(leadKey, {
-        lead: {
-          id: m.bd_leads.id_lead,
-          dni: m.bd_leads.dni || '',
-          name: `${m.bd_leads.nombre || ''} ${m.bd_leads.apellido || ''}`.trim(),
-          producto: m.bd_leads.producto || '',
-          scoring: Math.round(Number(m.bd_leads.scoring || 0) * 100),
-          estado: m.bd_leads.estado_de_lead || '',
+    const asesorKey = m.id_asesor
+    if (!asesoresMap.has(asesorKey)) {
+      asesoresMap.set(asesorKey, {
+        asesor: {
+          id: m.bd_asesores.id_asesor,
+          nombre: m.bd_asesores.nombre_asesor || '',
+          cod: m.bd_asesores.cod_asesor || '',
+          especialidad: m.bd_asesores.especialidad || '',
+          disponibilidad: m.bd_asesores.disponibilidad || '',
+          leadsEnCola: m.bd_asesores.leads_en_cola || 0,
         },
-        asesores: [],
+        leads: [],
       })
     }
 
-    leadsMap.get(leadKey)!.asesores.push({
-      id: m.bd_asesores.id_asesor,
-      nombre: m.bd_asesores.nombre_asesor || '',
-      cod: m.bd_asesores.cod_asesor || '',
-      especialidad: m.bd_asesores.especialidad || '',
-      disponibilidad: m.bd_asesores.disponibilidad || '',
-      leadsEnCola: m.bd_asesores.leads_en_cola || 0,
+    asesoresMap.get(asesorKey)!.leads.push({
+      id: m.bd_leads.id_lead,
+      dni: m.bd_leads.dni || '',
+      name: `${m.bd_leads.nombre || ''} ${m.bd_leads.apellido || ''}`.trim(),
+      producto: m.bd_leads.producto || '',
+      scoring: Math.round(Number(m.bd_leads.scoring || 0) * 100),
+      estado: m.bd_leads.estado_de_lead || '',
       scoreTotal: Math.round(Number(m.score_total || 0) * 100),
       scoreK: Math.round(Number(m.score_k || 0) * 100),
       scoreC: Math.round(Number(m.score_c || 0) * 100),
@@ -77,10 +84,10 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Ordenar asesores de cada lead por score_total descendente
-  for (const entry of leadsMap.values()) {
-    entry.asesores.sort((a, b) => b.scoreTotal - a.scoreTotal)
+  // Ordenar leads de cada asesor por score_total descendente
+  for (const entry of asesoresMap.values()) {
+    entry.leads.sort((a, b) => b.scoreTotal - a.scoreTotal)
   }
 
-  return NextResponse.json(Array.from(leadsMap.values()))
+  return NextResponse.json(Array.from(asesoresMap.values()))
 }

@@ -26,9 +26,10 @@ interface LeadsTableProps {
   filterPriority?: string
   filterStatus?: string
   filterDate?: string
+  filterAsesor?: string
 }
 
-export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '', filterDate = '' }: LeadsTableProps) {
+export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '', filterDate = '', filterAsesor = '' }: LeadsTableProps) {
   const { user } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,6 +42,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
       if (searchTerm) params.set('search', searchTerm)
       if (user?.id) params.set('userId', user.id)
       if (user?.role) params.set('role', user.role)
+      if (filterAsesor) params.set('asesorId', filterAsesor)
       const res = await fetch(`/api/leads?${params}`)
       if (res.ok) {
         const data = await res.json()
@@ -51,7 +53,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     } finally {
       setLoading(false)
     }
-  }, [searchTerm, user?.id, user?.role])
+  }, [searchTerm, user?.id, user?.role, filterAsesor])
 
   useEffect(() => {
     fetchLeads()

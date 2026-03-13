@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId') || ''
   const role = searchParams.get('role') || ''
+  const asesorId = searchParams.get('asesorId') || ''
 
   // ---------- Leads asignados via matching ----------
   let matchingLeads: Array<{
@@ -78,9 +79,12 @@ export async function GET(req: NextRequest) {
       source: 'matching' as const,
     }))
   } else if (!role || role === 'admin' || role === 'Admin') {
-    // Admin ve todos los leads asignados via matching
+    // Admin ve todos los leads asignados via matching (opcionalmente filtrado por asesor)
+    const matchingWhere: Record<string, unknown> = { asignado: true }
+    if (asesorId) matchingWhere.id_asesor = asesorId
+
     const matchings = await prisma.matching.findMany({
-      where: { asignado: true },
+      where: matchingWhere,
       include: {
         bd_leads: {
           select: {

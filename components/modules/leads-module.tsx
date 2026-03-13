@@ -1,27 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Search, X } from 'lucide-react'
 import { LeadsTable } from './leads-table'
+import { useAuth } from '@/contexts/auth-context'
+
+interface AsesorOption {
+  id: string
+  name: string
+}
 
 export function LeadsModule() {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPriority, setFilterPriority] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('')
   const [filterDate, setFilterDate] = useState<string>('')
+  const [filterAsesor, setFilterAsesor] = useState<string>('')
+  const [asesores, setAsesores] = useState<AsesorOption[]>([])
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/advisors')
+        .then(res => res.json())
+        .then(data => setAsesores(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string }))))
+        .catch(console.error)
+    }
+  }, [isAdmin])
 
   const activeFilters = [
     filterPriority && `Prioridad: ${filterPriority}`,
     filterStatus && `Estado: ${filterStatus}`,
     filterDate && `Desde: ${filterDate}`,
+    filterAsesor && `Asesor: ${asesores.find(a => a.id === filterAsesor)?.name || filterAsesor}`,
   ].filter(Boolean)
 
   const clearFilters = () => {
     setFilterPriority('')
     setFilterStatus('')
     setFilterDate('')
+    setFilterAsesor('')
   }
 
   return (
@@ -68,6 +90,19 @@ export function LeadsModule() {
             <option value="descartado">Descartado</option>
           </select>
 
+          {isAdmin && (
+            <select
+              value={filterAsesor}
+              onChange={(e) => setFilterAsesor(e.target.value)}
+              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:flex-none"
+            >
+              <option value="">Asesor</option>
+              {asesores.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          )}
+
           {activeFilters.length > 0 && (
             <Button
               variant="outline"
@@ -92,11 +127,12 @@ export function LeadsModule() {
       </div>
 
       <div className="flex-1 overflow-auto">
-        <LeadsTable 
+        <LeadsTable
           searchTerm={searchTerm}
           filterPriority={filterPriority}
           filterStatus={filterStatus}
           filterDate={filterDate}
+          filterAsesor={filterAsesor}
         />
       </div>
 

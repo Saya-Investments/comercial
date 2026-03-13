@@ -21,6 +21,11 @@ interface Lead {
   taskStatus?: string
 }
 
+interface AsesorOption {
+  id: string
+  name: string
+}
+
 export function TasksModule() {
   const { user } = useAuth()
   const [allLeads, setAllLeads] = useState<Lead[]>([])
@@ -29,11 +34,26 @@ export function TasksModule() {
   const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | null>(null)
   const [selectedPriority, setSelectedPriority] = useState<'Alta' | 'Media' | 'Baja' | null>(null)
   const [expandedPriority, setExpandedPriority] = useState<'Alta' | 'Media' | 'Baja' | null>(null)
+  const [asesores, setAsesores] = useState<AsesorOption[]>([])
+  const [filterAsesor, setFilterAsesor] = useState('')
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
 
   useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/advisors')
+        .then(res => res.json())
+        .then(data => setAsesores(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string }))))
+        .catch(console.error)
+    }
+  }, [isAdmin])
+
+  useEffect(() => {
+    setLoading(true)
     const params = new URLSearchParams()
     if (user?.id) params.set('userId', user.id)
     if (user?.role) params.set('role', user.role)
+    if (filterAsesor) params.set('asesorId', filterAsesor)
 
     fetch(`/api/tasks?${params}`)
       .then(res => res.json())
@@ -57,7 +77,7 @@ export function TasksModule() {
           .then(data => setAllLeads(data))
       })
       .finally(() => setLoading(false))
-  }, [user?.id, user?.role])
+  }, [user?.id, user?.role, filterAsesor])
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail') => {
     setSelectedLead(lead)
@@ -229,9 +249,23 @@ export function TasksModule() {
   return (
     <div className="p-6 h-full overflow-auto">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Tareas por Prioridad</h1>
-          <p className="text-muted-foreground mt-1">Haz clic en una caja para ver los leads asignados</p>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Tareas por Prioridad</h1>
+            <p className="text-muted-foreground mt-1">Haz clic en una caja para ver los leads asignados</p>
+          </div>
+          {isAdmin && (
+            <select
+              value={filterAsesor}
+              onChange={(e) => setFilterAsesor(e.target.value)}
+              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm md:w-64"
+            >
+              <option value="">Todos los asesores</option>
+              {asesores.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
