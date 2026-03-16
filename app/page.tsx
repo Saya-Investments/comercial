@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { LoginForm } from '@/components/auth/login-form'
 import { Sidebar } from '@/components/layout/sidebar'
@@ -21,9 +21,24 @@ const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bo
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
-  const [activeModule, setActiveModule] = useState<ModuleType>('leads')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity']
+
+  const getModuleFromHash = useCallback((): ModuleType => {
+    if (typeof window === 'undefined') return 'leads'
+    const hash = window.location.hash.replace('#', '')
+    return ALL_MODULES.includes(hash as ModuleType) ? (hash as ModuleType) : 'leads'
+  }, [])
+
+  const [activeModule, setActiveModule] = useState<ModuleType>(getModuleFromHash)
+
+  useEffect(() => {
+    const onHashChange = () => setActiveModule(getModuleFromHash())
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [getModuleFromHash])
 
   if (loading) {
     return (
@@ -43,6 +58,7 @@ export default function Home() {
   const isAdmin = user?.role === 'admin'
   const handleModuleChange = (mod: ModuleType) => {
     if (!isAdmin && ADMIN_ONLY_MODULES.includes(mod)) return
+    window.location.hash = mod
     setActiveModule(mod)
   }
 
@@ -73,7 +89,7 @@ export default function Home() {
         <div className="md:hidden">
           <Sidebar 
             activeModule={activeModule} 
-            onModuleChange={() => setSidebarOpen(false)} 
+            onModuleChange={(mod: ModuleType) => { handleModuleChange(mod); setSidebarOpen(false) }}
             isMobile
             collapsed={false}
           />
