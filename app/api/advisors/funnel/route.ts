@@ -96,14 +96,23 @@ export async function GET(req: NextRequest) {
 
   const totalLeads = leadMaxStage.size
 
-  // Build funnel data with conteos exactos (sin acumulado)
+  // Acumulado tipo embudo: si un lead llegó a etapa X, también pasó por todas las anteriores
+  const cumulativeCounts: Record<string, number> = {}
+  let accumulated = 0
+  for (const stage of [...stageOrder].reverse()) {
+    accumulated += exactCounts[stage] || 0
+    cumulativeCounts[stage] = accumulated
+  }
+
+  // Build funnel data: count = acumulado (para el embudo), exact = solo en esa etapa
   const funnel = stageOrder.map((stage) => ({
     stage,
     label: STAGE_LABELS[stage],
-    count: exactCounts[stage] || 0,
+    count: cumulativeCounts[stage] || 0,
+    exact: exactCounts[stage] || 0,
   }))
 
-  // Conversion rates: del total de leads gestionados, qué % llegó a cada etapa
+  // Conversion rates entre etapas consecutivas (basado en acumulado)
   const conversions = []
   for (let i = 0; i < funnel.length - 1; i++) {
     const from = funnel[i]

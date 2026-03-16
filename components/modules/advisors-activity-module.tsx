@@ -25,6 +25,7 @@ interface FunnelStage {
   stage: string
   label: string
   count: number
+  exact: number
 }
 
 interface FunnelConversion {
@@ -455,7 +456,7 @@ function FunnelTab({ advisors }: { advisors: AdvisorActivity[] }) {
         <Card className="p-3 md:p-4">
           <p className="text-xs text-muted-foreground">Ventas Cerradas</p>
           <p className="text-xl md:text-2xl font-bold text-green-600 mt-1">
-            {funnelData.funnel.find((s) => s.stage === 'Venta_cerrada')?.count || 0}
+            {funnelData.funnel.find((s) => s.stage === 'Venta_cerrada')?.exact || 0}
           </p>
         </Card>
         <Card className="p-3 md:p-4">
@@ -467,7 +468,7 @@ function FunnelTab({ advisors }: { advisors: AdvisorActivity[] }) {
           <p className="text-xl md:text-2xl font-bold text-foreground mt-1">
             {funnelData.totalLeads > 0
               ? (
-                  ((funnelData.funnel.find((s) => s.stage === 'Venta_cerrada')?.count || 0) /
+                  ((funnelData.funnel.find((s) => s.stage === 'Venta_cerrada')?.exact || 0) /
                     funnelData.totalLeads) *
                   100
                 ).toFixed(1)
@@ -564,7 +565,8 @@ function FunnelTab({ advisors }: { advisors: AdvisorActivity[] }) {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 px-3 text-muted-foreground font-medium">Etapa</th>
-                <th className="text-right py-2 px-3 text-muted-foreground font-medium">Leads</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium">Pasaron por aqui</th>
+                <th className="text-right py-2 px-3 text-muted-foreground font-medium">Se quedaron aqui</th>
                 <th className="text-right py-2 px-3 text-muted-foreground font-medium">% del total</th>
               </tr>
             </thead>
@@ -578,6 +580,7 @@ function FunnelTab({ advisors }: { advisors: AdvisorActivity[] }) {
                     </div>
                   </td>
                   <td className="py-2.5 px-3 text-right font-medium text-foreground">{s.count}</td>
+                  <td className="py-2.5 px-3 text-right text-muted-foreground">{s.exact}</td>
                   <td className="py-2.5 px-3 text-right text-muted-foreground">
                     {funnelData.totalLeads > 0 ? ((s.count / funnelData.totalLeads) * 100).toFixed(1) : '0'}%
                   </td>
