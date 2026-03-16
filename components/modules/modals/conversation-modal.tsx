@@ -19,6 +19,7 @@ interface Message {
   text: string
   sender: 'lead' | 'user'
   timestamp?: string
+  imagen_url?: string | null
 }
 
 export function ConversationModal({ lead, onClose }: ConversationModalProps) {
@@ -67,7 +68,15 @@ export function ConversationModal({ lead, onClose }: ConversationModalProps) {
                       : 'bg-secondary text-foreground border border-border'
                   }`}
                 >
-                  <p className="text-sm">{msg.text}</p>
+                  {msg.imagen_url && (
+                    <img
+                      src={msg.imagen_url}
+                      alt="Imagen enviada"
+                      className="max-w-full rounded-md mb-1 cursor-pointer"
+                      onClick={() => window.open(msg.imagen_url!, '_blank')}
+                    />
+                  )}
+                  {msg.text && <p className="text-sm">{msg.text}</p>}
                   {msg.timestamp && (
                     <p className="text-xs opacity-70 mt-1">{msg.timestamp}</p>
                   )}

@@ -36,6 +36,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         text: data.mensaje || '',
         sender: data.sender === true ? 'lead' as const : 'user' as const,
         timestamp: fechaPeru.toISOString().replace('T', ' ').slice(0, 16),
+        imagen_url: data.imagen_url || null,
         _sort: fecha.getTime(),
       }
     })
