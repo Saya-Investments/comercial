@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createCalendarEvent, updateCalendarEvent, cancelCalendarEvent } from '@/lib/google-calendar'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
   const [hours, minutes] = (body.time || '09:00').split(':').map(Number)
   const horaDate = new Date(Date.UTC(1970, 0, 1, hours, minutes, 0))
 
+  // Create cita in DB
   const cita = await prisma.crm_citas.create({
     data: {
       titulo: body.title,
@@ -71,6 +73,31 @@ export async function POST(req: NextRequest) {
       tipo: body.type || 'llamada',
     },
   })
+
+  // Sync to Google Calendar if user has connected
+  const usuario = await prisma.crm_usuarios.findUnique({
+    where: { id_usuario: body.userId },
+    select: { google_refresh_token: true },
+  })
+
+  if (usuario?.google_refresh_token) {
+    const googleEventId = await createCalendarEvent(usuario.google_refresh_token, {
+      title: body.title,
+      description: body.description || undefined,
+      date: body.date,
+      time: body.time || '09:00',
+      type: body.type || 'llamada',
+      location: body.location || undefined,
+      leadName: body.leadName || undefined,
+    })
+
+    if (googleEventId) {
+      await prisma.crm_citas.update({
+        where: { id_cita: cita.id_cita },
+        data: { google_event_id: googleEventId },
+      })
+    }
+  }
 
   return NextResponse.json({ id: cita.id_cita }, { status: 201 })
 }
@@ -91,10 +118,43 @@ export async function PUT(req: NextRequest) {
   if (body.description !== undefined) data.descripcion = body.description
   if (body.type) data.tipo = body.type
 
+  // Get existing cita for Google Calendar sync
+  const existingCita = await prisma.crm_citas.findUnique({
+    where: { id_cita: body.id },
+    select: { google_event_id: true, id_usuario: true },
+  })
+
   await prisma.crm_citas.update({
     where: { id_cita: body.id },
     data,
   })
+
+  // Sync changes to Google Calendar
+  if (existingCita?.google_event_id) {
+    const usuario = await prisma.crm_usuarios.findUnique({
+      where: { id_usuario: existingCita.id_usuario },
+      select: { google_refresh_token: true },
+    })
+
+    if (usuario?.google_refresh_token) {
+      if (body.status === 'cancelled') {
+        await cancelCalendarEvent(usuario.google_refresh_token, existingCita.google_event_id)
+        await prisma.crm_citas.update({
+          where: { id_cita: body.id },
+          data: { google_event_id: null },
+        })
+      } else {
+        await updateCalendarEvent(usuario.google_refresh_token, existingCita.google_event_id, {
+          title: body.title,
+          date: body.date,
+          time: body.time,
+          type: body.type,
+          description: body.description,
+          location: body.location,
+        })
+      }
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

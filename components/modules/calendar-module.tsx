@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Clock, MapPin, User } from 'lucide-react'
+import { Plus, Clock, MapPin, User, Calendar as CalendarIcon, Unlink } from 'lucide-react'
 import { AppointmentModal } from './modals/appointment-modal'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -29,8 +29,60 @@ export function CalendarModule() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [asesores, setAsesores] = useState<AsesorOption[]>([])
   const [filterAsesor, setFilterAsesor] = useState('')
+  const [googleConnected, setGoogleConnected] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
+
+  // Check Google Calendar connection status
+  const checkGoogleStatus = useCallback(() => {
+    if (!user) return
+    fetch(`/api/google-calendar/status?userId=${user.id}`)
+      .then(res => res.json())
+      .then(data => setGoogleConnected(data.connected))
+      .catch(console.error)
+  }, [user])
+
+  useEffect(() => { checkGoogleStatus() }, [checkGoogleStatus])
+
+  // Handle ?google=success|error from OAuth callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const googleParam = params.get('google')
+    if (googleParam === 'success') {
+      setGoogleConnected(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (googleParam === 'error') {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  const handleGoogleConnect = async () => {
+    if (!user) return
+    setGoogleLoading(true)
+    try {
+      const res = await fetch(`/api/google-calendar/auth?userId=${user.id}`)
+      const data = await res.json()
+      window.location.href = data.url
+    } catch {
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleGoogleDisconnect = async () => {
+    if (!user) return
+    setGoogleLoading(true)
+    try {
+      await fetch('/api/google-calendar/status', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      })
+      setGoogleConnected(false)
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (isAdmin) {
@@ -141,6 +193,27 @@ export function CalendarModule() {
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
               </select>
+            )}
+            {googleConnected ? (
+              <Button
+                variant="outline"
+                onClick={handleGoogleDisconnect}
+                disabled={googleLoading}
+                className="text-green-600 border-green-300 hover:bg-green-50 hover:text-green-700"
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                Google Calendar
+                <Unlink className="w-3 h-3 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={handleGoogleConnect}
+                disabled={googleLoading}
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                Conectar Google Calendar
+              </Button>
             )}
           <Button
             onClick={() => {

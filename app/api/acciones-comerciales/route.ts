@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createCalendarEvent } from '@/lib/google-calendar'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,6 +97,30 @@ export async function POST(req: NextRequest) {
       },
     })
     citaId = nuevaCita.id_cita
+
+    // Sync to Google Calendar
+    const usuario = await prisma.crm_usuarios.findUnique({
+      where: { id_usuario: userId },
+      select: { google_refresh_token: true },
+    })
+
+    if (usuario?.google_refresh_token) {
+      const googleEventId = await createCalendarEvent(usuario.google_refresh_token, {
+        title: `Llamada agendada - ${cita.leadName || 'Lead'}`,
+        description: observaciones || undefined,
+        date: cita.date,
+        time: cita.time || '09:00',
+        type: 'llamada',
+        leadName: cita.leadName || undefined,
+      })
+
+      if (googleEventId) {
+        await prisma.crm_citas.update({
+          where: { id_cita: nuevaCita.id_cita },
+          data: { google_event_id: googleEventId },
+        })
+      }
+    }
   }
 
   // Create the accion comercial

@@ -170,6 +170,7 @@ model crm_citas {
   tipo                     String                     @default("llamada") @db.VarChar(20)
   estado                   String                     @default("active") @db.VarChar(20)
   recordatorio_enviado     Boolean                    @default(false)
+  google_event_id          String?                    @db.VarChar(255)
   fecha_creacion           DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
   crm_acciones_comerciales crm_acciones_comerciales[]
@@ -245,6 +246,7 @@ model crm_usuarios {
   id_asesor                String?                    @db.Uuid
   fecha_ingreso            DateTime?                  @default(dbgenerated("CURRENT_DATE")) @db.Date
   ultimo_login             DateTime?                  @db.Timestamptz(6)
+  google_refresh_token     String?
   fecha_creacion           DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
   crm_acciones_comerciales crm_acciones_comerciales[]
