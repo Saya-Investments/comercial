@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Clock, MapPin, User, Calendar as CalendarIcon, Unlink } from 'lucide-react'
 import { AppointmentModal } from './modals/appointment-modal'
 import { useAuth } from '@/contexts/auth-context'
+import { AsesorFilter } from '@/components/ui/asesor-filter'
 
 interface Appointment {
   id: string
@@ -183,16 +184,12 @@ export function CalendarModule() {
           <h1 className="text-3xl font-bold text-foreground">Calendario de Citas</h1>
           <div className="flex items-center gap-3">
             {isAdmin && (
-              <select
+              <AsesorFilter
+                asesores={asesores}
                 value={filterAsesor}
-                onChange={(e) => setFilterAsesor(e.target.value)}
-                className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm md:w-64"
-              >
-                <option value="">Todos los asesores</option>
-                {asesores.map(a => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+                onChange={setFilterAsesor}
+                className="md:w-64"
+              />
             )}
             {googleConnected ? (
               <Button

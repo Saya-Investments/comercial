@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Search, X } from 'lucide-react'
 import { LeadsTable } from './leads-table'
 import { useAuth } from '@/contexts/auth-context'
+import { AsesorFilter } from '@/components/ui/asesor-filter'
 
 interface AsesorOption {
   id: string
@@ -91,16 +92,13 @@ export function LeadsModule() {
           </select>
 
           {isAdmin && (
-            <select
+            <AsesorFilter
+              asesores={asesores}
               value={filterAsesor}
-              onChange={(e) => setFilterAsesor(e.target.value)}
-              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:flex-none"
-            >
-              <option value="">Asesor</option>
-              {asesores.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+              onChange={setFilterAsesor}
+              placeholder="Asesor"
+              className="flex-1 md:flex-none md:w-52"
+            />
           )}
 
           {activeFilters.length > 0 && (

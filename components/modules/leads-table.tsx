@@ -73,9 +73,9 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'Alta': return 'bg-accent/10 text-accent border border-accent/20'
-      case 'Media': return 'bg-primary/10 text-primary border border-primary/20'
-      case 'Baja': return 'bg-muted text-muted-foreground border border-muted/50'
+      case 'Alta': return 'bg-green-100 text-green-700 border border-green-300'
+      case 'Media': return 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+      case 'Baja': return 'bg-red-100 text-red-700 border border-red-300'
       default: return ''
     }
   }

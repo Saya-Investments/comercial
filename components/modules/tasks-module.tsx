@@ -8,6 +8,7 @@ import { ActionModal } from './modals/action-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
 import { useAuth } from '@/contexts/auth-context'
+import { AsesorFilter } from '@/components/ui/asesor-filter'
 
 interface Lead {
   id: string
@@ -120,8 +121,8 @@ export function TasksModule() {
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-4 h-4 rounded-full" style={{
-            backgroundColor: color === 'bg-accent/5' ? 'rgb(230, 57, 70)' : 
-                             color === 'bg-primary/5' ? 'rgb(13, 107, 125)' : 'rgb(180, 180, 180)'
+            backgroundColor: priority === 'Alta' ? 'rgb(34, 197, 94)' :
+                             priority === 'Media' ? 'rgb(234, 179, 8)' : 'rgb(239, 68, 68)'
           }} />
           <h2 className="text-xl font-bold text-foreground">{title}</h2>
         </div>
@@ -255,37 +256,33 @@ export function TasksModule() {
             <p className="text-muted-foreground mt-1">Haz clic en una caja para ver los leads asignados</p>
           </div>
           {isAdmin && (
-            <select
+            <AsesorFilter
+              asesores={asesores}
               value={filterAsesor}
-              onChange={(e) => setFilterAsesor(e.target.value)}
-              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm md:w-64"
-            >
-              <option value="">Todos los asesores</option>
-              {asesores.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+              onChange={setFilterAsesor}
+              className="md:w-64"
+            />
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <PriorityBox 
+          <PriorityBox
             title="Alta Prioridad"
-            color="bg-accent/5"
+            color="bg-green-50"
             leads={altaLeads}
             completed={altaCompletados}
             priority="Alta"
           />
-          <PriorityBox 
+          <PriorityBox
             title="Media Prioridad"
-            color="bg-primary/5"
+            color="bg-yellow-50"
             leads={mediaLeads}
             completed={mediaCompletados}
             priority="Media"
           />
-          <PriorityBox 
+          <PriorityBox
             title="Baja Prioridad"
-            color="bg-muted"
+            color="bg-red-50"
             leads={bajaLeads}
             completed={bajaCompletados}
             priority="Baja"
