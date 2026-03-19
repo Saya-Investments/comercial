@@ -60,7 +60,7 @@ export function TasksModule() {
       .then(res => res.json())
       .then(data => {
         setAllLeads(data.map((t: Record<string, unknown>) => ({
-          id: t.id as string,
+          id: (t.leadId || t.id) as string,
           dni: t.dni as string,
           name: t.name as string,
           phone: t.phone as string,

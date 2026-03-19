@@ -163,7 +163,7 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm }: {
         <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         <input
           type="text"
-          placeholder="Buscar por nombre o rol..."
+          placeholder="Buscar por nombre"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 bg-transparent border-0 outline-none text-foreground placeholder-muted-foreground text-sm ml-2"
