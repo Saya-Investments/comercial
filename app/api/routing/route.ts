@@ -85,8 +85,10 @@ export async function GET(req: NextRequest) {
   }
 
   // Ordenar leads de cada asesor por score_total descendente
+  // y actualizar leadsEnCola con el conteo real de matching
   for (const entry of asesoresMap.values()) {
     entry.leads.sort((a, b) => b.scoreTotal - a.scoreTotal)
+    entry.asesor.leadsEnCola = entry.leads.length
   }
 
   return NextResponse.json(Array.from(asesoresMap.values()))
