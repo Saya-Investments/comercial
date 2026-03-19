@@ -80,6 +80,19 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     }
   }
 
+  const getBase = (assignedDate: string) => {
+    const twoMonthsAgo = new Date()
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
+    const date = new Date(assignedDate)
+    return date < twoMonthsAgo ? 'Stock' : 'Caliente'
+  }
+
+  const getBaseColor = (base: string) => {
+    return base === 'Caliente'
+      ? 'bg-orange-100 text-orange-700 border border-orange-300'
+      : 'bg-blue-100 text-blue-700 border border-blue-300'
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'asignado': return 'bg-green-50 text-green-700 border border-green-200'
@@ -134,7 +147,8 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Producto</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Prioridad</th>
-                <th className="px-6 py-3 text-right font-semibold text-foreground">Acciones</th>
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Base</th>
+                <th className="px-6 py-3 text-center font-semibold text-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -152,8 +166,11 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(getBase(lead.assignedDate))}`}>{getBase(lead.assignedDate)}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'action')} className="text-foreground hover:bg-secondary" title="Acciones comerciales">
                         <Briefcase className="w-4 h-4" />
                       </Button>
