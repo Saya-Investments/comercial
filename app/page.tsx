@@ -14,9 +14,10 @@ import { BotCostModule } from '@/components/modules/bot-cost-module'
 import { RoutingRulesModule } from '@/components/modules/routing-rules-module'
 import { AdvisorsActivityModule } from '@/components/modules/advisors-activity-module'
 import { AdvisorDashboardModule } from '@/components/modules/advisor-dashboard-module'
+import { CallCenterDashboardModule } from '@/components/modules/call-center-dashboard-module'
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard'
+type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard'
 
 const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity']
 
@@ -25,9 +26,13 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard']
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard']
 
-  const defaultModule: ModuleType = user?.role === 'asesor' ? 'advisor-dashboard' : 'leads'
+  const defaultModule: ModuleType = user?.role === 'asesor'
+    ? 'advisor-dashboard'
+    : user?.role === 'call center'
+      ? 'call-center-dashboard'
+      : 'leads'
 
   const getModuleFromHash = useCallback((): ModuleType => {
     if (typeof window === 'undefined') return defaultModule
@@ -114,6 +119,7 @@ export default function Home() {
 
         <div className="flex-1 overflow-auto">
           {activeModule === 'advisor-dashboard' && <AdvisorDashboardModule />}
+          {activeModule === 'call-center-dashboard' && <CallCenterDashboardModule />}
           {activeModule === 'leads' && <LeadsModule />}
           {activeModule === 'tasks' && <TasksModule />}
           {activeModule === 'campaigns' && <CampaignsModule />}

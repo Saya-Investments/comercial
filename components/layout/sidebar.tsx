@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard } from 'lucide-react'
+import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard, Headphones } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 
@@ -16,6 +16,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
   const { user, logout } = useAuth()
 
   const allModules = [
+    { id: 'call-center-dashboard', label: 'Mi Panel', icon: Headphones, roles: ['call center'] as string[] },
     { id: 'advisor-dashboard', label: 'Mi Actividad', icon: LayoutDashboard, roles: ['asesor'] as string[] },
     { id: 'leads', label: 'Leads', icon: MessageSquare, roles: ['admin', 'asesor', 'call center'] as string[] },
     { id: 'tasks', label: 'Tareas', icon: ListTasks, roles: ['admin', 'asesor'] as string[] },
