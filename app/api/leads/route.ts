@@ -84,6 +84,12 @@ export async function GET(req: NextRequest) {
     where,
     include: {
       bd_asesores: { select: { nombre_asesor: true, cod_asesor: true } },
+      matching: {
+        where: { asignado: true },
+        select: { fecha_asignacion: true },
+        orderBy: { fecha_asignacion: 'desc' },
+        take: 1,
+      },
     },
     orderBy: { fecha_creacion: 'desc' },
     take: 200,
@@ -106,6 +112,7 @@ export async function GET(req: NextRequest) {
     sentimiento: l.sentimiento_actual || '',
     segmento: l.segmento_de_scoring || '',
     estadoAsesor: l.ultimo_estado_asesor || '',
+    fechaAsignacion: l.matching[0]?.fecha_asignacion?.toISOString() || null,
   }))
 
   return NextResponse.json(mapped)

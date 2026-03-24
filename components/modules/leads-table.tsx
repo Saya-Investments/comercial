@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Eye, MessageSquare, Briefcase, UserCheck } from 'lucide-react'
+import { Eye, MessageSquare, Briefcase, UserCheck, Clock } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
@@ -21,6 +21,7 @@ interface Lead {
   priority: 'Alta' | 'Media' | 'Baja'
   score?: number
   estadoAsesor?: string
+  fechaAsignacion?: string | null
 }
 
 interface LeadsTableProps {
@@ -60,6 +61,13 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
   useEffect(() => {
     fetchLeads()
   }, [fetchLeads])
+
+  // Timer que fuerza re-render cada minuto para actualizar countdowns
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const filteredLeads = leads.filter((lead) => {
     const matchesPriority = !filterPriority || lead.priority === filterPriority
@@ -102,6 +110,33 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
       case 'descartado': return 'bg-red-50 text-red-700 border border-red-200'
       default: return 'bg-gray-50 text-gray-700 border border-gray-200'
     }
+  }
+
+  const getCountdown = (fechaAsignacion?: string | null) => {
+    if (!fechaAsignacion) return null
+    const asignado = new Date(fechaAsignacion).getTime()
+    const limite = asignado + 24 * 60 * 60 * 1000
+    const restante = limite - Date.now()
+
+    if (restante <= 0) {
+      return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-300"><Clock className="w-3 h-3" />Vencido</span>
+    }
+
+    const horas = Math.floor(restante / (1000 * 60 * 60))
+    const minutos = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60))
+
+    const color = horas < 4
+      ? 'bg-red-50 text-red-600 border border-red-200'
+      : horas < 12
+        ? 'bg-amber-50 text-amber-600 border border-amber-200'
+        : 'bg-green-50 text-green-600 border border-green-200'
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${color}`}>
+        <Clock className="w-3 h-3" />
+        {horas}h {minutos}m
+      </span>
+    )
   }
 
   const getScoreBadge = (score?: number) => {
@@ -150,6 +185,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Producto</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Prioridad</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Base</th>
+                <th className="px-6 py-3 text-center font-semibold text-foreground">Reasignacion</th>
                 <th className="px-6 py-3 text-center font-semibold text-foreground">Acciones</th>
               </tr>
             </thead>
@@ -170,6 +206,9 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(getBase(lead.assignedDate))}`}>{getBase(lead.assignedDate)}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {getCountdown(lead.fechaAsignacion) || <span className="text-xs text-muted-foreground">--</span>}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-2">
@@ -202,7 +241,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">No se encontraron leads con los filtros aplicados</td>
+                  <td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">No se encontraron leads con los filtros aplicados</td>
                 </tr>
               )}
             </tbody>
