@@ -48,6 +48,18 @@ export async function GET(req: NextRequest) {
       // User has no linked asesor, show nothing
       return NextResponse.json([])
     }
+  } else if (userId && role === 'call center') {
+    const usuario = await prisma.crm_usuarios.findUnique({
+      where: { id_usuario: userId },
+      select: { id_call_center: true },
+    })
+
+    if (usuario?.id_call_center) {
+      // Show only leads assigned to this call center user
+      where.asignado_call_center = usuario.id_call_center
+    } else {
+      return NextResponse.json([])
+    }
   }
 
   if (search) {
@@ -93,6 +105,7 @@ export async function GET(req: NextRequest) {
     asesor: l.bd_asesores?.nombre_asesor || 'Sin asignar',
     sentimiento: l.sentimiento_actual || '',
     segmento: l.segmento_de_scoring || '',
+    estadoAsesor: l.ultimo_estado_asesor || '',
   }))
 
   return NextResponse.json(mapped)

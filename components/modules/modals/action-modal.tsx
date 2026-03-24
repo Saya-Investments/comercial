@@ -37,7 +37,6 @@ export function ActionModal({ lead, onClose, onActionSaved }: ActionModalProps) 
     time: '',
     notes: '',
   })
-
   const actions = [
     {
       id: 'call',

@@ -23,12 +23,14 @@ model bd_asesores {
   disponibilidad                                                      String?             @db.VarChar(20)
   fecha_creacion                                                      DateTime            @default(now()) @db.Timestamptz(6)
   fecha_actualizacion                                                 DateTime            @default(now()) @db.Timestamptz(6)
+  capacidad_maxima                                                    Int                 @default(6)
   bd_leads                                                            bd_leads[]
   crm_usuarios                                                        crm_usuarios[]
   hist_asignaciones_hist_asignaciones_id_asesor_anteriorTobd_asesores hist_asignaciones[] @relation("hist_asignaciones_id_asesor_anteriorTobd_asesores")
   hist_asignaciones_hist_asignaciones_id_asesorTobd_asesores          hist_asignaciones[] @relation("hist_asignaciones_id_asesorTobd_asesores")
   hist_clientes                                                       hist_clientes[]
   matching                                                            matching[]
+  ranking_routing                                                     ranking_routing[]
 
   @@index([cod_asesor], map: "idx_asesores_cod")
   @@index([disponibilidad], map: "idx_asesores_disponibilidad")
@@ -78,6 +80,8 @@ model bd_leads {
   fecha_creacion                    DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion               DateTime                   @default(now()) @db.Timestamptz(6)
   nickname_wsp                      String?                    @db.VarChar(200)
+  asignado_call_center              String?                    @db.Uuid
+  bd_call_center                    bd_call_center?            @relation(fields: [asignado_call_center], references: [id_call_center], onUpdate: NoAction)
   bd_asesores                       bd_asesores?               @relation(fields: [ultimo_asesor_asignado], references: [id_asesor], onUpdate: NoAction, map: "fk_leads_asesor")
   crm_acciones_comerciales          crm_acciones_comerciales[]
   crm_campana_leads                 crm_campana_leads[]
@@ -90,6 +94,7 @@ model bd_leads {
   hist_estado_asesor                hist_estado_asesor[]
   hist_scoring                      hist_scoring[]
   matching                          matching[]
+  ranking_routing                   ranking_routing[]
 
   @@index([ultimo_asesor_asignado], map: "idx_leads_asesor")
   @@index([dni], map: "idx_leads_dni")
@@ -169,10 +174,10 @@ model crm_citas {
   descripcion              String?
   tipo                     String                     @default("llamada") @db.VarChar(20)
   estado                   String                     @default("active") @db.VarChar(20)
-  recordatorio_enviado     Boolean                    @default(false)
-  google_event_id          String?                    @db.VarChar(255)
   fecha_creacion           DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
+  recordatorio_enviado     Boolean?                   @default(false)
+  google_event_id          String?                    @db.VarChar(255)
   crm_acciones_comerciales crm_acciones_comerciales[]
   bd_leads                 bd_leads?                  @relation(fields: [id_lead], references: [id_lead], onUpdate: NoAction, map: "fk_cita_lead")
   crm_usuarios             crm_usuarios               @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction, map: "fk_cita_usuario")
@@ -244,11 +249,12 @@ model crm_usuarios {
   rol                      String                     @default("Asesor") @db.VarChar(20)
   activo                   Boolean?                   @default(true)
   id_asesor                String?                    @db.Uuid
+  id_call_center           String?                    @db.Uuid
   fecha_ingreso            DateTime?                  @default(dbgenerated("CURRENT_DATE")) @db.Date
   ultimo_login             DateTime?                  @db.Timestamptz(6)
-  google_refresh_token     String?
   fecha_creacion           DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
+  google_refresh_token     String?
   crm_acciones_comerciales crm_acciones_comerciales[]
   crm_campanas             crm_campanas[]
   crm_citas                crm_citas[]
@@ -256,6 +262,7 @@ model crm_usuarios {
   crm_plantillas           crm_plantillas[]
   crm_tareas               crm_tareas[]
   bd_asesores              bd_asesores?               @relation(fields: [id_asesor], references: [id_asesor], onUpdate: NoAction, map: "fk_usuario_asesor")
+  bd_call_center           bd_call_center?            @relation(fields: [id_call_center], references: [id_call_center], onUpdate: NoAction, map: "fk_usuario_call_center")
   hist_estado_asesor       hist_estado_asesor[]
 
   @@index([activo], map: "idx_usuarios_activo")
@@ -286,6 +293,7 @@ model hist_asignaciones {
   id_asesor_anterior                                            String?                    @db.Uuid
   motivo_reasignacion                                           String?                    @db.VarChar(100)
   reciclado_a_bot                                               Boolean?                   @default(false)
+  via_call_center                                               Boolean                    @default(false)
   crm_acciones_comerciales                                      crm_acciones_comerciales[]
   bd_asesores_hist_asignaciones_id_asesor_anteriorTobd_asesores bd_asesores?               @relation("hist_asignaciones_id_asesor_anteriorTobd_asesores", fields: [id_asesor_anterior], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
   bd_asesores_hist_asignaciones_id_asesorTobd_asesores          bd_asesores                @relation("hist_asignaciones_id_asesorTobd_asesores", fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
@@ -469,4 +477,34 @@ model webhook_logs {
   @@index([created_at], map: "idx_webhook_logs_created")
   @@index([event_type], map: "idx_webhook_logs_event")
   @@index([wamid], map: "idx_webhook_logs_wamid")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bd_call_center {
+  id_call_center      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre              String     @db.VarChar(100)
+  leads_en_cola       Int        @default(0)
+  disponibilidad      String?    @default("disponible") @db.VarChar(20)
+  fecha_creacion      DateTime   @default(now()) @db.Timestamptz(6)
+  fecha_actualizacion DateTime       @default(now()) @db.Timestamptz(6)
+  bd_leads            bd_leads[]
+  crm_usuarios        crm_usuarios[]
+}
+
+model ranking_routing {
+  id               Int         @id @default(autoincrement())
+  id_lead          String      @db.Uuid
+  id_asesor        String      @db.Uuid
+  posicion         Int
+  score_total      Decimal?    @db.Decimal(5, 4)
+  score_c          Decimal?    @db.Decimal(5, 4)
+  score_v          Decimal?    @db.Decimal(5, 4)
+  score_p          Decimal?    @db.Decimal(5, 4)
+  asignado         Boolean     @default(false)
+  fecha_evaluacion DateTime    @default(now()) @db.Timestamptz(6)
+  bd_asesores      bd_asesores @relation(fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
+  bd_leads         bd_leads    @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([id_lead], map: "idx_ranking_lead")
+  @@index([id_lead, posicion], map: "idx_ranking_lead_pos")
 }

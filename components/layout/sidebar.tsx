@@ -16,25 +16,19 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
   const { user, logout } = useAuth()
 
   const allModules = [
-    { id: 'advisor-dashboard', label: 'Mi Actividad', icon: LayoutDashboard, asesorOnly: true },
-    { id: 'leads', label: 'Leads', icon: MessageSquare, adminOnly: false },
-    { id: 'tasks', label: 'Tareas', icon: ListTasks, adminOnly: false },
-    { id: 'campaigns', label: 'Campañas', icon: Mail, adminOnly: true },
-    { id: 'calendar', label: 'Calendario', icon: Calendar, adminOnly: false },
-    { id: 'templates', label: 'Plantillas', icon: Mail, adminOnly: true },
-    { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, adminOnly: true },
-    // { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, adminOnly: true },
-    { id: 'routing-rules', label: 'Enrutamiento', icon: Settings, adminOnly: true },
-    { id: 'users', label: 'Usuarios', icon: Users2, adminOnly: true },
+    { id: 'advisor-dashboard', label: 'Mi Actividad', icon: LayoutDashboard, roles: ['asesor'] as string[] },
+    { id: 'leads', label: 'Leads', icon: MessageSquare, roles: ['admin', 'asesor', 'call center'] as string[] },
+    { id: 'tasks', label: 'Tareas', icon: ListTasks, roles: ['admin', 'asesor'] as string[] },
+    { id: 'campaigns', label: 'Campañas', icon: Mail, roles: ['admin'] as string[] },
+    { id: 'calendar', label: 'Calendario', icon: Calendar, roles: ['admin', 'asesor', 'call center'] as string[] },
+    { id: 'templates', label: 'Plantillas', icon: Mail, roles: ['admin'] as string[] },
+    { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, roles: ['admin'] as string[] },
+    // { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, roles: ['admin'] as string[] },
+    { id: 'routing-rules', label: 'Enrutamiento', icon: Settings, roles: ['admin'] as string[] },
+    { id: 'users', label: 'Usuarios', icon: Users2, roles: ['admin'] as string[] },
   ]
 
-  const isAdmin = user?.role === 'admin'
-  const isAsesor = user?.role === 'asesor'
-  const modules = allModules.filter(m => {
-    if (m.asesorOnly) return isAsesor
-    if (m.adminOnly) return isAdmin
-    return true
-  })
+  const modules = allModules.filter(m => user?.role && m.roles.includes(user.role))
 
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-primary text-primary-foreground flex flex-col border-r border-border h-screen transition-all duration-300`}>
