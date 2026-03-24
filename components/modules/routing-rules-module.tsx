@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
-import { Search, ChevronDown, ChevronUp, Users, Star } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, Users, Star, ArrowRight } from 'lucide-react'
 
 interface LeadMatch {
   id: string
@@ -17,7 +17,15 @@ interface LeadMatch {
   scoreV: number
   scoreP: number
   asignado: boolean
+  gestionado: boolean
+  ultimoEstadoAsesor: string
   fechaEvaluacion: string
+}
+
+interface FunnelData {
+  recibidos: number
+  gestionados: number
+  ventaCerrada: number
 }
 
 interface AsesorMatching {
@@ -29,6 +37,7 @@ interface AsesorMatching {
     disponibilidad: string
     leadsEnCola: number
   }
+  funnel: FunnelData
   leads: LeadMatch[]
 }
 
@@ -132,6 +141,32 @@ export function RoutingRulesModule() {
 
                 {expandedAsesor === item.asesor.id && (
                   <div className="border-t border-border">
+                    {/* Mini Funnel por Asesor */}
+                    <div className="p-4 bg-secondary/30 border-b border-border">
+                      <p className="text-xs font-semibold text-muted-foreground mb-3">Funnel de Gestión</p>
+                      <div className="flex items-center justify-center gap-3">
+                        {[
+                          { label: 'Recibidos', value: item.funnel.recibidos, color: 'bg-blue-500' },
+                          { label: 'Gestionados', value: item.funnel.gestionados, color: 'bg-amber-500' },
+                          { label: 'Venta Cerrada', value: item.funnel.ventaCerrada, color: 'bg-green-500' },
+                        ].map((step, i) => (
+                          <div key={step.label} className="flex items-center gap-3">
+                            {i > 0 && <ArrowRight className="w-4 h-4 text-muted-foreground" />}
+                            <div className="flex flex-col items-center">
+                              <div className={`w-12 h-12 rounded-full ${step.color} flex items-center justify-center text-white font-bold text-sm`}>
+                                {step.value}
+                              </div>
+                              <span className="text-xs text-muted-foreground mt-1">{step.label}</span>
+                              {item.funnel.recibidos > 0 && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {Math.round((step.value / item.funnel.recibidos) * 100)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-secondary">

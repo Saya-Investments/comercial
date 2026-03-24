@@ -13,9 +13,10 @@ import { UsersModule } from '@/components/modules/users-module'
 import { BotCostModule } from '@/components/modules/bot-cost-module'
 import { RoutingRulesModule } from '@/components/modules/routing-rules-module'
 import { AdvisorsActivityModule } from '@/components/modules/advisors-activity-module'
+import { AdvisorDashboardModule } from '@/components/modules/advisor-dashboard-module'
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity'
+type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard'
 
 const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity']
 
@@ -24,13 +25,15 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity']
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard']
+
+  const defaultModule: ModuleType = user?.role === 'asesor' ? 'advisor-dashboard' : 'leads'
 
   const getModuleFromHash = useCallback((): ModuleType => {
-    if (typeof window === 'undefined') return 'leads'
+    if (typeof window === 'undefined') return defaultModule
     const hash = window.location.hash.replace('#', '')
-    return ALL_MODULES.includes(hash as ModuleType) ? (hash as ModuleType) : 'leads'
-  }, [])
+    return ALL_MODULES.includes(hash as ModuleType) ? (hash as ModuleType) : defaultModule
+  }, [defaultModule])
 
   const [activeModule, setActiveModule] = useState<ModuleType>(getModuleFromHash)
 
@@ -110,6 +113,7 @@ export default function Home() {
         </div>
 
         <div className="flex-1 overflow-auto">
+          {activeModule === 'advisor-dashboard' && <AdvisorDashboardModule />}
           {activeModule === 'leads' && <LeadsModule />}
           {activeModule === 'tasks' && <TasksModule />}
           {activeModule === 'campaigns' && <CampaignsModule />}

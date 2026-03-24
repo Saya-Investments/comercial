@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react'
+import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 
@@ -16,6 +16,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
   const { user, logout } = useAuth()
 
   const allModules = [
+    { id: 'advisor-dashboard', label: 'Mi Actividad', icon: LayoutDashboard, asesorOnly: true },
     { id: 'leads', label: 'Leads', icon: MessageSquare, adminOnly: false },
     { id: 'tasks', label: 'Tareas', icon: ListTasks, adminOnly: false },
     { id: 'campaigns', label: 'Campañas', icon: Mail, adminOnly: true },
@@ -28,7 +29,12 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
   ]
 
   const isAdmin = user?.role === 'admin'
-  const modules = allModules.filter(m => !m.adminOnly || isAdmin)
+  const isAsesor = user?.role === 'asesor'
+  const modules = allModules.filter(m => {
+    if (m.asesorOnly) return isAsesor
+    if (m.adminOnly) return isAdmin
+    return true
+  })
 
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-primary text-primary-foreground flex flex-col border-r border-border h-screen transition-all duration-300`}>

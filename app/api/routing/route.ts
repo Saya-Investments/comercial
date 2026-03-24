@@ -14,7 +14,11 @@ export async function GET(req: NextRequest) {
     where,
     include: {
       bd_leads: {
-        select: { id_lead: true, dni: true, nombre: true, apellido: true, producto: true, scoring: true, estado_de_lead: true },
+        select: {
+          id_lead: true, dni: true, nombre: true, apellido: true, producto: true,
+          scoring: true, estado_de_lead: true, ultimo_estado_asesor: true,
+          crm_acciones_comerciales: { select: { id_accion: true }, take: 1 },
+        },
       },
       bd_asesores: {
         select: { id_asesor: true, nombre_asesor: true, cod_asesor: true, especialidad: true, disponibilidad: true, leads_en_cola: true },
@@ -34,6 +38,7 @@ export async function GET(req: NextRequest) {
       disponibilidad: string
       leadsEnCola: number
     }
+    funnel: { recibidos: number; gestionados: number; ventaCerrada: number }
     leads: Array<{
       id: string
       dni: string
@@ -47,6 +52,8 @@ export async function GET(req: NextRequest) {
       scoreV: number
       scoreP: number
       asignado: boolean
+      gestionado: boolean
+      ultimoEstadoAsesor: string
       fechaEvaluacion: string
     }>
   }>()
@@ -63,9 +70,13 @@ export async function GET(req: NextRequest) {
           disponibilidad: m.bd_asesores.disponibilidad || '',
           leadsEnCola: m.bd_asesores.leads_en_cola || 0,
         },
+        funnel: { recibidos: 0, gestionados: 0, ventaCerrada: 0 },
         leads: [],
       })
     }
+
+    const gestionado = (m.bd_leads.crm_acciones_comerciales?.length || 0) > 0
+    const ultimoEstadoAsesor = m.bd_leads.ultimo_estado_asesor || ''
 
     asesoresMap.get(asesorKey)!.leads.push({
       id: m.bd_leads.id_lead,
@@ -80,15 +91,22 @@ export async function GET(req: NextRequest) {
       scoreV: Math.round(Number(m.score_v || 0) * 100),
       scoreP: Math.round(Number(m.score_p || 0) * 100),
       asignado: m.asignado ?? false,
+      gestionado,
+      ultimoEstadoAsesor,
       fechaEvaluacion: m.fecha_evaluacion.toISOString(),
     })
   }
 
   // Ordenar leads de cada asesor por score_total descendente
-  // y actualizar leadsEnCola con el conteo real de matching
+  // y calcular funnel + leadsEnCola
   for (const entry of asesoresMap.values()) {
     entry.leads.sort((a, b) => b.scoreTotal - a.scoreTotal)
     entry.asesor.leadsEnCola = entry.leads.length
+    entry.funnel = {
+      recibidos: entry.leads.length,
+      gestionados: entry.leads.filter(l => l.gestionado).length,
+      ventaCerrada: entry.leads.filter(l => l.ultimoEstadoAsesor === 'venta_cerrada').length,
+    }
   }
 
   return NextResponse.json(Array.from(asesoresMap.values()))
