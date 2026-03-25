@@ -21,15 +21,31 @@ export function ProspectModal({ lead, onClose, onProspectSaved }: ProspectModalP
   const { user } = useAuth()
   const [step, setStep] = useState<'info' | 'confirm' | 'saved'>('info')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async () => {
     if (!user) return
-    // TODO: Implementar llamada a API para registrar prospecto
     setSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setSaving(false)
-    setStep('saved')
-    onProspectSaved?.()
+    setError(null)
+    try {
+      const res = await fetch('/api/registrar-prospecto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id, userId: user.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Error al registrar prospecto')
+        setSaving(false)
+        return
+      }
+      setSaving(false)
+      setStep('saved')
+      onProspectSaved?.()
+    } catch {
+      setError('Error de conexion al registrar prospecto')
+      setSaving(false)
+    }
   }
 
   return (
@@ -70,6 +86,11 @@ export function ProspectModal({ lead, onClose, onProspectSaved }: ProspectModalP
               <p className="text-sm text-muted-foreground max-w-sm">
                 Estas a punto de registrar a <strong>{lead.name}</strong> como prospecto. Esta accion no se puede deshacer.
               </p>
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {error}
+                </div>
+              )}
             </div>
           )}
 
