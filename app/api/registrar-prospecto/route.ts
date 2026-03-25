@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     },
     sales: {
       agent_docnumber: lead.bd_asesores.cod_asesor,
-      origin: 'LEAD',
+      origin: 'LEADS',
       suborigin: 'BOT',
       interest_level: 'CALIENTE',
     },
