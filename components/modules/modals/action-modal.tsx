@@ -50,12 +50,6 @@ export function ActionModal({ lead, onClose, onActionSaved }: ActionModalProps) 
       description: 'Programa una llamada para una fecha especifica',
       icon: '📅',
     },
-    {
-      id: 'cita',
-      title: 'Cita',
-      description: 'Agenda una cita presencial o virtual con el lead',
-      icon: '🤝',
-    },
   ]
 
   const handleCallSubmit = async () => {
@@ -106,50 +100,6 @@ export function ActionModal({ lead, onClose, onActionSaved }: ActionModalProps) 
         onActionSaved?.()
         onClose()
       }
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleCitaSubmit = async () => {
-    if (!user) return
-    setSaving(true)
-    try {
-      // Create cita via calendar API
-      const citaRes = await fetch('/api/calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `Cita - ${lead.name}`,
-          leadId: lead.id,
-          leadName: lead.name,
-          userId: user.id,
-          date: appointmentData.date,
-          time: appointmentData.time,
-          type: 'reunion',
-          description: appointmentData.notes,
-        }),
-      })
-      if (!citaRes.ok) return
-
-      const citaData = await citaRes.json()
-
-      // Register accion comercial linked to the cita
-      await fetch('/api/acciones-comerciales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: lead.id,
-          userId: user.id,
-          tipoAccion: 'Cita',
-          estadoAsesor: 'Seguimiento',
-          observaciones: appointmentData.notes,
-          citaId: citaData.id,
-        }),
-      })
-
-      onActionSaved?.()
-      onClose()
     } finally {
       setSaving(false)
     }
@@ -298,84 +248,6 @@ export function ActionModal({ lead, onClose, onActionSaved }: ActionModalProps) 
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Agendar
-            </Button>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  if (selectedAction === 'cita') {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-        <Card className="w-full max-w-lg flex flex-col max-h-[90vh]">
-          <div className="flex items-center gap-4 p-6 border-b border-border flex-shrink-0">
-            <button
-              onClick={() => setSelectedAction(null)}
-              className="p-1 hover:bg-secondary rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
-            </button>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Agendar Cita</h2>
-              <p className="text-sm text-muted-foreground mt-1">{lead.name}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="ml-auto p-1 hover:bg-secondary rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-foreground" />
-            </button>
-          </div>
-
-          <div className="p-6 space-y-4 overflow-y-auto flex-1">
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Fecha</label>
-              <input
-                type="date"
-                value={appointmentData.date}
-                onChange={(e) => setAppointmentData({ ...appointmentData, date: e.target.value })}
-                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Hora</label>
-              <input
-                type="time"
-                value={appointmentData.time}
-                onChange={(e) => setAppointmentData({ ...appointmentData, time: e.target.value })}
-                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Notas (Opcional)</label>
-              <textarea
-                value={appointmentData.notes}
-                onChange={(e) => setAppointmentData({ ...appointmentData, notes: e.target.value })}
-                placeholder="Notas adicionales..."
-                className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:border-primary resize-none"
-                rows={4}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 p-6 border-t border-border flex-shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => setSelectedAction(null)}
-              className="text-foreground hover:bg-secondary"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCitaSubmit}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground"
-              disabled={!appointmentData.date || !appointmentData.time || saving}
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Agendar Cita
             </Button>
           </div>
         </Card>

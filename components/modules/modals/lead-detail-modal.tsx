@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { X, Phone, CalendarClock, Handshake, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { X, Phone, CalendarClock, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 interface LeadDetailModalProps {
@@ -64,13 +64,11 @@ const ESTADO_LABELS: Record<string, string> = {
 const TIPO_LABELS: Record<string, string> = {
   Llamada: 'Llamada',
   Agendar_llamada: 'Agendar llamada',
-  Cita: 'Cita',
 }
 
 const TIPO_ICONS: Record<string, typeof Phone> = {
   Llamada: Phone,
   Agendar_llamada: CalendarClock,
-  Cita: Handshake,
 }
 
 const EVENTO_LABELS: Record<string, string> = {
