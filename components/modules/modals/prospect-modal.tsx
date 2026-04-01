@@ -143,11 +143,9 @@ export function ProspectModal({ lead, onClose, onProspectSaved }: ProspectModalP
                 Volver
               </Button>
               <Button
-                onClick={handleSubmit}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                disabled={saving}
+                className="bg-accent/50 text-accent-foreground cursor-not-allowed"
+                disabled
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Si, registrar
               </Button>
             </div>
@@ -163,8 +161,8 @@ export function ProspectModal({ lead, onClose, onProspectSaved }: ProspectModalP
                 Cancelar
               </Button>
               <Button
-                onClick={() => setStep('confirm')}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                className="bg-accent/50 text-accent-foreground cursor-not-allowed"
+                disabled
               >
                 <UserCheck className="w-4 h-4 mr-2" />
                 Registrar Prospecto
