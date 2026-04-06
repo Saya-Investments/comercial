@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createCalendarEvent, updateCalendarEvent, cancelCalendarEvent } from '@/lib/google-calendar'
+import { getSupervisedAsesorIds } from '@/lib/supervisor'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId')
-
   const asesorId = searchParams.get('asesorId')
+  const supervisorId = searchParams.get('supervisorId')
 
   const where: Record<string, unknown> = {}
   if (asesorId) {
@@ -19,6 +20,17 @@ export async function GET(req: NextRequest) {
     })
     if (usuario) where.id_usuario = usuario.id_usuario
     else return NextResponse.json([])
+  } else if (supervisorId) {
+    // Get all user IDs of supervised asesores
+    const asesorIds = await getSupervisedAsesorIds(supervisorId)
+    if (!asesorIds || asesorIds.length === 0) return NextResponse.json([])
+    const usuarios = await prisma.crm_usuarios.findMany({
+      where: { id_asesor: { in: asesorIds }, activo: true },
+      select: { id_usuario: true },
+    })
+    const userIds = usuarios.map((u) => u.id_usuario)
+    if (userIds.length === 0) return NextResponse.json([])
+    where.id_usuario = { in: userIds }
   } else if (userId) {
     where.id_usuario = userId
   }

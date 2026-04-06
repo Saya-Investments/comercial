@@ -33,7 +33,9 @@ export function CalendarModule() {
   const [googleConnected, setGoogleConnected] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
+  const isAdmin = user?.role === 'admin'
+  const isSupervisor = user?.role === 'supervisor'
+  const canFilterAsesores = isAdmin || isSupervisor
 
   // Check Google Calendar connection status
   const checkGoogleStatus = useCallback(() => {
@@ -86,18 +88,21 @@ export function CalendarModule() {
   }
 
   useEffect(() => {
-    if (isAdmin) {
-      fetch('/api/advisors')
+    if (canFilterAsesores) {
+      const url = isSupervisor ? `/api/advisors?supervisorId=${user?.id}` : '/api/advisors'
+      fetch(url)
         .then(res => res.json())
         .then(data => setAsesores(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string }))))
         .catch(console.error)
     }
-  }, [isAdmin])
+  }, [canFilterAsesores, isSupervisor, user?.id])
 
   const fetchAppointments = () => {
     let url: string
     if (filterAsesor) {
       url = `/api/calendar?asesorId=${filterAsesor}`
+    } else if (isSupervisor) {
+      url = `/api/calendar?supervisorId=${user?.id}`
     } else if (isAdmin) {
       url = '/api/calendar'
     } else {
@@ -183,7 +188,7 @@ export function CalendarModule() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-foreground">Calendario de Citas</h1>
           <div className="flex items-center gap-3">
-            {isAdmin && (
+            {canFilterAsesores && (
               <AsesorFilter
                 asesores={asesores}
                 value={filterAsesor}

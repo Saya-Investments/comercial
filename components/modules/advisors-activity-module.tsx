@@ -54,31 +54,34 @@ const ESTADO_PIE_COLORS: Record<string, string> = {
   No_interesado: '#ef4444',
 }
 
-function ActivityTab({ advisors, searchTerm, setSearchTerm }: {
+function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
   advisors: AdvisorActivity[]
   searchTerm: string
   setSearchTerm: (v: string) => void
+  supervisorId?: string
 }) {
   const [estadoDistribution, setEstadoDistribution] = useState<EstadoDistribution[]>([])
   const [leadsEnrutados, setLeadsEnrutados] = useState(0)
   const [ranking, setRanking] = useState<RankingAdvisor[]>([])
 
   useEffect(() => {
-    fetch('/api/advisors/estado-distribution')
+    const qs = supervisorId ? `?supervisorId=${supervisorId}` : ''
+
+    fetch(`/api/advisors/estado-distribution${qs}`)
       .then(res => res.json())
       .then(data => setEstadoDistribution(data))
       .catch(console.error)
 
-    fetch('/api/advisors/leads-enrutados')
+    fetch(`/api/advisors/leads-enrutados${qs}`)
       .then(res => res.json())
       .then(data => setLeadsEnrutados(data.count))
       .catch(console.error)
 
-    fetch('/api/advisors/ranking')
+    fetch(`/api/advisors/ranking${qs}`)
       .then(res => res.json())
       .then(data => setRanking(data))
       .catch(console.error)
-  }, [])
+  }, [supervisorId])
 
   const filteredRanking = ranking.filter(
     (a) => a.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -214,17 +217,18 @@ interface FunnelsData {
   gestion: { enrutados: number; gestionados: number; ventasCerradas: number }
 }
 
-function FunnelTab() {
+function FunnelTab({ supervisorId }: { supervisorId?: string }) {
   const [data, setData] = useState<FunnelsData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/advisors/funnels')
+    const qs = supervisorId ? `?supervisorId=${supervisorId}` : ''
+    fetch(`/api/advisors/funnels${qs}`)
       .then(res => res.json())
       .then(d => setData(d))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }, [supervisorId])
 
   if (loading) {
     return (
@@ -416,11 +420,11 @@ export function AdvisorsActivityModule() {
           </TabsList>
 
           <TabsContent value="actividad">
-            <ActivityTab advisors={advisors} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+            <ActivityTab advisors={advisors} searchTerm={searchTerm} setSearchTerm={setSearchTerm} supervisorId={isSupervisor ? user?.id : undefined} />
           </TabsContent>
 
           <TabsContent value="funnel">
-            <FunnelTab />
+            <FunnelTab supervisorId={isSupervisor ? user?.id : undefined} />
           </TabsContent>
         </Tabs>
       </div>
