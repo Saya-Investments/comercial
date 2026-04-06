@@ -23,15 +23,18 @@ export function LeadsModule() {
   const [asesores, setAsesores] = useState<AsesorOption[]>([])
 
   const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
+  const isSupervisor = user?.role === 'supervisor'
+  const canFilterAsesores = isAdmin || isSupervisor
 
   useEffect(() => {
-    if (isAdmin) {
-      fetch('/api/advisors')
+    if (canFilterAsesores) {
+      const url = isSupervisor ? `/api/advisors?supervisorId=${user?.id}` : '/api/advisors'
+      fetch(url)
         .then(res => res.json())
         .then(data => setAsesores(data.map((a: Record<string, unknown>) => ({ id: a.id as string, name: a.name as string }))))
         .catch(console.error)
     }
-  }, [isAdmin])
+  }, [canFilterAsesores, isSupervisor, user?.id])
 
   const activeFilters = [
     filterPriority && `Prioridad: ${filterPriority}`,
@@ -91,7 +94,7 @@ export function LeadsModule() {
             <option value="descartado">Descartado</option>
           </select>
 
-          {isAdmin && (
+          {canFilterAsesores && (
             <AsesorFilter
               asesores={asesores}
               value={filterAsesor}

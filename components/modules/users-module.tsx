@@ -10,10 +10,12 @@ interface User {
   id: string
   username: string
   name: string
-  role: 'Admin' | 'Call Center' | 'Asesor'
+  role: 'Admin' | 'Call Center' | 'Asesor' | 'Supervisor'
   email: string
   active: boolean
   joinDate: string
+  supervisorId?: string | null
+  supervisorName?: string | null
 }
 
 export function UsersModule() {
@@ -56,6 +58,8 @@ export function UsersModule() {
         return 'bg-primary/10 text-primary border border-primary/20'
       case 'Asesor':
         return 'bg-blue-50 text-blue-700 border border-blue-200'
+      case 'Supervisor':
+        return 'bg-purple-50 text-purple-700 border border-purple-200'
       default:
         return ''
     }
@@ -92,6 +96,7 @@ export function UsersModule() {
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Nombre</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Email</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Rol</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">Supervisor</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Estado</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha Ingreso</th>
                   <th className="px-6 py-3 text-right font-semibold text-foreground">Acciones</th>
@@ -107,6 +112,9 @@ export function UsersModule() {
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleColor(user.role)}`}>
                         {user.role}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {user.supervisorName || '—'}
                     </td>
                     <td className="px-6 py-4">
                       <button
@@ -170,6 +178,9 @@ export function UsersModule() {
             setSelectedUser(null)
           }}
           onSaved={() => fetchUsers()}
+          supervisors={users
+            .filter((u) => u.role === 'Supervisor' && u.active)
+            .map((u) => ({ id: u.id, name: u.name }))}
         />
       )}
     </div>

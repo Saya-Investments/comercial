@@ -11,19 +11,27 @@ interface User {
   id: string
   username: string
   name: string
-  role: 'Admin' | 'Call Center' | 'Asesor'
+  role: 'Admin' | 'Call Center' | 'Asesor' | 'Supervisor'
   email: string
   active: boolean
   joinDate: string
+  supervisorId?: string | null
+  supervisorName?: string | null
+}
+
+interface SupervisorOption {
+  id: string
+  name: string
 }
 
 interface UserModalProps {
   user: User | null
   onClose: () => void
   onSaved?: () => void
+  supervisors?: SupervisorOption[]
 }
 
-export function UserModal({ user, onClose, onSaved }: UserModalProps) {
+export function UserModal({ user, onClose, onSaved, supervisors = [] }: UserModalProps) {
   const [formData, setFormData] = useState({
     username: user?.username || '',
     name: user?.name || '',
@@ -31,6 +39,7 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
     role: user?.role || 'Asesor',
     password: '',
     confirmPassword: '',
+    supervisorId: user?.supervisorId || '',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -42,6 +51,7 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const supervisorId = formData.role === 'Asesor' ? formData.supervisorId || null : null
     if (user) {
       await fetch('/api/users', {
         method: 'PUT',
@@ -52,6 +62,7 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
           name: formData.name,
           email: formData.email,
           role: formData.role,
+          supervisorId,
         }),
       })
     } else {
@@ -64,6 +75,7 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
           email: formData.email,
           role: formData.role,
           password: formData.password,
+          supervisorId,
         }),
       })
     }
@@ -134,10 +146,28 @@ export function UserModal({ user, onClose, onSaved }: UserModalProps) {
               className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:border-primary"
             >
               <option value="Asesor">Asesor</option>
+              <option value="Supervisor">Supervisor</option>
               <option value="Call Center">Call Center</option>
               <option value="Admin">Admin</option>
             </select>
           </div>
+
+          {formData.role === 'Asesor' && supervisors.length > 0 && (
+            <div>
+              <label className="block text-sm font-semibold text-foreground mb-2">Supervisor</label>
+              <select
+                name="supervisorId"
+                value={formData.supervisorId}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:border-primary"
+              >
+                <option value="">Sin supervisor</option>
+                {supervisors.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!user && (
             <>

@@ -48,6 +48,29 @@ export async function GET(req: NextRequest) {
       // User has no linked asesor, show nothing
       return NextResponse.json([])
     }
+  } else if (userId && role === 'supervisor') {
+    // Supervisor: show leads of all supervised asesores
+    const supervisados = await prisma.crm_usuarios.findMany({
+      where: { id_supervisor: userId, activo: true },
+      select: { id_asesor: true },
+    })
+    const asesorIds = supervisados
+      .map((s) => s.id_asesor)
+      .filter((id): id is string => id !== null)
+
+    if (asesorIds.length > 0) {
+      const matchings = await prisma.matching.findMany({
+        where: { id_asesor: { in: asesorIds }, asignado: true },
+        select: { id_lead: true },
+      })
+      const leadIds = matchings.map((m) => m.id_lead)
+      where.OR = [
+        { id_lead: { in: leadIds } },
+        { ultimo_asesor_asignado: { in: asesorIds } },
+      ]
+    } else {
+      return NextResponse.json([])
+    }
   } else if (userId && role === 'call center') {
     const usuario = await prisma.crm_usuarios.findUnique({
       where: { id_usuario: userId },

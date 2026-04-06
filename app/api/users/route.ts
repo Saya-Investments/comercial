@@ -6,6 +6,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const users = await prisma.crm_usuarios.findMany({
+    include: {
+      supervisor: { select: { id_usuario: true, nombre: true } },
+    },
     orderBy: { fecha_creacion: 'desc' },
   })
 
@@ -13,10 +16,12 @@ export async function GET() {
     id: u.id_usuario,
     username: u.username,
     name: u.nombre,
-    role: u.rol as 'Admin' | 'Call Center' | 'Asesor',
+    role: u.rol as 'Admin' | 'Call Center' | 'Asesor' | 'Supervisor',
     email: u.email,
     active: u.activo ?? true,
     joinDate: u.fecha_ingreso?.toISOString().split('T')[0] || '',
+    supervisorId: u.id_supervisor || null,
+    supervisorName: u.supervisor?.nombre || null,
   }))
 
   return NextResponse.json(mapped)
@@ -36,6 +41,7 @@ export async function POST(req: NextRequest) {
       email: body.email,
       password_hash: passwordHash,
       rol: body.role || 'Asesor',
+      id_supervisor: body.supervisorId || null,
     },
   })
 
@@ -45,16 +51,17 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const body = await req.json()
 
+  const data: Record<string, unknown> = { fecha_actualizacion: new Date() }
+  if (body.username !== undefined) data.username = body.username
+  if (body.name !== undefined) data.nombre = body.name
+  if (body.email !== undefined) data.email = body.email
+  if (body.role !== undefined) data.rol = body.role
+  if (body.active !== undefined) data.activo = body.active
+  if ('supervisorId' in body) data.id_supervisor = body.supervisorId || null
+
   await prisma.crm_usuarios.update({
     where: { id_usuario: body.id },
-    data: {
-      username: body.username,
-      nombre: body.name,
-      email: body.email,
-      rol: body.role,
-      activo: body.active,
-      fecha_actualizacion: new Date(),
-    },
+    data,
   })
 
   return NextResponse.json({ ok: true })

@@ -19,7 +19,7 @@ import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard'
 
-const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity']
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules']
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
@@ -32,7 +32,9 @@ export default function Home() {
     ? 'advisor-dashboard'
     : user?.role === 'call center'
       ? 'call-center-dashboard'
-      : 'leads'
+      : user?.role === 'supervisor'
+        ? 'leads'
+        : 'leads'
 
   const getModuleFromHash = useCallback((): ModuleType => {
     if (typeof window === 'undefined') return defaultModule
@@ -65,7 +67,7 @@ export default function Home() {
 
   const isAdmin = user?.role === 'admin'
   const handleModuleChange = (mod: ModuleType) => {
-    if (!isAdmin && ADMIN_ONLY_MODULES.includes(mod)) return
+    if (!isAdmin && !['supervisor'].includes(user?.role || '') && ADMIN_ONLY_MODULES.includes(mod)) return
     window.location.hash = mod
     setActiveModule(mod)
   }

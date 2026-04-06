@@ -255,18 +255,22 @@ model crm_usuarios {
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
   google_refresh_token     String?
   id_call_center           String?                    @db.Uuid
+  id_supervisor            String?                    @db.Uuid
   crm_acciones_comerciales crm_acciones_comerciales[]
   crm_campanas             crm_campanas[]
   crm_citas                crm_citas[]
   crm_notas                crm_notas[]
   crm_plantillas           crm_plantillas[]
   crm_tareas               crm_tareas[]
+  supervisor               crm_usuarios?              @relation("SupervisorAsesores", fields: [id_supervisor], references: [id_usuario], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuario_supervisor")
+  supervisados             crm_usuarios[]             @relation("SupervisorAsesores")
   bd_asesores              bd_asesores?               @relation(fields: [id_asesor], references: [id_asesor], onUpdate: NoAction, map: "fk_usuario_asesor")
   bd_call_center           bd_call_center?            @relation(fields: [id_call_center], references: [id_call_center], onUpdate: NoAction, map: "fk_usuario_call_center")
   hist_estado_asesor       hist_estado_asesor[]
 
   @@index([activo], map: "idx_usuarios_activo")
   @@index([rol], map: "idx_usuarios_rol")
+  @@index([id_supervisor], map: "idx_usuarios_supervisor", where: raw("(id_supervisor IS NOT NULL)"))
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

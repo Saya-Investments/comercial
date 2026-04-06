@@ -1,11 +1,28 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const supervisorId = searchParams.get('supervisorId')
+
+  // If supervisor filter, only return asesores supervised by this user
+  let asesorFilter: Record<string, unknown> | undefined
+  if (supervisorId) {
+    const supervisados = await prisma.crm_usuarios.findMany({
+      where: { id_supervisor: supervisorId, activo: true },
+      select: { id_asesor: true },
+    })
+    const asesorIds = supervisados
+      .map((s) => s.id_asesor)
+      .filter((id): id is string => id !== null)
+    asesorFilter = { id_asesor: { in: asesorIds } }
+  }
+
   const [asesores, accionesPorUsuario] = await Promise.all([
     prisma.bd_asesores.findMany({
+      where: asesorFilter,
       include: {
         hist_asignaciones_hist_asignaciones_id_asesorTobd_asesores: {
           select: { estado_gestion: true, cerro_venta: true },

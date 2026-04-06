@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Search, TrendingUp, CheckCircle, ArrowRight } from 'lucide-react'
 import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { useAuth } from '@/contexts/auth-context'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -380,15 +381,19 @@ function FunnelTab() {
 // ─── Main Module ─────────────────────────────────────────────────────────────
 
 export function AdvisorsActivityModule() {
+  const { user } = useAuth()
   const [advisors, setAdvisors] = useState<AdvisorActivity[]>([])
   const [searchTerm, setSearchTerm] = useState('')
 
+  const isSupervisor = user?.role === 'supervisor'
+
   useEffect(() => {
-    fetch('/api/advisors')
+    const url = isSupervisor ? `/api/advisors?supervisorId=${user?.id}` : '/api/advisors'
+    fetch(url)
       .then((res) => res.json())
       .then((data) => setAdvisors(data))
       .catch(console.error)
-  }, [])
+  }, [isSupervisor, user?.id])
 
   return (
     <div className="flex flex-col h-full">
