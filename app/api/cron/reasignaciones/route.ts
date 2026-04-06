@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendLeadAssignedNotification } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET || 'cron-secret-key'
 const HORAS_LIMITE = 24
+const CRM_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -141,6 +143,36 @@ export async function GET(req: NextRequest) {
       ])
 
       reasignados++
+
+      // Notificar al nuevo asesor por email
+      try {
+        const usuario = await prisma.crm_usuarios.findFirst({
+          where: { id_asesor: nuevoAsesorId, activo: true },
+          select: { email: true, nombre: true },
+        })
+
+        if (usuario?.email) {
+          const lead = await prisma.bd_leads.findUnique({
+            where: { id_lead: leadId },
+            select: { nombre: true, apellido: true, producto: true, scoring: true, numero: true },
+          })
+
+          const leadName = `${lead?.nombre || ''} ${lead?.apellido || ''}`.trim() || 'Lead'
+
+          await sendLeadAssignedNotification({
+            to: usuario.email,
+            advisorName: usuario.nombre,
+            leadName,
+            producto: lead?.producto || '',
+            scoring: Math.round(Number(lead?.scoring || 0) * 100),
+            telefono: lead?.numero || '',
+            esReasignacion: true,
+            crmUrl: CRM_URL || undefined,
+          })
+        }
+      } catch (emailErr) {
+        errores.push(`Lead ${leadId}: email no enviado - ${(emailErr as Error).message}`)
+      }
     } catch (err) {
       errores.push(`Lead ${match.id_lead}: ${(err as Error).message}`)
     }

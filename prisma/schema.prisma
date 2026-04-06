@@ -249,12 +249,12 @@ model crm_usuarios {
   rol                      String                     @default("Asesor") @db.VarChar(20)
   activo                   Boolean?                   @default(true)
   id_asesor                String?                    @db.Uuid
-  id_call_center           String?                    @db.Uuid
   fecha_ingreso            DateTime?                  @default(dbgenerated("CURRENT_DATE")) @db.Date
   ultimo_login             DateTime?                  @db.Timestamptz(6)
   fecha_creacion           DateTime                   @default(now()) @db.Timestamptz(6)
   fecha_actualizacion      DateTime                   @default(now()) @db.Timestamptz(6)
   google_refresh_token     String?
+  id_call_center           String?                    @db.Uuid
   crm_acciones_comerciales crm_acciones_comerciales[]
   crm_campanas             crm_campanas[]
   crm_citas                crm_citas[]
@@ -397,6 +397,7 @@ model matching {
   asignado          Boolean?            @default(false)
   fecha_evaluacion  DateTime            @default(now()) @db.Timestamptz(6)
   fecha_asignacion  DateTime?           @db.Timestamptz(6)
+  notificado_asesor Boolean             @default(false)
   hist_asignaciones hist_asignaciones[]
   bd_asesores       bd_asesores         @relation(fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
   bd_leads          bd_leads            @relation(fields: [id_lead], references: [id_lead], onDelete: NoAction, onUpdate: NoAction)
@@ -405,6 +406,7 @@ model matching {
   @@index([asignado], map: "idx_matching_asignado", where: raw("(asignado = true)"))
   @@index([fecha_evaluacion(sort: Desc)], map: "idx_matching_fecha")
   @@index([id_lead], map: "idx_matching_lead")
+  @@index([notificado_asesor], map: "idx_matching_notificado", where: raw("((asignado = true) AND (notificado_asesor = false))"))
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -481,11 +483,11 @@ model webhook_logs {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model bd_call_center {
-  id_call_center      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nombre              String     @db.VarChar(100)
-  leads_en_cola       Int        @default(0)
-  disponibilidad      String?    @default("disponible") @db.VarChar(20)
-  fecha_creacion      DateTime   @default(now()) @db.Timestamptz(6)
+  id_call_center      String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre              String         @db.VarChar(100)
+  leads_en_cola       Int            @default(0)
+  disponibilidad      String?        @default("disponible") @db.VarChar(20)
+  fecha_creacion      DateTime       @default(now()) @db.Timestamptz(6)
   fecha_actualizacion DateTime       @default(now()) @db.Timestamptz(6)
   bd_leads            bd_leads[]
   crm_usuarios        crm_usuarios[]
