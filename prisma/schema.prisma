@@ -303,6 +303,7 @@ model hist_asignaciones {
   bd_asesores_hist_asignaciones_id_asesorTobd_asesores          bd_asesores                @relation("hist_asignaciones_id_asesorTobd_asesores", fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
   bd_leads                                                      bd_leads                   @relation(fields: [id_lead], references: [id_lead], onDelete: NoAction, onUpdate: NoAction)
   matching                                                      matching?                  @relation(fields: [id_matching], references: [id_matching], onDelete: NoAction, onUpdate: NoAction)
+  ranking_routing                                               ranking_routing[]
 
   @@index([id_asesor], map: "idx_asig_asesor")
   @@index([cerro_venta], map: "idx_asig_cerro", where: raw("(cerro_venta = true)"))
@@ -498,18 +499,20 @@ model bd_call_center {
 }
 
 model ranking_routing {
-  id               Int         @id @default(autoincrement())
-  id_lead          String      @db.Uuid
-  id_asesor        String      @db.Uuid
-  posicion         Int
-  score_total      Decimal?    @db.Decimal(5, 4)
-  score_c          Decimal?    @db.Decimal(5, 4)
-  score_v          Decimal?    @db.Decimal(5, 4)
-  score_p          Decimal?    @db.Decimal(5, 4)
-  asignado         Boolean     @default(false)
-  fecha_evaluacion DateTime    @default(now()) @db.Timestamptz(6)
-  bd_asesores      bd_asesores @relation(fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
-  bd_leads         bd_leads    @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction)
+  id                Int                @id @default(autoincrement())
+  id_lead           String             @db.Uuid
+  id_asesor         String             @db.Uuid
+  posicion          Int
+  score_total       Decimal?           @db.Decimal(5, 4)
+  score_c           Decimal?           @db.Decimal(5, 4)
+  score_v           Decimal?           @db.Decimal(5, 4)
+  score_p           Decimal?           @db.Decimal(5, 4)
+  asignado          Boolean            @default(false)
+  fecha_evaluacion  DateTime           @default(now()) @db.Timestamptz(6)
+  id_asignacion     String?            @db.Uuid
+  bd_asesores       bd_asesores        @relation(fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
+  hist_asignaciones hist_asignaciones? @relation(fields: [id_asignacion], references: [id_asignacion], onDelete: NoAction, onUpdate: NoAction)
+  bd_leads          bd_leads           @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([id_lead], map: "idx_ranking_lead")
   @@index([id_lead, posicion], map: "idx_ranking_lead_pos")
