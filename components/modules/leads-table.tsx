@@ -3,12 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Eye, MessageSquare, Briefcase, UserCheck, Clock, RefreshCw } from 'lucide-react'
+import { Eye, MessageSquare, Briefcase, UserCheck, Clock } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
-import { ReassignModal } from './modals/reassign-modal'
 import { useAuth } from '@/contexts/auth-context'
 
 interface Lead {
@@ -38,7 +37,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
-  const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | 'prospect' | 'reassign' | null>(null)
+  const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | 'prospect' | null>(null)
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -77,7 +76,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     return matchesPriority && matchesStatus && matchesDate
   })
 
-  const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail' | 'prospect' | 'reassign') => {
+  const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail' | 'prospect') => {
     setSelectedLead(lead)
     setModalType(type)
   }
@@ -237,17 +236,6 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                           <UserCheck className="w-4 h-4" />
                         </Button>
                       )}
-                      {(user?.role === 'admin' || user?.role === 'supervisor') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAction(lead, 'reassign')}
-                          className="text-orange-600 hover:bg-orange-50"
-                          title="Reasignar lead"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -265,14 +253,6 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
       {modalType === 'conversation' && selectedLead && <ConversationModal lead={selectedLead} onClose={() => setModalType(null)} />}
       {modalType === 'detail' && selectedLead && <LeadDetailModal lead={selectedLead} onClose={() => setModalType(null)} />}
       {modalType === 'prospect' && selectedLead && <ProspectModal lead={selectedLead} onClose={() => setModalType(null)} />}
-      {modalType === 'reassign' && selectedLead && (
-        <ReassignModal
-          leadId={selectedLead.id}
-          leadName={selectedLead.name}
-          onClose={() => setModalType(null)}
-          onReassigned={() => fetchLeads()}
-        />
-      )}
     </div>
   )
 }

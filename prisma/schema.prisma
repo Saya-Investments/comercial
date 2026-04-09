@@ -24,6 +24,7 @@ model bd_asesores {
   fecha_creacion                                                      DateTime            @default(now()) @db.Timestamptz(6)
   fecha_actualizacion                                                 DateTime            @default(now()) @db.Timestamptz(6)
   capacidad_maxima                                                    Int                 @default(6)
+  dni                                                                 String?             @db.VarChar(10)
   bd_leads                                                            bd_leads[]
   crm_usuarios                                                        crm_usuarios[]
   hist_asignaciones_hist_asignaciones_id_asesor_anteriorTobd_asesores hist_asignaciones[] @relation("hist_asignaciones_id_asesor_anteriorTobd_asesores")
