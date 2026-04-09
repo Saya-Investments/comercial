@@ -6,11 +6,31 @@ export const dynamic = 'force-dynamic'
 
 const CRM_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
+type Mode = 'ranking' | 'manual'
+
+interface Notificacion {
+  email: string
+  nombre: string
+  lead: { nombre: string; producto: string; scoring: number; telefono: string }
+}
+
 export async function POST(req: NextRequest) {
-  const { idAsesor } = await req.json()
+  const body = await req.json()
+  const idAsesor: string | undefined = body.idAsesor
+  const mode: Mode = body.mode
+  const targetAsesorId: string | undefined = body.targetAsesorId
 
   if (!idAsesor) {
     return NextResponse.json({ error: 'idAsesor es requerido' }, { status: 400 })
+  }
+  if (mode !== 'ranking' && mode !== 'manual') {
+    return NextResponse.json({ error: 'mode debe ser "ranking" o "manual"' }, { status: 400 })
+  }
+  if (mode === 'manual' && !targetAsesorId) {
+    return NextResponse.json({ error: 'targetAsesorId es requerido para mode "manual"' }, { status: 400 })
+  }
+  if (mode === 'manual' && targetAsesorId === idAsesor) {
+    return NextResponse.json({ error: 'No se puede reasignar al mismo asesor' }, { status: 400 })
   }
 
   // 1. Get all currently assigned matchings for this asesor
@@ -20,78 +40,98 @@ export async function POST(req: NextRequest) {
   })
 
   if (matchings.length === 0) {
-    return NextResponse.json({ ok: true, reasignados: 0, errores: ['El asesor no tiene leads asignados'] })
+    return NextResponse.json({
+      ok: true,
+      totalLeads: 0,
+      reasignados: 0,
+      errores: ['El asesor no tiene leads asignados'],
+    })
   }
 
   const now = new Date()
   let reasignados = 0
   const errores: string[] = []
-  const notificaciones: Array<{ email: string; nombre: string; lead: { nombre: string; producto: string; scoring: number; telefono: string } }> = []
+  const notificaciones: Notificacion[] = []
 
   for (const match of matchings) {
     try {
       const leadId = match.id_lead
+      let nuevoAsesorId: string
+      let rankingIdToMark: number | null = null
 
-      // 2. Get current position of this asesor in ranking for this lead
-      const posicionActual = await prisma.ranking_routing.findFirst({
-        where: { id_lead: leadId, id_asesor: idAsesor },
-        select: { id: true, posicion: true },
-      })
+      if (mode === 'ranking') {
+        // Find current position of this asesor in ranking
+        const posicionActual = await prisma.ranking_routing.findFirst({
+          where: { id_lead: leadId, id_asesor: idAsesor },
+          select: { posicion: true },
+        })
 
-      if (!posicionActual) {
-        errores.push(`Lead ${leadId}: no encontrado en ranking_routing`)
-        continue
-      }
+        if (!posicionActual) {
+          errores.push(`Lead ${leadId}: asesor no encontrado en ranking_routing`)
+          continue
+        }
 
-      // 3. Find next available asesor in ranking (posicion mayor, no asignado, con capacidad)
-      const siguientes = await prisma.ranking_routing.findMany({
-        where: {
-          id_lead: leadId,
-          posicion: { gt: posicionActual.posicion },
-          asignado: false,
-        },
-        include: {
-          bd_asesores: {
-            select: {
-              id_asesor: true,
-              nombre_asesor: true,
-              leads_en_cola: true,
-              capacidad_maxima: true,
-              disponibilidad: true,
+        // Find next available
+        const siguientes = await prisma.ranking_routing.findMany({
+          where: {
+            id_lead: leadId,
+            posicion: { gt: posicionActual.posicion },
+            asignado: false,
+          },
+          include: {
+            bd_asesores: {
+              select: {
+                id_asesor: true,
+                leads_en_cola: true,
+                capacidad_maxima: true,
+                disponibilidad: true,
+              },
             },
           },
-        },
-        orderBy: { posicion: 'asc' },
-      })
+          orderBy: { posicion: 'asc' },
+        })
 
-      const siguiente = siguientes.find(
-        (r) =>
-          r.bd_asesores.disponibilidad === 'disponible' &&
-          (r.bd_asesores.leads_en_cola ?? 0) < r.bd_asesores.capacidad_maxima
-      )
+        const siguiente = siguientes.find(
+          (r) =>
+            r.bd_asesores.disponibilidad === 'disponible' &&
+            (r.bd_asesores.leads_en_cola ?? 0) < r.bd_asesores.capacidad_maxima
+        )
 
-      if (!siguiente) {
-        errores.push(`Lead ${leadId}: no hay siguiente asesor disponible`)
-        continue
+        if (!siguiente) {
+          errores.push(`Lead ${leadId}: no hay siguiente asesor disponible en ranking`)
+          continue
+        }
+
+        nuevoAsesorId = siguiente.id_asesor
+        rankingIdToMark = siguiente.id
+      } else {
+        // mode === 'manual'
+        nuevoAsesorId = targetAsesorId!
+
+        // Find ranking position of the target asesor for this lead (should exist)
+        const posicionTarget = await prisma.ranking_routing.findFirst({
+          where: { id_lead: leadId, id_asesor: nuevoAsesorId },
+          select: { id: true, asignado: true },
+        })
+
+        if (posicionTarget && !posicionTarget.asignado) {
+          rankingIdToMark = posicionTarget.id
+        }
+        // If target is not in ranking or already marked, we still proceed with matching update
+        // (manual override bypasses ranking consistency)
       }
 
-      const nuevoAsesorId = siguiente.id_asesor
-
-      // 4. Check if matching exists for new asesor
+      // Check if matching exists for new asesor
       const matchingNuevo = await prisma.matching.findFirst({
         where: { id_lead: leadId, id_asesor: nuevoAsesorId },
         select: { id_matching: true },
       })
 
-      // 5. Execute reassignment in transaction
+      // Build transaction operations
       const operations = [
         prisma.matching.update({
           where: { id_matching: match.id_matching },
           data: { asignado: false },
-        }),
-        prisma.ranking_routing.update({
-          where: { id: siguiente.id },
-          data: { asignado: true },
         }),
         prisma.bd_leads.update({
           where: { id_lead: leadId },
@@ -112,10 +152,22 @@ export async function POST(req: NextRequest) {
             estado_gestion: 'en_espera',
             reasignado: true,
             id_asesor_anterior: idAsesor,
-            motivo_reasignacion: 'Reasignación manual masiva',
+            motivo_reasignacion:
+              mode === 'ranking'
+                ? 'Reasignación manual por ranking'
+                : 'Reasignación manual a asesor específico',
           },
         }),
       ]
+
+      if (rankingIdToMark !== null) {
+        operations.push(
+          prisma.ranking_routing.update({
+            where: { id: rankingIdToMark },
+            data: { asignado: true },
+          })
+        )
+      }
 
       if (matchingNuevo) {
         operations.push(

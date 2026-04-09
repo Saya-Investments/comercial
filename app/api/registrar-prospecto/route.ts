@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const lead = await prisma.bd_leads.findUnique({
     where: { id_lead: leadId },
     include: {
-      bd_asesores: { select: { cod_asesor: true } },
+      bd_asesores: { select: { cod_asesor: true, dni: true } },
     },
   })
 
@@ -22,6 +22,10 @@ export async function POST(req: NextRequest) {
 
   if (!lead.bd_asesores?.cod_asesor) {
     return NextResponse.json({ error: 'El lead no tiene asesor asignado con codigo' }, { status: 400 })
+  }
+
+  if (!lead.bd_asesores?.dni) {
+    return NextResponse.json({ error: 'El asesor del lead no tiene DNI registrado' }, { status: 400 })
   }
 
   // 2. Login en API NSV para obtener token
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest) {
       address: '',
     },
     sales: {
-      agent_docnumber: '05364142',
+      agent_docnumber: lead.bd_asesores.dni,
       origin: 'LEADS',
       suborigin: 'BOT',
       interest_level: 'CALIENTE',

@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { RefreshCw, ChevronDown, ChevronRight, Loader2, CheckCircle, AlertCircle, Users } from 'lucide-react'
+import { RefreshCw, ChevronDown, ChevronRight, Loader2, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { BulkReassignModal } from './modals/bulk-reassign-modal'
 
 interface LeadItem {
   idLead: string
@@ -25,20 +26,12 @@ interface AsesorWithLeads {
   leads: LeadItem[]
 }
 
-interface ReassignResult {
-  totalLeads: number
-  reasignados: number
-  errores?: string[]
-}
-
 export function ReassignmentModule() {
   const { user } = useAuth()
   const [asesores, setAsesores] = useState<AsesorWithLeads[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [reassigning, setReassigning] = useState<string | null>(null)
-  const [confirmingAsesor, setConfirmingAsesor] = useState<string | null>(null)
-  const [lastResult, setLastResult] = useState<{ asesorId: string; result: ReassignResult } | null>(null)
+  const [modalAsesor, setModalAsesor] = useState<AsesorWithLeads | null>(null)
 
   const isSupervisor = user?.role === 'supervisor'
 
@@ -63,40 +56,6 @@ export function ReassignmentModule() {
     if (next.has(asesorId)) next.delete(asesorId)
     else next.add(asesorId)
     setExpanded(next)
-  }
-
-  const handleReassignAll = async (asesorId: string) => {
-    setReassigning(asesorId)
-    setConfirmingAsesor(null)
-    setLastResult(null)
-
-    try {
-      const res = await fetch('/api/asesores-leads/reasignar-todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idAsesor: asesorId }),
-      })
-      const data = await res.json()
-
-      setLastResult({
-        asesorId,
-        result: {
-          totalLeads: data.totalLeads || 0,
-          reasignados: data.reasignados || 0,
-          errores: data.errores,
-        },
-      })
-
-      // Refresh the list after reassignment
-      fetchAsesores()
-    } catch (err) {
-      setLastResult({
-        asesorId,
-        result: { totalLeads: 0, reasignados: 0, errores: [(err as Error).message] },
-      })
-    } finally {
-      setReassigning(null)
-    }
   }
 
   return (
@@ -129,9 +88,6 @@ export function ReassignmentModule() {
           <div className="space-y-3 max-w-4xl mx-auto">
             {asesores.map((asesor) => {
               const isExpanded = expanded.has(asesor.idAsesor)
-              const isReassigning = reassigning === asesor.idAsesor
-              const isConfirming = confirmingAsesor === asesor.idAsesor
-              const result = lastResult?.asesorId === asesor.idAsesor ? lastResult.result : null
               const hasLeads = asesor.leads.length > 0
 
               return (
@@ -172,77 +128,17 @@ export function ReassignmentModule() {
                       </div>
                     </div>
 
-                    {isConfirming ? (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setConfirmingAsesor(null)}
-                          disabled={isReassigning}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleReassignAll(asesor.idAsesor)}
-                          disabled={isReassigning}
-                          className="bg-orange-600 hover:bg-orange-700 text-white"
-                        >
-                          {isReassigning ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            'Confirmar reasignación'
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => setConfirmingAsesor(asesor.idAsesor)}
-                        disabled={!hasLeads || isReassigning}
-                        className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
-                        title={hasLeads ? 'Reasignar todos los leads' : 'Sin leads para reasignar'}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Reasignar todos
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Result feedback */}
-                  {result && (
-                    <div
-                      className={`mx-4 mb-3 p-3 rounded-lg text-sm flex items-start gap-2 ${
-                        result.reasignados > 0
-                          ? 'bg-green-50 border border-green-200 text-green-700'
-                          : 'bg-yellow-50 border border-yellow-200 text-yellow-700'
-                      }`}
+                    <Button
+                      size="sm"
+                      onClick={() => setModalAsesor(asesor)}
+                      disabled={!hasLeads}
+                      className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+                      title={hasLeads ? 'Reasignar leads' : 'Sin leads para reasignar'}
                     >
-                      {result.reasignados > 0 ? (
-                        <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {result.reasignados} de {result.totalLeads} leads reasignados
-                        </p>
-                        {result.errores && result.errores.length > 0 && (
-                          <details className="mt-1">
-                            <summary className="cursor-pointer text-xs opacity-80">Ver detalles</summary>
-                            <ul className="mt-1 space-y-0.5 text-xs opacity-90">
-                              {result.errores.slice(0, 5).map((err, i) => (
-                                <li key={i}>• {err}</li>
-                              ))}
-                              {result.errores.length > 5 && (
-                                <li className="italic">...y {result.errores.length - 5} más</li>
-                              )}
-                            </ul>
-                          </details>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reasignar
+                    </Button>
+                  </div>
 
                   {/* Expanded leads list */}
                   {isExpanded && hasLeads && (
@@ -289,6 +185,17 @@ export function ReassignmentModule() {
           </div>
         )}
       </div>
+
+      {modalAsesor && (
+        <BulkReassignModal
+          asesorId={modalAsesor.idAsesor}
+          asesorNombre={modalAsesor.nombreAsesor}
+          totalLeads={modalAsesor.leads.length}
+          supervisorId={isSupervisor ? user?.id : undefined}
+          onClose={() => setModalAsesor(null)}
+          onReassigned={() => fetchAsesores()}
+        />
+      )}
     </div>
   )
 }

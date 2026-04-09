@@ -138,15 +138,24 @@ export function ProspectModal({ lead, onClose, onProspectSaved }: ProspectModalP
               <Button
                 variant="outline"
                 onClick={() => setStep('info')}
+                disabled={saving}
                 className="text-foreground hover:bg-secondary"
               >
                 Volver
               </Button>
               <Button
-                className="bg-accent/50 text-accent-foreground cursor-not-allowed"
-                disabled
+                onClick={handleSubmit}
+                disabled={saving}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
-                Si, registrar
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Registrando...
+                  </>
+                ) : (
+                  'Si, registrar'
+                )}
               </Button>
             </div>
           )}
@@ -161,8 +170,8 @@ export function ProspectModal({ lead, onClose, onProspectSaved }: ProspectModalP
                 Cancelar
               </Button>
               <Button
-                className="bg-accent/50 text-accent-foreground cursor-not-allowed"
-                disabled
+                onClick={() => setStep('confirm')}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 <UserCheck className="w-4 h-4 mr-2" />
                 Registrar Prospecto
