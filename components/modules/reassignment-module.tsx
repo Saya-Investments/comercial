@@ -191,7 +191,6 @@ export function ReassignmentModule() {
           asesorId={modalAsesor.idAsesor}
           asesorNombre={modalAsesor.nombreAsesor}
           totalLeads={modalAsesor.leads.length}
-          supervisorId={isSupervisor ? user?.id : undefined}
           onClose={() => setModalAsesor(null)}
           onReassigned={() => fetchAsesores()}
         />

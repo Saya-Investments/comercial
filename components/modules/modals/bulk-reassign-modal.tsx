@@ -17,7 +17,6 @@ interface BulkReassignModalProps {
   asesorId: string
   asesorNombre: string
   totalLeads: number
-  supervisorId?: string
   onClose: () => void
   onReassigned?: () => void
 }
@@ -35,12 +34,11 @@ export function BulkReassignModal({
   asesorId,
   asesorNombre,
   totalLeads,
-  supervisorId,
   onClose,
   onReassigned,
 }: BulkReassignModalProps) {
   const [step, setStep] = useState<Step>('choose')
-  const [mode, setMode] = useState<Mode | null>(null)
+  const [, setMode] = useState<Mode | null>(null)
   const [asesoresDisponibles, setAsesoresDisponibles] = useState<AsesorOption[]>([])
   const [selectedAsesorId, setSelectedAsesorId] = useState<string>('')
   const [loadingAsesores, setLoadingAsesores] = useState(false)
@@ -48,12 +46,12 @@ export function BulkReassignModal({
   const [error, setError] = useState<string | null>(null)
 
   // Load asesores list when entering manual selection step
+  // Always fetch ALL asesores (no supervisor filter) so supervisors can also reassign to outside their team
   useEffect(() => {
     if (step !== 'manual-select' || asesoresDisponibles.length > 0) return
 
     setLoadingAsesores(true)
-    const url = supervisorId ? `/api/asesores-leads?supervisorId=${supervisorId}` : '/api/asesores-leads'
-    fetch(url)
+    fetch('/api/asesores-leads')
       .then((res) => res.json())
       .then((data: AsesorOption[]) => {
         // Exclude the source asesor
@@ -61,7 +59,7 @@ export function BulkReassignModal({
       })
       .catch(() => setError('Error al cargar asesores'))
       .finally(() => setLoadingAsesores(false))
-  }, [step, asesoresDisponibles.length, supervisorId, asesorId])
+  }, [step, asesoresDisponibles.length, asesorId])
 
   const executeReassign = async (selectedMode: Mode, targetId?: string) => {
     setStep('processing')
