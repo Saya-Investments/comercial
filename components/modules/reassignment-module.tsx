@@ -22,7 +22,6 @@ interface AsesorWithLeads {
   nombreAsesor: string
   disponibilidad: string
   leadsEnCola: number
-  capacidadMaxima: number
   leads: LeadItem[]
 }
 
@@ -123,7 +122,7 @@ export function ReassignmentModule() {
                           <strong className="text-foreground">{asesor.leads.length}</strong> leads asignados
                         </span>
                         <span>
-                          Cola: {asesor.leadsEnCola}/{asesor.capacidadMaxima}
+                          Cola: {asesor.leadsEnCola}
                         </span>
                       </div>
                     </div>

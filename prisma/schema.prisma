@@ -23,10 +23,10 @@ model bd_asesores {
   disponibilidad                                                      String?             @db.VarChar(20)
   fecha_creacion                                                      DateTime            @default(now()) @db.Timestamptz(6)
   fecha_actualizacion                                                 DateTime            @default(now()) @db.Timestamptz(6)
-  capacidad_maxima                                                    Int                 @default(6)
   dni                                                                 String?             @db.VarChar(10)
   bd_leads                                                            bd_leads[]
   crm_usuarios                                                        crm_usuarios[]
+  cuotas_semanales                                                    cuotas_semanales[]
   hist_asignaciones_hist_asignaciones_id_asesor_anteriorTobd_asesores hist_asignaciones[] @relation("hist_asignaciones_id_asesor_anteriorTobd_asesores")
   hist_asignaciones_hist_asignaciones_id_asesorTobd_asesores          hist_asignaciones[] @relation("hist_asignaciones_id_asesorTobd_asesores")
   hist_clientes                                                       hist_clientes[]
@@ -35,6 +35,25 @@ model bd_asesores {
 
   @@index([cod_asesor], map: "idx_asesores_cod")
   @@index([disponibilidad], map: "idx_asesores_disponibilidad")
+}
+
+/// Cuotas semanales por asesor con split por nivel (high/medium/low).
+/// Driver primario de la Regla 1 del routing (progreso en cuota).
+model cuotas_semanales {
+  id_cuota         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_asesor        String      @db.Uuid
+  semana_inicio    DateTime    @db.Date
+  cuota_high       Int         @default(0)
+  cuota_medium     Int         @default(0)
+  cuota_low        Int         @default(0)
+  recibidos_high   Int         @default(0)
+  recibidos_medium Int         @default(0)
+  recibidos_low    Int         @default(0)
+  fecha_creacion   DateTime?   @default(now()) @db.Timestamptz(6)
+  bd_asesores      bd_asesores @relation(fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([id_asesor, semana_inicio])
+  @@index([semana_inicio, id_asesor], map: "idx_cuotas_semana")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -404,6 +423,7 @@ model matching {
   fecha_evaluacion  DateTime            @default(now()) @db.Timestamptz(6)
   fecha_asignacion  DateTime?           @db.Timestamptz(6)
   notificado_asesor Boolean             @default(false)
+  nivel_al_asignar  String?             @db.VarChar(10)
   hist_asignaciones hist_asignaciones[]
   bd_asesores       bd_asesores         @relation(fields: [id_asesor], references: [id_asesor], onDelete: NoAction, onUpdate: NoAction)
   bd_leads          bd_leads            @relation(fields: [id_lead], references: [id_lead], onDelete: NoAction, onUpdate: NoAction)

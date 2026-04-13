@@ -60,33 +60,40 @@ Guarda el top 10 de asesores del modelo de 3 factores para cada lead enrutado.
 
 ```
 1. Routing ejecuta modelo 3 factores → genera ranking de N asesores
-2. Se guarda el top 10 en `ranking_routing` (NUEVO)
+2. Se guarda el top 10 en `ranking_routing`
 3. Se asigna al #1 → se marca posicion 1 como asignado=true en ranking_routing
-4. Se crea matching + hist_asignaciones (como ahora)
+4. Se crea matching + hist_asignaciones
+5. Se incrementa `cuotas_semanales.recibidos_<nivel>` del asesor #1 (Regla 1)
 
 --- 24 horas despues (logica del CRM) ---
 
-5. CRM detecta que el lead lleva 24h sin gestion
-6. CRM consulta `ranking_routing` para ese lead
-7. Busca la siguiente posicion no asignada (posicion 2)
-8. Verifica que ese asesor tenga capacidad (leads_en_cola < capacidad_maxima)
-9. Si tiene capacidad → reasigna:
-   - Nueva fila en hist_asignaciones (reasignado=true, id_asesor_anterior)
-   - Actualiza bd_leads.ultimo_asesor_asignado
-   - Actualiza leads_en_cola de ambos asesores
-   - Marca posicion 2 como asignado=true en ranking_routing
-10. Si no tiene capacidad → pasa a posicion 3, y asi sucesivamente
+6. CRM detecta que el lead lleva 24h sin gestion
+7. CRM consulta `ranking_routing` para ese lead
+8. Para cada posicion siguiente (>= 2), verifica:
+   - El asesor esta disponible (`disponibilidad = 'disponible'`)
+   - El asesor no ha cumplido cuota del nivel del lead (`recibidos_<nivel> < cuota_<nivel>`)
+9. Encuentra el primero que cumple ambos requisitos. Si no hay, fallback al primer disponible (sin filtro de cuota).
+10. Reasigna en transaccion:
+    - Nueva fila en hist_asignaciones (reasignado=true, id_asesor_anterior)
+    - Actualiza bd_leads.ultimo_asesor_asignado
+    - Actualiza leads_en_cola de ambos asesores
+    - Marca posicion N como asignado=true en ranking_routing
+    - **Decrementa `cuotas_semanales.recibidos_<nivel>` del asesor original**
+    - **Incrementa `cuotas_semanales.recibidos_<nivel>` del nuevo asesor**
 ```
+
+> El nivel del lead se calcula desde `bd_leads.scoring` actual con los umbrales 0.70 (alto) y 0.40 (medio). Asume que el nivel no cambio entre la asignacion original y la reasignacion (caso comun: 24h sin gestion = lead inactivo).
 
 ## Responsabilidades
 
 | Accion | Responsable |
 |--------|-------------|
 | Generar ranking y guardar top 10 en `ranking_routing` | Routing (comercial-routing) |
-| Asignar al #1 | Routing (comercial-routing) |
+| Asignar al #1 + incrementar `cuotas_semanales` (Regla 1) | Routing (comercial-routing) |
 | Detectar 24h sin gestion | CRM |
 | Consultar ranking_routing y reasignar al siguiente | CRM |
 | Actualizar leads_en_cola, hist_asignaciones, bd_leads | CRM |
+| Decrementar/Incrementar `cuotas_semanales` en reasignacion | CRM |
 
 ## Estado de Implementacion
 

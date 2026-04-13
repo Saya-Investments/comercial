@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendLeadAssignedNotification } from '@/lib/email'
 
@@ -7,6 +8,15 @@ export const dynamic = 'force-dynamic'
 const CRM_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 type Mode = 'ranking' | 'manual'
+
+// Niveles de cuota (Regla 1 — split en cuotas_semanales)
+type Nivel = 'high' | 'medium' | 'low'
+
+function clasificarNivel(score: number): Nivel {
+  if (score >= 0.70) return 'high'
+  if (score >= 0.40) return 'medium'
+  return 'low'
+}
 
 interface Notificacion {
   email: string
@@ -83,7 +93,6 @@ export async function POST(req: NextRequest) {
               select: {
                 id_asesor: true,
                 leads_en_cola: true,
-                capacidad_maxima: true,
                 disponibilidad: true,
               },
             },
@@ -92,9 +101,7 @@ export async function POST(req: NextRequest) {
         })
 
         const siguiente = siguientes.find(
-          (r) =>
-            r.bd_asesores.disponibilidad === 'disponible' &&
-            (r.bd_asesores.leads_en_cola ?? 0) < r.bd_asesores.capacidad_maxima
+          (r) => r.bd_asesores.disponibilidad === 'disponible'
         )
 
         if (!siguiente) {
@@ -127,25 +134,68 @@ export async function POST(req: NextRequest) {
         select: { id_matching: true },
       })
 
-      // Build transaction operations
-      const operations = [
-        prisma.matching.update({
+      // Cargar score actual del lead y el nivel persistido en el matching original
+      // para la dec/inc de cuotas (Regla 1).
+      // - nivelAnterior: el nivel con el que se incrementó el contador del asesor original.
+      //   Se lee de match.nivel_al_asignar; fallback al score actual si esta NULL.
+      // - nivelNuevo: el nivel del lead AHORA, usado para incrementar el contador del nuevo asesor.
+      const matchOriginal = await prisma.matching.findUnique({
+        where: { id_matching: match.id_matching },
+        select: { nivel_al_asignar: true },
+      })
+      const leadScoring = await prisma.bd_leads.findUnique({
+        where: { id_lead: leadId },
+        select: { scoring: true },
+      })
+      const scoreLeadActual = Number(leadScoring?.scoring ?? 0)
+      const nivelNuevo = clasificarNivel(scoreLeadActual)
+      const nivelAnterior: Nivel =
+        (matchOriginal?.nivel_al_asignar as Nivel | null) ?? nivelNuevo
+
+      const colRecib = `recibidos_${nivelNuevo}`
+      const colRecibAnterior = `recibidos_${nivelAnterior}`
+
+      // Ejecutar reasignacion en transaccion (callback form para usar $executeRaw)
+      await prisma.$transaction(async (tx) => {
+        await tx.matching.update({
           where: { id_matching: match.id_matching },
           data: { asignado: false },
-        }),
-        prisma.bd_leads.update({
+        })
+
+        await tx.bd_leads.update({
           where: { id_lead: leadId },
           data: { ultimo_asesor_asignado: nuevoAsesorId },
-        }),
-        prisma.bd_asesores.update({
+        })
+
+        await tx.bd_asesores.update({
           where: { id_asesor: idAsesor },
           data: { leads_en_cola: { decrement: 1 } },
-        }),
-        prisma.bd_asesores.update({
+        })
+
+        await tx.bd_asesores.update({
           where: { id_asesor: nuevoAsesorId },
           data: { leads_en_cola: { increment: 1 } },
-        }),
-        prisma.hist_asignaciones.create({
+        })
+
+        // Regla 1 — Decrementar recibidos_<nivelAnterior> del asesor anterior.
+        // nivelAnterior viene de matching.nivel_al_asignar (o fallback al score actual).
+        await tx.$executeRaw`
+          UPDATE comercial.cuotas_semanales
+          SET ${Prisma.raw(colRecibAnterior)} = GREATEST(${Prisma.raw(colRecibAnterior)} - 1, 0)
+          WHERE id_asesor = ${idAsesor}::uuid
+            AND semana_inicio = date_trunc('week', CURRENT_DATE)::date
+        `
+
+        // Regla 1 — Incrementar recibidos_<nivelNuevo> del nuevo asesor.
+        // nivelNuevo es el nivel del lead al momento de la reasignacion.
+        await tx.$executeRaw`
+          UPDATE comercial.cuotas_semanales
+          SET ${Prisma.raw(colRecib)} = ${Prisma.raw(colRecib)} + 1
+          WHERE id_asesor = ${nuevoAsesorId}::uuid
+            AND semana_inicio = date_trunc('week', CURRENT_DATE)::date
+        `
+
+        await tx.hist_asignaciones.create({
           data: {
             id_lead: leadId,
             id_asesor: nuevoAsesorId,
@@ -157,40 +207,39 @@ export async function POST(req: NextRequest) {
                 ? 'Reasignación manual por ranking'
                 : 'Reasignación manual a asesor específico',
           },
-        }),
-      ]
+        })
 
-      if (rankingIdToMark !== null) {
-        operations.push(
-          prisma.ranking_routing.update({
+        if (rankingIdToMark !== null) {
+          await tx.ranking_routing.update({
             where: { id: rankingIdToMark },
             data: { asignado: true },
           })
-        )
-      }
+        }
 
-      if (matchingNuevo) {
-        operations.push(
-          prisma.matching.update({
+        if (matchingNuevo) {
+          await tx.matching.update({
             where: { id_matching: matchingNuevo.id_matching },
-            data: { asignado: true, fecha_asignacion: now, notificado_asesor: false },
+            data: {
+              asignado: true,
+              fecha_asignacion: now,
+              notificado_asesor: false,
+              nivel_al_asignar: nivelNuevo,
+            },
           })
-        )
-      } else {
-        operations.push(
-          prisma.matching.create({
+        } else {
+          await tx.matching.create({
             data: {
               id_lead: leadId,
               id_asesor: nuevoAsesorId,
               asignado: true,
               fecha_asignacion: now,
               notificado_asesor: false,
+              nivel_al_asignar: nivelNuevo,
             },
           })
-        )
-      }
+        }
+      })
 
-      await prisma.$transaction(operations)
       reasignados++
 
       // Queue email notification

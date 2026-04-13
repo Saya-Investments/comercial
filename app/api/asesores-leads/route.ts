@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
       cod_asesor: true,
       disponibilidad: true,
       leads_en_cola: true,
-      capacidad_maxima: true,
     },
     orderBy: { nombre_asesor: 'asc' },
   })
@@ -77,7 +76,6 @@ export async function GET(req: NextRequest) {
     nombreAsesor: a.nombre_asesor || a.cod_asesor || 'Sin nombre',
     disponibilidad: a.disponibilidad || 'no disponible',
     leadsEnCola: a.leads_en_cola ?? 0,
-    capacidadMaxima: a.capacidad_maxima,
     leads: leadsByAsesor.get(a.id_asesor) || [],
   }))
 

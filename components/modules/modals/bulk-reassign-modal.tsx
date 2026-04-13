@@ -10,7 +10,6 @@ interface AsesorOption {
   nombreAsesor: string
   disponibilidad: string
   leadsEnCola: number
-  capacidadMaxima: number
 }
 
 interface BulkReassignModalProps {
@@ -209,7 +208,6 @@ export function BulkReassignModal({
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {asesoresDisponibles.map((a) => {
                     const isSelected = selectedAsesorId === a.idAsesor
-                    const sinCapacidad = a.leadsEnCola + totalLeads > a.capacidadMaxima
                     const noDisponible = a.disponibilidad !== 'disponible'
 
                     return (
@@ -231,16 +229,11 @@ export function BulkReassignModal({
                                   No disponible
                                 </span>
                               )}
-                              {sinCapacidad && (
-                                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                                  Excede capacidad
-                                </span>
-                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              Cola actual: {a.leadsEnCola}/{a.capacidadMaxima}
+                              Cola actual: {a.leadsEnCola}
                               {' · '}
-                              Quedaría en: {a.leadsEnCola + totalLeads}/{a.capacidadMaxima}
+                              Quedaría en: {a.leadsEnCola + totalLeads}
                             </p>
                           </div>
                           {isSelected && <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />}
@@ -265,7 +258,7 @@ export function BulkReassignModal({
                   </p>
                   <p className="text-purple-900 font-semibold mt-2">{targetAsesor.nombreAsesor}</p>
                   <p className="text-purple-700 text-xs mt-1">
-                    Cola del destino quedaría en: {targetAsesor.leadsEnCola + totalLeads}/{targetAsesor.capacidadMaxima}
+                    Cola del destino quedaría en: {targetAsesor.leadsEnCola + totalLeads}
                   </p>
                 </div>
               </div>
