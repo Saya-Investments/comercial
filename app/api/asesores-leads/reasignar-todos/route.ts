@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
   const idAsesor: string | undefined = body.idAsesor
   const mode: Mode = body.mode
   const targetAsesorId: string | undefined = body.targetAsesorId
+  const leadId: string | undefined = body.leadId
 
   if (!idAsesor) {
     return NextResponse.json({ error: 'idAsesor es requerido' }, { status: 400 })
@@ -43,9 +44,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No se puede reasignar al mismo asesor' }, { status: 400 })
   }
 
-  // 1. Get all currently assigned matchings for this asesor
+  // 1. Get currently assigned matchings for this asesor (optionally filtered by leadId)
   const matchings = await prisma.matching.findMany({
-    where: { id_asesor: idAsesor, asignado: true },
+    where: {
+      id_asesor: idAsesor,
+      asignado: true,
+      ...(leadId ? { id_lead: leadId } : {}),
+    },
     select: { id_matching: true, id_lead: true },
   })
 

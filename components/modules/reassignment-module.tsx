@@ -25,12 +25,18 @@ interface AsesorWithLeads {
   leads: LeadItem[]
 }
 
+interface SingleLeadContext {
+  asesor: AsesorWithLeads
+  lead: LeadItem
+}
+
 export function ReassignmentModule() {
   const { user } = useAuth()
   const [asesores, setAsesores] = useState<AsesorWithLeads[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [modalAsesor, setModalAsesor] = useState<AsesorWithLeads | null>(null)
+  const [modalSingleLead, setModalSingleLead] = useState<SingleLeadContext | null>(null)
 
   const isSupervisor = user?.role === 'supervisor'
 
@@ -150,6 +156,7 @@ export function ReassignmentModule() {
                             <th className="px-4 py-2 font-medium text-muted-foreground">Teléfono</th>
                             <th className="px-4 py-2 font-medium text-muted-foreground text-center">Score</th>
                             <th className="px-4 py-2 font-medium text-muted-foreground">Estado</th>
+                            <th className="px-4 py-2 font-medium text-muted-foreground text-right">Acción</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -172,6 +179,18 @@ export function ReassignmentModule() {
                                 </span>
                               </td>
                               <td className="px-4 py-2 text-muted-foreground">{lead.estado || '—'}</td>
+                              <td className="px-4 py-2 text-right">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setModalSingleLead({ asesor, lead })}
+                                  className="text-orange-600 border-orange-300 hover:bg-orange-50 h-7"
+                                  title="Reasignar este lead"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                                  Reasignar
+                                </Button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -191,6 +210,18 @@ export function ReassignmentModule() {
           asesorNombre={modalAsesor.nombreAsesor}
           totalLeads={modalAsesor.leads.length}
           onClose={() => setModalAsesor(null)}
+          onReassigned={() => fetchAsesores()}
+        />
+      )}
+
+      {modalSingleLead && (
+        <BulkReassignModal
+          asesorId={modalSingleLead.asesor.idAsesor}
+          asesorNombre={modalSingleLead.asesor.nombreAsesor}
+          totalLeads={1}
+          singleLeadId={modalSingleLead.lead.idLead}
+          singleLeadName={modalSingleLead.lead.nombre}
+          onClose={() => setModalSingleLead(null)}
           onReassigned={() => fetchAsesores()}
         />
       )}

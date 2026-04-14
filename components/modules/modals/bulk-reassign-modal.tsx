@@ -16,6 +16,10 @@ interface BulkReassignModalProps {
   asesorId: string
   asesorNombre: string
   totalLeads: number
+  /** If provided, only this single lead is reassigned (instead of all leads of the asesor) */
+  singleLeadId?: string
+  /** Display name of the single lead (only used when singleLeadId is provided) */
+  singleLeadName?: string
   onClose: () => void
   onReassigned?: () => void
 }
@@ -33,9 +37,13 @@ export function BulkReassignModal({
   asesorId,
   asesorNombre,
   totalLeads,
+  singleLeadId,
+  singleLeadName,
   onClose,
   onReassigned,
 }: BulkReassignModalProps) {
+  const isSingleLead = !!singleLeadId
+  const effectiveTotal = isSingleLead ? 1 : totalLeads
   const [step, setStep] = useState<Step>('choose')
   const [, setMode] = useState<Mode | null>(null)
   const [asesoresDisponibles, setAsesoresDisponibles] = useState<AsesorOption[]>([])
@@ -72,6 +80,7 @@ export function BulkReassignModal({
           idAsesor: asesorId,
           mode: selectedMode,
           targetAsesorId: targetId,
+          leadId: singleLeadId,
         }),
       })
 
@@ -103,9 +112,13 @@ export function BulkReassignModal({
       <Card className="w-full max-w-xl flex flex-col max-h-[90vh]">
         <div className="flex justify-between items-center p-6 border-b border-border flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-foreground">Reasignar Leads</h2>
+            <h2 className="text-xl font-bold text-foreground">
+              {isSingleLead ? 'Reasignar Lead' : 'Reasignar Leads'}
+            </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {asesorNombre} · {totalLeads} {totalLeads === 1 ? 'lead' : 'leads'}
+              {isSingleLead
+                ? `${singleLeadName} · actual: ${asesorNombre}`
+                : `${asesorNombre} · ${totalLeads} ${totalLeads === 1 ? 'lead' : 'leads'}`}
             </p>
           </div>
           <button
@@ -122,7 +135,9 @@ export function BulkReassignModal({
           {step === 'choose' && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground mb-4">
-                Selecciona cómo quieres reasignar los {totalLeads} {totalLeads === 1 ? 'lead' : 'leads'} de este asesor:
+                {isSingleLead
+                  ? 'Selecciona cómo quieres reasignar este lead:'
+                  : `Selecciona cómo quieres reasignar los ${totalLeads} ${totalLeads === 1 ? 'lead' : 'leads'} de este asesor:`}
               </p>
 
               <button
@@ -137,9 +152,13 @@ export function BulkReassignModal({
                     <ListOrdered className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">Por ranking de cada lead</h3>
+                    <h3 className="font-semibold text-foreground">
+                      {isSingleLead ? 'Por ranking del lead' : 'Por ranking de cada lead'}
+                    </h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Cada lead se reasignará al siguiente asesor disponible según su ranking individual.
+                      {isSingleLead
+                        ? 'El lead se reasignará al siguiente asesor disponible según su ranking.'
+                        : 'Cada lead se reasignará al siguiente asesor disponible según su ranking individual.'}
                     </p>
                   </div>
                 </div>
@@ -159,7 +178,9 @@ export function BulkReassignModal({
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground">A un asesor específico</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Tú eliges a qué asesor se reasignarán todos los leads.
+                      {isSingleLead
+                        ? 'Tú eliges a qué asesor se reasignará este lead.'
+                        : 'Tú eliges a qué asesor se reasignarán todos los leads.'}
                     </p>
                   </div>
                 </div>
@@ -174,12 +195,25 @@ export function BulkReassignModal({
                 <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 text-sm">
                   <p className="font-semibold text-amber-900 mb-1">Reasignación por ranking</p>
-                  <p className="text-amber-800">
-                    Cada uno de los <strong>{totalLeads}</strong> leads se reasignará al <strong>siguiente asesor disponible</strong> según su ranking individual.
-                  </p>
-                  <p className="text-amber-800 mt-2">
-                    Si algún lead no tiene un siguiente asesor disponible (sin capacidad o no disponible), se omitirá y se reportará en el resultado.
-                  </p>
+                  {isSingleLead ? (
+                    <>
+                      <p className="text-amber-800">
+                        El lead <strong>{singleLeadName}</strong> se reasignará al <strong>siguiente asesor disponible</strong> según su ranking.
+                      </p>
+                      <p className="text-amber-800 mt-2">
+                        Si no hay un siguiente asesor disponible (no disponible o sin posición posterior), la operación fallará y se reportará.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-amber-800">
+                        Cada uno de los <strong>{totalLeads}</strong> leads se reasignará al <strong>siguiente asesor disponible</strong> según su ranking individual.
+                      </p>
+                      <p className="text-amber-800 mt-2">
+                        Si algún lead no tiene un siguiente asesor disponible (sin capacidad o no disponible), se omitirá y se reportará en el resultado.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -195,7 +229,9 @@ export function BulkReassignModal({
           {step === 'manual-select' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Selecciona el asesor al que se reasignarán los {totalLeads} {totalLeads === 1 ? 'lead' : 'leads'}:
+                {isSingleLead
+                  ? 'Selecciona el asesor al que se reasignará este lead:'
+                  : `Selecciona el asesor al que se reasignarán los ${totalLeads} ${totalLeads === 1 ? 'lead' : 'leads'}:`}
               </p>
 
               {loadingAsesores ? (
@@ -254,11 +290,15 @@ export function BulkReassignModal({
                 <div className="flex-1 text-sm">
                   <p className="font-semibold text-purple-900 mb-1">Confirmar reasignación</p>
                   <p className="text-purple-800">
-                    Los <strong>{totalLeads}</strong> leads de <strong>{asesorNombre}</strong> serán reasignados a:
+                    {isSingleLead ? (
+                      <>El lead <strong>{singleLeadName}</strong> (actualmente de <strong>{asesorNombre}</strong>) será reasignado a:</>
+                    ) : (
+                      <>Los <strong>{totalLeads}</strong> leads de <strong>{asesorNombre}</strong> serán reasignados a:</>
+                    )}
                   </p>
                   <p className="text-purple-900 font-semibold mt-2">{targetAsesor.nombreAsesor}</p>
                   <p className="text-purple-700 text-xs mt-1">
-                    Cola del destino quedaría en: {targetAsesor.leadsEnCola + totalLeads}
+                    Cola del destino quedaría en: {targetAsesor.leadsEnCola + effectiveTotal}
                   </p>
                 </div>
               </div>
@@ -275,7 +315,9 @@ export function BulkReassignModal({
           {step === 'processing' && (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-              <p className="text-foreground font-medium">Reasignando leads...</p>
+              <p className="text-foreground font-medium">
+                {isSingleLead ? 'Reasignando lead...' : 'Reasignando leads...'}
+              </p>
               <p className="text-sm text-muted-foreground mt-1">Esto puede tomar unos segundos</p>
             </div>
           )}
@@ -299,9 +341,11 @@ export function BulkReassignModal({
                   <p className={`font-semibold mb-1 ${
                     result.reasignados === result.totalLeads ? 'text-green-900' : 'text-amber-900'
                   }`}>
-                    {result.reasignados} de {result.totalLeads} leads reasignados
+                    {isSingleLead
+                      ? result.reasignados === 1 ? 'Lead reasignado correctamente' : 'No se pudo reasignar el lead'
+                      : `${result.reasignados} de ${result.totalLeads} leads reasignados`}
                   </p>
-                  {result.reasignados < result.totalLeads && (
+                  {!isSingleLead && result.reasignados < result.totalLeads && (
                     <p className="text-amber-800">
                       {result.totalLeads - result.reasignados} {result.totalLeads - result.reasignados === 1 ? 'lead no pudo' : 'leads no pudieron'} reasignarse.
                     </p>
