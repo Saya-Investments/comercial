@@ -25,7 +25,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
     { id: 'calendar', label: 'Calendario', icon: Calendar, roles: ['admin', 'asesor', 'call center', 'supervisor'] as string[] },
     { id: 'templates', label: 'Plantillas', icon: Mail, roles: ['admin'] as string[] },
     { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, roles: ['admin', 'supervisor'] as string[] },
-    { id: 'reassignment', label: 'Reasignación', icon: RefreshCw, roles: ['admin', 'supervisor'] as string[] },
+    { id: 'reassignment', label: 'Reasignación', icon: RefreshCw, roles: ['admin'] as string[] },
     // { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, roles: ['admin'] as string[] },
     { id: 'routing-rules', label: 'Enrutamiento', icon: Settings, roles: ['admin'] as string[] },
     { id: 'users', label: 'Usuarios', icon: Users2, roles: ['admin'] as string[] },
