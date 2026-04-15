@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Clock, MapPin, User, Calendar as CalendarIcon, Unlink } from 'lucide-react'
+import { Clock, MapPin, User, Calendar as CalendarIcon, Unlink } from 'lucide-react'
 import { AppointmentModal } from './modals/appointment-modal'
 import { useAuth } from '@/contexts/auth-context'
 import { AsesorFilter } from '@/components/ui/asesor-filter'
@@ -217,16 +217,6 @@ export function CalendarModule() {
                 Conectar Google Calendar
               </Button>
             )}
-          <Button
-            onClick={() => {
-              setEditingAppointment(null)
-              setShowModal(true)
-            }}
-            className="bg-accent hover:bg-accent/90 text-accent-foreground"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Cita
-          </Button>
           </div>
         </div>
 
