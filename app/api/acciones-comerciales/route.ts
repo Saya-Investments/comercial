@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     where: { id_lead: leadId },
     include: {
       crm_usuarios: { select: { nombre: true, username: true } },
-      crm_citas: { select: { fecha: true, hora: true, estado: true } },
+      crm_citas: { select: { fecha: true, hora: true, estado: true, tipo: true, ubicacion: true } },
     },
     orderBy: { fecha_creacion: 'desc' },
   })
@@ -41,6 +41,8 @@ export async function GET(req: NextRequest) {
               : String(a.crm_citas.hora).slice(0, 5)
           })(),
           estado: a.crm_citas.estado,
+          tipo: a.crm_citas.tipo,
+          ubicacion: a.crm_citas.ubicacion,
         }
       : null,
     fecha: a.fecha_creacion.toISOString(),
@@ -86,21 +88,26 @@ export async function POST(req: NextRequest) {
 
   let citaId: string | null = bodyCitaId || null
 
-  // If scheduling a call, create the cita first
-  if (tipoAccion === 'Agendar_llamada' && cita) {
+  // If scheduling a call or meeting, create the cita first
+  if ((tipoAccion === 'Agendar_llamada' || tipoAccion === 'Cita') && cita) {
     const [hours, minutes] = (cita.time || '09:00').split(':').map(Number)
     const horaDate = new Date(Date.UTC(1970, 0, 1, hours, minutes, 0))
+    const citaTipo = cita.type || (tipoAccion === 'Cita' ? 'reunion' : 'llamada')
+    const citaTitulo = tipoAccion === 'Cita'
+      ? `Cita presencial - ${cita.leadName || 'Lead'}`
+      : `Llamada agendada - ${cita.leadName || 'Lead'}`
 
     const nuevaCita = await prisma.crm_citas.create({
       data: {
-        titulo: `Llamada agendada - ${cita.leadName || 'Lead'}`,
+        titulo: citaTitulo,
         id_lead: leadId,
         nombre_lead: cita.leadName || null,
         id_usuario: userId,
         fecha: new Date(cita.date),
         hora: horaDate,
+        ubicacion: cita.location || null,
         descripcion: observaciones || null,
-        tipo: 'llamada',
+        tipo: citaTipo,
       },
     })
     citaId = nuevaCita.id_cita
@@ -113,11 +120,12 @@ export async function POST(req: NextRequest) {
 
     if (usuario?.google_refresh_token) {
       const googleEventId = await createCalendarEvent(usuario.google_refresh_token, {
-        title: `Llamada agendada - ${cita.leadName || 'Lead'}`,
+        title: citaTitulo,
         description: observaciones || undefined,
         date: cita.date,
         time: cita.time || '09:00',
-        type: 'llamada',
+        type: citaTipo,
+        location: cita.location || undefined,
         leadName: cita.leadName || undefined,
       })
 

@@ -10,6 +10,7 @@ const FUNNEL_STAGES = [
   'Interesado',
   'Seguimiento',
   'Llamada_agendada',
+  'Cita_agendada',
   'Venta_cerrada',
   'No_interesado',
 ] as const
@@ -20,6 +21,7 @@ const STAGE_LABELS: Record<string, string> = {
   Interesado: 'Interesado',
   Seguimiento: 'Seguimiento',
   Llamada_agendada: 'Llamada agendada',
+  Cita_agendada: 'Cita agendada',
   Venta_cerrada: 'Venta cerrada',
   No_interesado: 'No interesado',
 }

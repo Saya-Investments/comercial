@@ -25,7 +25,7 @@ interface AccionComercial {
   tipoAccion: string
   estadoAsesor: string
   observaciones: string | null
-  cita: { fecha: string; hora: string; estado: string } | null
+  cita: { fecha: string; hora: string; estado: string; tipo?: string; ubicacion?: string | null } | null
   fecha: string
 }
 
@@ -56,19 +56,23 @@ const ESTADO_LABELS: Record<string, string> = {
   No_interesado: 'No interesado',
   Interesado: 'Interesado',
   Llamada_agendada: 'Llamada agendada',
+  Cita_agendada: 'Cita agendada',
   Contactado: 'Contactado',
   Seguimiento: 'Seguimiento',
   Venta_cerrada: 'Venta cerrada',
+  Prospecto: 'Prospecto',
 }
 
 const TIPO_LABELS: Record<string, string> = {
   Llamada: 'Llamada',
   Agendar_llamada: 'Agendar llamada',
+  Cita: 'Cita presencial',
 }
 
 const TIPO_ICONS: Record<string, typeof Phone> = {
   Llamada: Phone,
   Agendar_llamada: CalendarClock,
+  Cita: CalendarClock,
 }
 
 const EVENTO_LABELS: Record<string, string> = {
@@ -100,9 +104,11 @@ const ESTADO_COLORS: Record<string, string> = {
   No_interesado: 'bg-red-50 text-red-700 border-red-200',
   Interesado: 'bg-green-50 text-green-700 border-green-200',
   Llamada_agendada: 'bg-blue-50 text-blue-700 border-blue-200',
+  Cita_agendada: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   Contactado: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   Seguimiento: 'bg-purple-50 text-purple-700 border-purple-200',
   Venta_cerrada: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Prospecto: 'bg-emerald-100 text-emerald-800 border-emerald-300',
 }
 
 export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
@@ -244,6 +250,8 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                       {a.cita && (
                         <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
                           Cita: {a.cita.fecha} a las {a.cita.hora} ({a.cita.estado})
+                          {a.cita.tipo ? ` - ${a.cita.tipo}` : ''}
+                          {a.cita.ubicacion ? ` - ${a.cita.ubicacion}` : ''}
                         </div>
                       )}
                     </div>

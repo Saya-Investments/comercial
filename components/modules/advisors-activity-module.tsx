@@ -40,8 +40,10 @@ const ESTADO_ASESOR_LABELS: Record<string, string> = {
   Interesado: 'Interesado',
   Seguimiento: 'Seguimiento',
   Llamada_agendada: 'Llamada agendada',
+  Cita_agendada: 'Cita agendada',
   Venta_cerrada: 'Venta cerrada',
   No_interesado: 'No interesado',
+  Prospecto: 'Prospecto',
 }
 
 const ESTADO_PIE_COLORS: Record<string, string> = {
@@ -50,8 +52,10 @@ const ESTADO_PIE_COLORS: Record<string, string> = {
   Interesado: '#8b5cf6',
   Seguimiento: '#f59e0b',
   Llamada_agendada: '#6366f1',
+  Cita_agendada: '#06b6d4',
   Venta_cerrada: '#22c55e',
   No_interesado: '#ef4444',
+  Prospecto: '#10b981',
 }
 
 function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
