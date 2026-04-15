@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
         { id_lead: { in: leadIds } },
         { ultimo_asesor_asignado: usuario.id_asesor },
       ]
+      where.ultimo_estado_asesor = { not: 'No_interesado' }
     } else {
       // User has no linked asesor, show nothing
       return NextResponse.json([])
