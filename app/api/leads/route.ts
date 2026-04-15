@@ -44,7 +44,14 @@ export async function GET(req: NextRequest) {
         { id_lead: { in: leadIds } },
         { ultimo_asesor_asignado: usuario.id_asesor },
       ]
-      where.ultimo_estado_asesor = { not: 'No_interesado' }
+      where.AND = [
+        {
+          OR: [
+            { ultimo_estado_asesor: null },
+            { ultimo_estado_asesor: { not: 'No_interesado' } },
+          ],
+        },
+      ]
     } else {
       // User has no linked asesor, show nothing
       return NextResponse.json([])
@@ -95,7 +102,8 @@ export async function GET(req: NextRequest) {
     ]
     // Combine search with existing OR (asesor filter) using AND
     if (where.OR) {
-      where.AND = [{ OR: where.OR }, { OR: searchFilter }]
+      const existingAnd = Array.isArray(where.AND) ? where.AND : []
+      where.AND = [...existingAnd, { OR: where.OR }, { OR: searchFilter }]
       delete where.OR
     } else {
       where.OR = searchFilter
