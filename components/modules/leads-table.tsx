@@ -81,6 +81,8 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     setModalType(type)
   }
 
+  const isProspect = (lead: Lead) => lead.estadoAsesor === 'Prospecto'
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Alta': return 'bg-green-100 text-green-700 border border-green-300'
@@ -191,7 +193,14 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
             </thead>
             <tbody>
               {filteredLeads.length > 0 ? filteredLeads.map((lead) => (
-                <tr key={lead.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
+                <tr
+                  key={lead.id}
+                  className={`border-b border-border transition-colors ${
+                    isProspect(lead)
+                      ? 'bg-emerald-50/80 hover:bg-emerald-100/80'
+                      : 'hover:bg-secondary/50'
+                  }`}
+                >
                   <td className="px-6 py-4 font-mono text-foreground">{lead.dni}</td>
                   <td className="px-6 py-4 font-medium text-foreground">{lead.name}</td>
                   <td className="px-6 py-4 text-foreground">{lead.phone}</td>
@@ -212,7 +221,17 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'action')} className="text-foreground hover:bg-secondary" title="Acciones comerciales">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAction(lead, 'action')}
+                        className={isProspect(lead)
+                          ? 'text-muted-foreground opacity-40 cursor-not-allowed hover:bg-transparent'
+                          : 'text-foreground hover:bg-secondary'
+                        }
+                        title={isProspect(lead) ? 'No disponible: lead registrado como prospecto' : 'Acciones comerciales'}
+                        disabled={isProspect(lead)}
+                      >
                         <Briefcase className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'conversation')} className="text-foreground hover:bg-secondary" title="Ver conversacion">
@@ -226,12 +245,16 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                           variant="ghost"
                           size="sm"
                           onClick={() => handleAction(lead, 'prospect')}
-                          className={lead.estadoAsesor === 'Venta_cerrada'
+                          className={lead.estadoAsesor === 'Venta_cerrada' && !isProspect(lead)
                             ? 'text-green-600 hover:bg-green-50'
                             : 'text-muted-foreground opacity-50 cursor-not-allowed'
                           }
-                          disabled={lead.estadoAsesor !== 'Venta_cerrada'}
-                          title={lead.estadoAsesor === 'Venta_cerrada' ? 'Registrar como prospecto' : 'Requiere estado "Venta cerrada"'}
+                          disabled={lead.estadoAsesor !== 'Venta_cerrada' || isProspect(lead)}
+                          title={isProspect(lead)
+                            ? 'Lead ya registrado como prospecto'
+                            : lead.estadoAsesor === 'Venta_cerrada'
+                              ? 'Registrar como prospecto'
+                              : 'Requiere estado "Venta cerrada"'}
                         >
                           <UserCheck className="w-4 h-4" />
                         </Button>
@@ -249,10 +272,10 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
         </div>
       </Card>
 
-      {modalType === 'action' && selectedLead && <ActionModal lead={selectedLead} onClose={() => setModalType(null)} />}
+      {modalType === 'action' && selectedLead && <ActionModal lead={selectedLead} onClose={() => setModalType(null)} onActionSaved={() => { setModalType(null); fetchLeads() }} />}
       {modalType === 'conversation' && selectedLead && <ConversationModal lead={selectedLead} onClose={() => setModalType(null)} />}
       {modalType === 'detail' && selectedLead && <LeadDetailModal lead={selectedLead} onClose={() => setModalType(null)} />}
-      {modalType === 'prospect' && selectedLead && <ProspectModal lead={selectedLead} onClose={() => setModalType(null)} />}
+      {modalType === 'prospect' && selectedLead && <ProspectModal lead={selectedLead} onClose={() => setModalType(null)} onProspectSaved={() => { setModalType(null); fetchLeads() }} />}
     </div>
   )
 }

@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'El asesor del lead no tiene DNI registrado' }, { status: 400 })
   }
 
+  if (lead.ultimo_estado_asesor === 'Prospecto') {
+    return NextResponse.json({ success: true, alreadyRegistered: true })
+  }
+
   // 2. Login en API NSV para obtener token
   const loginRes = await fetch(process.env.NSV_LOGIN_URL!, {
     method: 'POST',
@@ -92,6 +96,42 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await prospRes.json()
+
+  const asignacion = await prisma.hist_asignaciones.findFirst({
+    where: { id_lead: leadId, estado_gestion: 'en_espera' },
+    orderBy: { fecha_asignacion: 'desc' },
+  })
+
+  await prisma.$transaction(async (tx) => {
+    const accion = await tx.crm_acciones_comerciales.create({
+      data: {
+        id_lead: leadId,
+        id_asignacion: asignacion?.id_asignacion || null,
+        id_usuario: userId,
+        tipo_accion: 'Llamada',
+        estado_asesor: 'Prospecto',
+        observaciones: 'Lead registrado como prospecto',
+      },
+    })
+
+    await tx.hist_estado_asesor.create({
+      data: {
+        id_lead: leadId,
+        id_accion: accion.id_accion,
+        id_usuario: userId,
+        estado_anterior: lead.ultimo_estado_asesor || null,
+        estado_nuevo: 'Prospecto',
+      },
+    })
+
+    await tx.bd_leads.update({
+      where: { id_lead: leadId },
+      data: {
+        ultimo_estado_asesor: 'Prospecto',
+        fecha_actualizacion: new Date(),
+      },
+    })
+  })
 
   return NextResponse.json({ success: true, data: result })
 }

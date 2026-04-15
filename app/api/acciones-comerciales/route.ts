@@ -71,6 +71,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Lead no encontrado' }, { status: 404 })
   }
 
+  if (lead.ultimo_estado_asesor === 'Prospecto') {
+    return NextResponse.json(
+      { error: 'El lead ya fue registrado como prospecto y no admite nuevas acciones comerciales' },
+      { status: 409 }
+    )
+  }
+
   // Find active assignment for this lead (optional)
   const asignacion = await prisma.hist_asignaciones.findFirst({
     where: { id_lead: leadId, estado_gestion: { in: ['en_espera', 'prospecto'] } },
