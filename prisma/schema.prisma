@@ -101,6 +101,7 @@ model bd_leads {
   fecha_actualizacion               DateTime                   @default(now()) @db.Timestamptz(6)
   nickname_wsp                      String?                    @db.VarChar(200)
   asignado_call_center              String?                    @db.Uuid
+  pidio_asesor                      Boolean                    @default(false)
   bd_call_center                    bd_call_center?            @relation(fields: [asignado_call_center], references: [id_call_center], onUpdate: NoAction)
   bd_asesores                       bd_asesores?               @relation(fields: [ultimo_asesor_asignado], references: [id_asesor], onUpdate: NoAction, map: "fk_leads_asesor")
   crm_acciones_comerciales          crm_acciones_comerciales[]
@@ -537,4 +538,26 @@ model ranking_routing {
 
   @@index([id_lead], map: "idx_ranking_lead")
   @@index([id_lead, posicion], map: "idx_ranking_lead_pos")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bd_asesores_backup {
+  id_asesor                     String?   @db.Uuid
+  cod_asesor                    String?   @db.VarChar(20)
+  nombre_asesor                 String?   @db.VarChar(100)
+  antiguedad                    Int?
+  especialidad                  String?   @db.VarChar(50)
+  edad                          Int?
+  ventas_netas                  Decimal?  @db.Decimal(12, 2)
+  persistencia_promedio_propios Decimal?  @db.Decimal(5, 2)
+  persistencia_promedio_mqs     Decimal?  @db.Decimal(5, 2)
+  ratio_conversion_de_venta     Decimal?  @db.Decimal(5, 4)
+  leads_en_cola                 Int?
+  disponibilidad                String?   @db.VarChar(20)
+  fecha_creacion                DateTime? @db.Timestamptz(6)
+  fecha_actualizacion           DateTime? @db.Timestamptz(6)
+  capacidad_maxima              Int?
+  dni                           String?   @db.VarChar(10)
+
+  @@ignore
 }
