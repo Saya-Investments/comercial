@@ -94,7 +94,16 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
 
     fetch(`/api/advisors/estado-distribution${qs}`)
       .then(res => res.json())
-      .then(data => setEstadoDistribution(data))
+      .then((data: EstadoDistribution[]) => {
+        // Fusion UI-only: Contactado + Seguimiento → una sola entrada "Seguimiento".
+        // Mas adelante se unifican los estados internamente; por ahora solo se muestra asi.
+        const merged = new Map<string, number>()
+        for (const item of data) {
+          const key = item.name === 'Contactado' ? 'Seguimiento' : item.name
+          merged.set(key, (merged.get(key) ?? 0) + item.value)
+        }
+        setEstadoDistribution(Array.from(merged, ([name, value]) => ({ name, value })))
+      })
       .catch(console.error)
 
     fetch(`/api/advisors/leads-enrutados${qs}`)
