@@ -7,8 +7,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const supervisorId = searchParams.get('supervisorId')
 
-  // If supervisor filter, only return asesores supervised by this user
-  let asesorFilter: Record<string, unknown> | undefined
+  // Only active asesores (disponibilidad = 'disponible'). Excluye renuncias, pruebas, etc.
+  // Si hay supervisorId, ademas restringe a asesores supervisados por ese usuario.
+  const asesorFilter: Record<string, unknown> = { disponibilidad: 'disponible' }
   if (supervisorId) {
     const supervisados = await prisma.crm_usuarios.findMany({
       where: { id_supervisor: supervisorId, activo: true },
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     const asesorIds = supervisados
       .map((s) => s.id_asesor)
       .filter((id): id is string => id !== null)
-    asesorFilter = { id_asesor: { in: asesorIds } }
+    asesorFilter.id_asesor = { in: asesorIds }
   }
 
   const [asesores, accionesPorUsuario] = await Promise.all([
