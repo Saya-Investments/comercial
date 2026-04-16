@@ -200,7 +200,7 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
             )}
             <span className="text-xs text-muted-foreground italic ml-auto">
               {rankingMode === 'day'
-                ? 'Leads asignados y gestionados ese dia'
+                ? 'Leads asignados ese dia y gestionados'
                 : 'Acumulado historico'}
             </span>
           </div>
