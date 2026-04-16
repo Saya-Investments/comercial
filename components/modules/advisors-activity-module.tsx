@@ -68,6 +68,13 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
   const [leadsEnrutados, setLeadsEnrutados] = useState(0)
   const [ranking, setRanking] = useState<RankingAdvisor[]>([])
 
+  // Filtro de fecha para el Ranking de Actividad.
+  // `rankingMode`: 'day' muestra solo el dia seleccionado | 'all' muestra acumulado historico.
+  // `rankingDate`: fecha en formato YYYY-MM-DD, default = hoy en zona horaria Lima.
+  const todayLima = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
+  const [rankingMode, setRankingMode] = useState<'day' | 'all'>('day')
+  const [rankingDate, setRankingDate] = useState<string>(todayLima)
+
   useEffect(() => {
     const qs = supervisorId ? `?supervisorId=${supervisorId}` : ''
 
@@ -80,12 +87,19 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
       .then(res => res.json())
       .then(data => setLeadsEnrutados(data.count))
       .catch(console.error)
+  }, [supervisorId])
 
+  // Ranking se recarga cuando cambia el filtro de fecha/modo
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (supervisorId) params.set('supervisorId', supervisorId)
+    if (rankingMode === 'day') params.set('date', rankingDate)
+    const qs = params.toString() ? `?${params.toString()}` : ''
     fetch(`/api/advisors/ranking${qs}`)
       .then(res => res.json())
       .then(data => setRanking(data))
       .catch(console.error)
-  }, [supervisorId])
+  }, [supervisorId, rankingMode, rankingDate])
 
   const filteredRanking = ranking.filter(
     (a) => a.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -124,7 +138,45 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
         <Card className="p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg md:text-xl font-semibold text-foreground">Ranking de Actividad</h3>
-            <span className="text-xs text-muted-foreground italic">Visualizar al final del dia</span>
+          </div>
+          {/* Filtro de fecha */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs">
+              <button
+                onClick={() => setRankingMode('day')}
+                className={`px-3 py-1.5 transition-colors ${
+                  rankingMode === 'day'
+                    ? 'bg-accent text-white'
+                    : 'bg-background text-muted-foreground hover:bg-secondary'
+                }`}
+              >
+                Por dia
+              </button>
+              <button
+                onClick={() => setRankingMode('all')}
+                className={`px-3 py-1.5 border-l border-border transition-colors ${
+                  rankingMode === 'all'
+                    ? 'bg-accent text-white'
+                    : 'bg-background text-muted-foreground hover:bg-secondary'
+                }`}
+              >
+                Acumulado
+              </button>
+            </div>
+            {rankingMode === 'day' && (
+              <input
+                type="date"
+                value={rankingDate}
+                max={todayLima}
+                onChange={(e) => setRankingDate(e.target.value)}
+                className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground outline-none focus:border-accent"
+              />
+            )}
+            <span className="text-xs text-muted-foreground italic ml-auto">
+              {rankingMode === 'day'
+                ? 'Leads asignados y gestionados ese dia'
+                : 'Acumulado historico'}
+            </span>
           </div>
           {/* Search */}
           <div className="flex items-center bg-background border border-border rounded-lg px-3 py-2 mb-4">
