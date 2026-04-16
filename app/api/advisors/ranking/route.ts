@@ -48,22 +48,14 @@ export async function GET(req: NextRequest) {
           GROUP BY id_asesor
         ) r ON r.id_asesor = a.id_asesor
         LEFT JOIN (
-          -- Opcion B: gestionados del dia = de los leads ASIGNADOS ese dia,
-          -- cuantos tienen al menos una accion comercial (sin importar cuando fue la accion).
-          -- Asi se refleja el caso "asignado martes, gestionado miercoles 2am" en el filtro martes.
-          SELECT m.id_asesor, COUNT(DISTINCT m.id_lead) AS gestionados
-          FROM comercial.matching m
-          WHERE m.asignado = true
-            AND m.fecha_asignacion IS NOT NULL
-            AND DATE(m.fecha_asignacion AT TIME ZONE 'America/Lima') = ${date}::date
-            AND EXISTS (
-              SELECT 1
-              FROM comercial.crm_acciones_comerciales ac
-              JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
-              WHERE ac.id_lead = m.id_lead
-                AND u.id_asesor = m.id_asesor
-            )
-          GROUP BY m.id_asesor
+          -- Opcion A: gestionados del dia = acciones comerciales hechas ese dia
+          -- (independiente de cuando fue asignado el lead). Mide actividad del dia del asesor.
+          SELECT u.id_asesor, COUNT(DISTINCT ac.id_lead) AS gestionados
+          FROM comercial.crm_acciones_comerciales ac
+          JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
+          WHERE u.id_asesor IS NOT NULL
+            AND DATE(ac.fecha_creacion AT TIME ZONE 'America/Lima') = ${date}::date
+          GROUP BY u.id_asesor
         ) g ON g.id_asesor = a.id_asesor
         WHERE a.id_asesor = ANY(${asesorIds}::uuid[])
         ORDER BY recibidos DESC, gestionados DESC
