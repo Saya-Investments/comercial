@@ -255,8 +255,11 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
     { name: 'Venta Cerrada', value: data.gestion.ventasCerradas, fill: '#22c55e' },
   ]
 
-  const botConversionRate = data.bot.enGestion > 0
-    ? ((data.bot.asignados / data.bot.enGestion) * 100).toFixed(1)
+  // En Gestion = leads activos bajo gestion del bot O ya enrutados a asesor
+  // (estados mutuamente excluyentes en BD, por eso sumamos). Descartados no cuentan.
+  const botEnGestionTotal = data.bot.enGestion + data.bot.asignados
+  const botConversionRate = botEnGestionTotal > 0
+    ? ((data.bot.asignados / botEnGestionTotal) * 100).toFixed(1)
     : '0'
 
   const gestionConversionRate = data.gestion.enrutados > 0
@@ -291,10 +294,10 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
         <p className="text-xs text-muted-foreground mb-6">Primera flecha: Bot</p>
 
         <div className="flex items-center justify-center gap-4 md:gap-8 mb-6">
-          {/* En Gestión */}
+          {/* En Gestión (en gestion por bot + ya asignados a asesor) */}
           <div className="flex flex-col items-center">
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-accent flex items-center justify-center">
-              <span className="text-xl md:text-2xl font-bold text-white">{data.bot.enGestion}</span>
+              <span className="text-xl md:text-2xl font-bold text-white">{botEnGestionTotal}</span>
             </div>
             <p className="text-sm font-semibold text-foreground mt-2">En Gestion</p>
             <p className="text-xs text-muted-foreground">100%</p>
