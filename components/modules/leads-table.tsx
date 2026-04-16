@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Eye, MessageSquare, Briefcase, UserCheck, Clock } from 'lucide-react'
+import { Eye, MessageSquare, Briefcase, UserCheck, Clock, CheckCircle2 } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
@@ -22,6 +22,7 @@ interface Lead {
   score?: number
   estadoAsesor?: string
   fechaAsignacion?: string | null
+  gestionado?: boolean
 }
 
 interface LeadsTableProps {
@@ -217,7 +218,14 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(getBase(lead.assignedDate))}`}>{getBase(lead.assignedDate)}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {getCountdown(lead.fechaAsignacion) || <span className="text-xs text-muted-foreground">--</span>}
+                    {lead.gestionado ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Gestionado
+                      </span>
+                    ) : (
+                      getCountdown(lead.fechaAsignacion) || <span className="text-xs text-muted-foreground">--</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-2">

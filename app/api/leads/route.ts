@@ -127,25 +127,43 @@ export async function GET(req: NextRequest) {
     take: 200,
   })
 
-  const mapped = leads.map((l) => ({
-    id: l.id_lead,
-    dni: l.dni || '',
-    name: `${l.nombre || ''} ${l.apellido || ''}`.trim(),
-    phone: l.numero || '',
-    email: l.correo || '',
-    status: l.estado_de_lead || 'lead',
-    assignedDate: l.fecha_creacion.toISOString().split('T')[0],
-    product: l.producto || '',
-    priority: getPriority(l.scoring),
-    score: l.scoring ? Math.round(Number(l.scoring) * 100) : 0,
-    zona: l.zona || '',
-    origen: l.origen_lead || '',
-    asesor: l.bd_asesores?.nombre_asesor || 'Sin asignar',
-    sentimiento: l.sentimiento_actual || '',
-    segmento: l.segmento_de_scoring || '',
-    estadoAsesor: l.ultimo_estado_asesor || '',
-    fechaAsignacion: l.matching[0]?.fecha_asignacion?.toISOString() || null,
-  }))
+  const leadIds = leads.map((l) => l.id_lead)
+  const accionesAgg = leadIds.length > 0
+    ? await prisma.crm_acciones_comerciales.groupBy({
+        by: ['id_lead'],
+        where: { id_lead: { in: leadIds } },
+        _max: { fecha_creacion: true },
+      })
+    : []
+  const maxAccionByLead = new Map(
+    accionesAgg.map((a) => [a.id_lead, a._max.fecha_creacion])
+  )
+
+  const mapped = leads.map((l) => {
+    const fechaAsignacion = l.matching[0]?.fecha_asignacion ?? null
+    const maxAccion = maxAccionByLead.get(l.id_lead) ?? null
+    const gestionado = !!(fechaAsignacion && maxAccion && maxAccion >= fechaAsignacion)
+    return {
+      id: l.id_lead,
+      dni: l.dni || '',
+      name: `${l.nombre || ''} ${l.apellido || ''}`.trim(),
+      phone: l.numero || '',
+      email: l.correo || '',
+      status: l.estado_de_lead || 'lead',
+      assignedDate: l.fecha_creacion.toISOString().split('T')[0],
+      product: l.producto || '',
+      priority: getPriority(l.scoring),
+      score: l.scoring ? Math.round(Number(l.scoring) * 100) : 0,
+      zona: l.zona || '',
+      origen: l.origen_lead || '',
+      asesor: l.bd_asesores?.nombre_asesor || 'Sin asignar',
+      sentimiento: l.sentimiento_actual || '',
+      segmento: l.segmento_de_scoring || '',
+      estadoAsesor: l.ultimo_estado_asesor || '',
+      fechaAsignacion: fechaAsignacion?.toISOString() || null,
+      gestionado,
+    }
+  })
 
   return NextResponse.json(mapped)
 }
