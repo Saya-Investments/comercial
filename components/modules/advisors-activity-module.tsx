@@ -66,6 +66,20 @@ const ESTADO_PIE_COLORS: Record<string, string> = {
   Prospecto: '#10b981',
 }
 
+// Orden canonico de las tajadas del pie (sigue el embudo del asesor).
+// Lo usamos para que las tajadas relacionadas (Llamada_agendada, Cita_agendada)
+// queden adyacentes. Estados no listados aqui van al final.
+const ESTADO_PIE_ORDER: string[] = [
+  'No_contesta',
+  'Seguimiento',
+  'Interesado',
+  'Llamada_agendada',
+  'Cita_agendada',
+  'Venta_cerrada',
+  'No_interesado',
+  'Prospecto',
+]
+
 function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
   advisors: AdvisorActivity[]
   searchTerm: string
@@ -102,7 +116,17 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
           const key = item.name === 'Contactado' ? 'Seguimiento' : item.name
           merged.set(key, (merged.get(key) ?? 0) + item.value)
         }
-        setEstadoDistribution(Array.from(merged, ([name, value]) => ({ name, value })))
+        // Ordenar por el orden canonico (para mantener Llamada_agendada y Cita_agendada
+        // adyacentes, etc). Estados no listados van al final en orden de aparicion.
+        const sorted = Array.from(merged, ([name, value]) => ({ name, value })).sort((a, b) => {
+          const ai = ESTADO_PIE_ORDER.indexOf(a.name)
+          const bi = ESTADO_PIE_ORDER.indexOf(b.name)
+          if (ai === -1 && bi === -1) return 0
+          if (ai === -1) return 1
+          if (bi === -1) return -1
+          return ai - bi
+        })
+        setEstadoDistribution(sorted)
       })
       .catch(console.error)
 
