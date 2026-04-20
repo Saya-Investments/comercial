@@ -4,14 +4,15 @@ import { sendLeadAssignedNotification } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
-const CRON_SECRET = process.env.CRON_SECRET || 'cron-secret-key'
+const CRON_SECRET = process.env.CRON_SECRET
 const CRM_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 export async function GET(req: NextRequest) {
+  if (!CRON_SECRET) {
+    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 })
+  }
   const authHeader = req.headers.get('authorization')
-  const vercelCron = req.headers.get('x-vercel-cron-secret')
-  const isAuthorized = authHeader === `Bearer ${CRON_SECRET}` || vercelCron === CRON_SECRET
-  if (!isAuthorized) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
