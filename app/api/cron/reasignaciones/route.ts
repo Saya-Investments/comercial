@@ -167,13 +167,32 @@ export async function GET(req: NextRequest) {
           data: { asignado: false },
         })
 
-        // Buscar o crear matching para el nuevo asesor y asignarlo
-        // Tambien se persiste el nivel actual en nivel_al_asignar para que futuras
+        // Buscar o crear matching para el nuevo asesor y asignarlo.
+        // Se persiste el nivel actual en nivel_al_asignar para que futuras
         // reasignaciones puedan decrementar el nivel correcto.
-        await tx.matching.updateMany({
+        const existingMatching = await tx.matching.findFirst({
           where: { id_lead: leadId, id_asesor: nuevoAsesorId },
-          data: { asignado: true, fecha_asignacion: now, nivel_al_asignar: nivelNuevo },
         })
+        if (existingMatching) {
+          await tx.matching.update({
+            where: { id_matching: existingMatching.id_matching },
+            data: { asignado: true, fecha_asignacion: now, nivel_al_asignar: nivelNuevo },
+          })
+        } else {
+          await tx.matching.create({
+            data: {
+              id_lead: leadId,
+              id_asesor: nuevoAsesorId,
+              asignado: true,
+              fecha_asignacion: now,
+              nivel_al_asignar: nivelNuevo,
+              score_c: siguiente.score_c,
+              score_v: siguiente.score_v,
+              score_p: siguiente.score_p,
+              score_total: siguiente.score_total,
+            },
+          })
+        }
 
         // Marcar posicion en ranking como asignada
         await tx.ranking_routing.update({
