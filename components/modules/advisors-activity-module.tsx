@@ -164,8 +164,6 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
     (a) => a.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const maxRecibidos = filteredRanking.length > 0 ? Math.max(...filteredRanking.map(a => a.recibidos), 1) : 1
-
   return (
     <>
       {/* Stats Cards */}
@@ -261,7 +259,10 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
               </thead>
               <tbody>
                 {filteredRanking.map((advisor, i) => {
-                  const pct = maxRecibidos > 0 ? (advisor.recibidos / maxRecibidos) * 100 : 0
+                  // Tasa de gestion: % de los leads recibidos que el asesor ya trabajo.
+                  // 0 recibidos => 0% (evita division por cero y es correcto: nada pendiente).
+                  const pct = advisor.recibidos > 0 ? (advisor.gestionados / advisor.recibidos) * 100 : 0
+                  const tooltip = `${advisor.gestionados} / ${advisor.recibidos} (${pct.toFixed(0)}%)`
                   return (
                     <tr key={advisor.id} className="border-b border-border/50 hover:bg-muted/30">
                       <td className="py-2 px-2 text-muted-foreground font-medium">{i + 1}</td>
@@ -269,7 +270,7 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
                       <td className="py-2 px-2 text-right font-bold text-blue-600">{advisor.recibidos}</td>
                       <td className="py-2 px-2 text-right font-bold text-green-600">{advisor.gestionados}</td>
                       <td className="py-2 px-2">
-                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden" title={tooltip}>
                           <div
                             className="h-full rounded-full bg-primary transition-all"
                             style={{ width: `${pct}%` }}
