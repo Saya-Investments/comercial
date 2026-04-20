@@ -15,9 +15,7 @@ function getPrismaClient() {
   const adapter = new PrismaPg(pool, { schema: 'comercial' })
   const client = new PrismaClient({ adapter })
 
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = client
-  }
+  globalForPrisma.prisma = client
 
   return client
 }
