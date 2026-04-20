@@ -230,7 +230,7 @@ export async function GET(req: NextRequest) {
             motivo_reasignacion: `Sin gestion en ${HORAS_LIMITE}h`,
           },
         })
-      })
+      }, { timeout: 30000, maxWait: 10000 })
 
       reasignados++
 
