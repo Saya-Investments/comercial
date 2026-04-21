@@ -628,6 +628,91 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
   )
 }
 
+// ─── Call Center Tab ─────────────────────────────────────────────────────────
+
+interface CallCenterEntry {
+  id: string
+  name: string
+  recibidos: number
+  gestionados: number
+  enCola: number
+}
+
+function CallCenterTab() {
+  const [data, setData] = useState<CallCenterEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/advisors/call-center-ranking')
+      .then((res) => res.json())
+      .then((d: CallCenterEntry[]) => setData(d))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+      </div>
+    )
+  }
+
+  return (
+    <Card className="p-4 md:p-6">
+      <div className="mb-4">
+        <h3 className="text-lg md:text-xl font-semibold text-foreground">Ranking Call Center</h3>
+        <p className="text-xs text-muted-foreground mt-1">Acumulado desde el inicio del piloto</p>
+      </div>
+
+      <div className="overflow-y-auto max-h-[400px]">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-background">
+            <tr className="border-b border-border">
+              <th className="text-left py-2 px-2 text-muted-foreground font-medium w-8">#</th>
+              <th className="text-left py-2 px-2 text-muted-foreground font-medium">Agente</th>
+              <th className="text-right py-2 px-2 text-muted-foreground font-medium">Recibidos</th>
+              <th className="text-right py-2 px-2 text-muted-foreground font-medium">Gestionados</th>
+              <th className="text-right py-2 px-2 text-muted-foreground font-medium">En cola</th>
+              <th className="text-left py-2 px-2 text-muted-foreground font-medium w-24"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((cc, i) => {
+              const pct = cc.recibidos > 0 ? (cc.gestionados / cc.recibidos) * 100 : 0
+              const tooltip = `${cc.gestionados} / ${cc.recibidos} (${pct.toFixed(0)}%)`
+              return (
+                <tr key={cc.id} className="border-b border-border/50 hover:bg-muted/30">
+                  <td className="py-2 px-2 text-muted-foreground font-medium">{i + 1}</td>
+                  <td className="py-2 px-2 font-medium text-foreground truncate max-w-[150px]">{cc.name}</td>
+                  <td className="py-2 px-2 text-right font-bold text-blue-600">{cc.recibidos}</td>
+                  <td className="py-2 px-2 text-right font-bold text-green-600">{cc.gestionados}</td>
+                  <td className="py-2 px-2 text-right font-bold text-orange-600">{cc.enCola}</td>
+                  <td className="py-2 px-2">
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden" title={tooltip}>
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+            {data.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  No hay agentes de call center registrados
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )
+}
+
 // ─── Main Module ─────────────────────────────────────────────────────────────
 
 export function AdvisorsActivityModule() {
@@ -663,6 +748,7 @@ export function AdvisorsActivityModule() {
           <TabsList className="mb-6">
             <TabsTrigger value="actividad">Actividad</TabsTrigger>
             <TabsTrigger value="funnel">Funnel</TabsTrigger>
+            <TabsTrigger value="call-center">Call Center</TabsTrigger>
           </TabsList>
 
           <TabsContent value="actividad">
@@ -671,6 +757,10 @@ export function AdvisorsActivityModule() {
 
           <TabsContent value="funnel">
             <FunnelTab supervisorId={isSupervisor ? user?.id : undefined} />
+          </TabsContent>
+
+          <TabsContent value="call-center">
+            <CallCenterTab />
           </TabsContent>
         </Tabs>
       </div>
