@@ -96,6 +96,8 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
   const todayLima = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
   const [rankingMode, setRankingMode] = useState<'day' | 'all'>('day')
   const [rankingDate, setRankingDate] = useState<string>(todayLima)
+  // `rankingPriority`: null = todas | 'high' | 'medium' | 'low'. Filtra por matching.nivel_al_asignar.
+  const [rankingPriority, setRankingPriority] = useState<null | 'high' | 'medium' | 'low'>(null)
 
   // Seccion Reasignaciones: tab Quitados/Asignados + mismo patron de filtro de fecha.
   const [reassignments, setReassignments] = useState<AsesorReassignment[]>([])
@@ -136,17 +138,18 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
       .catch(console.error)
   }, [supervisorId])
 
-  // Ranking se recarga cuando cambia el filtro de fecha/modo
+  // Ranking se recarga cuando cambia el filtro de fecha/modo/prioridad
   useEffect(() => {
     const params = new URLSearchParams()
     if (supervisorId) params.set('supervisorId', supervisorId)
     if (rankingMode === 'day') params.set('date', rankingDate)
+    if (rankingPriority) params.set('priority', rankingPriority)
     const qs = params.toString() ? `?${params.toString()}` : ''
     fetch(`/api/advisors/ranking${qs}`)
       .then(res => res.json())
       .then(data => setRanking(data))
       .catch(console.error)
-  }, [supervisorId, rankingMode, rankingDate])
+  }, [supervisorId, rankingMode, rankingDate, rankingPriority])
 
   // Reasignaciones se recarga cuando cambia el filtro de fecha/modo
   useEffect(() => {
@@ -229,6 +232,27 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
                 className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground outline-none focus:border-accent"
               />
             )}
+            {/* Filtro de prioridad (matching.nivel_al_asignar) */}
+            <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs">
+              {([
+                { key: null, label: 'Todas' },
+                { key: 'high', label: 'Alta' },
+                { key: 'medium', label: 'Media' },
+                { key: 'low', label: 'Baja' },
+              ] as const).map((opt, i) => (
+                <button
+                  key={opt.label}
+                  onClick={() => setRankingPriority(opt.key)}
+                  className={`px-3 py-1.5 transition-colors ${i > 0 ? 'border-l border-border' : ''} ${
+                    rankingPriority === opt.key
+                      ? 'bg-accent text-white'
+                      : 'bg-background text-muted-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <span className="text-xs text-muted-foreground italic ml-auto">
               {rankingMode === 'day'
                 ? 'Asignados ese dia · gestionados (cuando sea)'
