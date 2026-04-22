@@ -772,7 +772,7 @@ export function AdvisorsActivityModule() {
           <TabsList className="mb-6">
             <TabsTrigger value="actividad">Actividad</TabsTrigger>
             <TabsTrigger value="funnel">Funnel</TabsTrigger>
-            {/* <TabsTrigger value="call-center">Call Center</TabsTrigger> */}
+            <TabsTrigger value="call-center">Call Center</TabsTrigger>
           </TabsList>
 
           <TabsContent value="actividad">
@@ -783,9 +783,9 @@ export function AdvisorsActivityModule() {
             <FunnelTab supervisorId={isSupervisor ? user?.id : undefined} />
           </TabsContent>
 
-          {/* <TabsContent value="call-center">
+          <TabsContent value="call-center">
             <CallCenterTab />
-          </TabsContent> */}
+          </TabsContent>
         </Tabs>
       </div>
     </div>
