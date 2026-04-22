@@ -4,17 +4,19 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
-const HORAS_TIMEOUT = 2
+const HORAS_TIMEOUT = 4
 
 /**
  * Cron de derivacion automatica del Call Center a asesor backup.
  *
- * Si un lead lleva mas de 2h asignado al CC sin ninguna accion comercial
- * registrada por un usuario del CC, lo desasigna del CC. El asesor backup
- * (ultimo_asesor_asignado) ya tiene el matching activo desde el routing
- * inicial (con via_call_center=true en hist_asignaciones), asi que solo
- * hace falta limpiar bd_leads.asignado_call_center, decrementar cola del
- * CC y notificar al asesor por email.
+ * Si un lead lleva mas del HORAS_TIMEOUT configurado (por defecto 4h)
+ * asignado al CC sin ninguna accion comercial registrada por un usuario
+ * del CC, lo desasigna del CC. El asesor backup (ultimo_asesor_asignado)
+ * ya tiene el matching activo desde el routing inicial (con
+ * via_call_center=true en hist_asignaciones), asi que solo hace falta
+ * limpiar bd_leads.asignado_call_center, decrementar cola del CC y
+ * resetear el timer del matching del asesor. El email lo envia el cron
+ * notificar-asignacion en el proximo tick.
  *
  * Excepcion del diseño: si el CC ya contacto al lead (registro cualquier
  * accion), el lead ya no cumple el filtro "sin acciones del CC" y no se
