@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { sendLeadAssignedNotification } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
 const HORAS_LIMITE = 24
-const CRM_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 // Niveles de cuota (split de Regla 1 en cuotas_semanales)
 type Nivel = 'high' | 'medium' | 'low'
@@ -177,10 +175,18 @@ export async function GET(req: NextRequest) {
         const existingMatching = await tx.matching.findFirst({
           where: { id_lead: leadId, id_asesor: nuevoAsesorId },
         })
+        // notificado_asesor=false asegura que el cron notificar-asignacion
+        // emita el email al nuevo asesor en su proximo tick. Es el unico
+        // responsable de notificar al asesor (responsabilidad unica).
         if (existingMatching) {
           await tx.matching.update({
             where: { id_matching: existingMatching.id_matching },
-            data: { asignado: true, fecha_asignacion: now, nivel_al_asignar: nivelNuevo },
+            data: {
+              asignado: true,
+              fecha_asignacion: now,
+              nivel_al_asignar: nivelNuevo,
+              notificado_asesor: false,
+            },
           })
         } else {
           await tx.matching.create({
@@ -190,6 +196,7 @@ export async function GET(req: NextRequest) {
               asignado: true,
               fecha_asignacion: now,
               nivel_al_asignar: nivelNuevo,
+              notificado_asesor: false,
               score_c: siguiente.score_c,
               score_v: siguiente.score_v,
               score_p: siguiente.score_p,
@@ -257,35 +264,8 @@ export async function GET(req: NextRequest) {
 
       reasignados++
 
-      // Notificar al nuevo asesor por email
-      try {
-        const usuario = await prisma.crm_usuarios.findFirst({
-          where: { id_asesor: nuevoAsesorId, activo: true },
-          select: { email: true, nombre: true },
-        })
-
-        if (usuario?.email) {
-          const lead = await prisma.bd_leads.findUnique({
-            where: { id_lead: leadId },
-            select: { nombre: true, apellido: true, producto: true, scoring: true, numero: true },
-          })
-
-          const leadName = `${lead?.nombre || ''} ${lead?.apellido || ''}`.trim() || 'Lead'
-
-          await sendLeadAssignedNotification({
-            to: usuario.email,
-            advisorName: usuario.nombre,
-            leadName,
-            producto: lead?.producto || '',
-            scoring: Math.round(Number(lead?.scoring || 0) * 100),
-            telefono: lead?.numero || '',
-            esReasignacion: true,
-            crmUrl: CRM_URL || undefined,
-          })
-        }
-      } catch (emailErr) {
-        errores.push(`Lead ${leadId}: email no enviado - ${(emailErr as Error).message}`)
-      }
+      // Email al nuevo asesor lo envia el cron notificar-asignacion en su
+      // proximo tick (captura el matching con notificado_asesor=false).
     } catch (err) {
       errores.push(`Lead ${match.id_lead}: ${(err as Error).message}`)
     }

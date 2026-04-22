@@ -16,11 +16,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
 
-  // Buscar matchings asignados que aun no fueron notificados
+  // Buscar matchings asignados que aun no fueron notificados.
+  // Se excluyen leads que estan actualmente en el Call Center: mientras
+  // el CC los trabaja, el asesor backup no debe recibir email. Cuando el
+  // CC libera el lead (derivacion-cc o manual), el filtro deja de aplicar
+  // y el proximo tick emite la notificacion.
   const pendientes = await prisma.matching.findMany({
     where: {
       asignado: true,
       notificado_asesor: false,
+      bd_leads: { asignado_call_center: null },
     },
     include: {
       bd_leads: {

@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendLeadAssignedNotification } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
 const HORAS_TIMEOUT = 2
-const CRM_URL = process.env.NEXT_PUBLIC_APP_URL || ''
 
 /**
  * Cron de derivacion automatica del Call Center a asesor backup.
@@ -86,50 +84,27 @@ export async function GET(req: NextRequest) {
           WHERE id_call_center = ${c.id_call_center}::uuid
         `
 
-        // 3. Reiniciar el timer de 24h del asesor backup: el lead recien
-        //    cae en su bandeja ahora. Sin esto, el cron de reasignaciones
-        //    (que cuenta desde matching.fecha_asignacion) creeria que el
-        //    asesor lleva >24h sin gestion y lo reasignaria al instante.
+        // 3. Reiniciar el timer de 24h del asesor backup y marcar
+        //    notificado_asesor=false para que el cron notificar-asignacion
+        //    le envie el email en su proximo tick (es el unico responsable
+        //    de notificar al asesor).
+        //    Sin el reset de fecha_asignacion, el cron de reasignaciones
+        //    veria un matching de hace >24h y reasignaria al instante.
         await tx.matching.updateMany({
           where: {
             id_lead: c.id_lead,
             id_asesor: c.id_asesor_actual,
             asignado: true,
           },
-          data: { fecha_asignacion: now },
+          data: { fecha_asignacion: now, notificado_asesor: false },
         })
       }, { timeout: 30000, maxWait: 10000 })
 
       derivados++
 
-      // 3. Notificar al asesor backup por email (fuera de la tx).
-      // El asesor ya tiene el matching activo desde el routing inicial;
-      // solo le avisamos que ahora debe gestionar porque el CC no lo hizo.
-      try {
-        const usuario = await prisma.crm_usuarios.findFirst({
-          where: { id_asesor: c.id_asesor_actual, activo: true },
-          select: { email: true, nombre: true },
-        })
-        if (usuario?.email) {
-          const lead = await prisma.bd_leads.findUnique({
-            where: { id_lead: c.id_lead },
-            select: { nombre: true, apellido: true, producto: true, scoring: true, numero: true },
-          })
-          const leadName = `${lead?.nombre || ''} ${lead?.apellido || ''}`.trim() || 'Lead'
-          await sendLeadAssignedNotification({
-            to: usuario.email,
-            advisorName: usuario.nombre,
-            leadName,
-            producto: lead?.producto || '',
-            scoring: Math.round(Number(lead?.scoring || 0) * 100),
-            telefono: lead?.numero || '',
-            esReasignacion: true,
-            crmUrl: CRM_URL || undefined,
-          })
-        }
-      } catch (emailErr) {
-        errores.push(`Lead ${c.id_lead}: email no enviado - ${(emailErr as Error).message}`)
-      }
+      // Email al asesor backup lo envia el cron notificar-asignacion en su
+      // proximo tick (captura el matching con notificado_asesor=false y
+      // asignado_call_center ya en NULL).
     } catch (err) {
       errores.push(`Lead ${c.id_lead}: ${(err as Error).message}`)
     }
