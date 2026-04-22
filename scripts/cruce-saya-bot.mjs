@@ -22,7 +22,7 @@ const daysAgoIso = n => {
   return d.toISOString().slice(0, 10);
 };
 
-const desde = args.desde || daysAgoIso(7);
+const desde = args.desde || daysAgoIso(9);
 const hasta = args.hasta || todayIso;
 // El lado API se extiende hasta hoy para capturar prospectos/leads asignados
 // DESPUES de que creamos el lead en el CRM.
@@ -102,6 +102,8 @@ const extractApi = r => ({
   phoneRaw: pick(r, ['celular', 'telefono', 'numero', 'phonenumber', 'numeroTelefono', 'numeroCelular', 'telefonoCelular']),
   vendedorRaw: pick(r, ['vendedor', 'nombreVendedor', 'agente', 'nombreAgente']),
   fechaAsigRaw: pick(r, ['fechaAsignacion', 'fechaEstado', 'fechaRegistro', 'fecha']),
+  origenRaw: pick(r, ['origen', 'nombreOrigen', 'descripcionOrigen', 'origenLead', 'origenProspecto']),
+  suborigenRaw: pick(r, ['subOrigen', 'suborigen', 'nombreSubOrigen', 'nombreSuborigen', 'descripcionSubOrigen', 'descripcionSuborigen']),
   raw: r,
 });
 
@@ -308,13 +310,15 @@ function cruzar(leadsCrm, apiRecords, fuenteLabel) {
     const mPhone = phone ? validarTemporal(byPhone.get(phone), l.fecha_creacion) : null;
 
     const flag = (m) => {
-      if (!m) return { match: 'N', vendedor: '', fecha: '', coincide_asesor: '' };
+      if (!m) return { match: 'N', vendedor: '', fecha: '', coincide_asesor: '', origen: '', suborigen: '' };
       const vend = normNombre(m.vendedorRaw);
       return {
         match: 'Y',
         vendedor: (m.vendedorRaw ?? '').toString(),
         fecha: (m.fechaAsigRaw ?? '').toString(),
         coincide_asesor: asesorCrm && vend ? (asesorCrm === vend ? 'Y' : 'N') : '',
+        origen: (m.origenRaw ?? '').toString(),
+        suborigen: (m.suborigenRaw ?? '').toString(),
       };
     };
 
@@ -420,10 +424,10 @@ const cruceLeadsApi = cruzar(leadsCrm, leadsApi, 'lead_api');
 
 const header = [
   'id_lead', 'dni', 'numero', 'nombre', 'apellido', 'fecha_creacion', 'asesor_crm', 'total_acciones',
-  'prospecto_match_tel', 'prospecto_vendedor_tel', 'prospecto_fecha_asig_tel', 'prospecto_coincide_asesor_tel',
-  'prospecto_match_dni', 'prospecto_vendedor_dni', 'prospecto_fecha_asig_dni', 'prospecto_coincide_asesor_dni',
-  'lead_match_tel',      'lead_vendedor_tel',      'lead_fecha_asig_tel',      'lead_coincide_asesor_tel',
-  'lead_match_dni',      'lead_vendedor_dni',      'lead_fecha_asig_dni',      'lead_coincide_asesor_dni',
+  'prospecto_match_tel', 'prospecto_vendedor_tel', 'prospecto_fecha_asig_tel', 'prospecto_coincide_asesor_tel', 'prospecto_origen_tel', 'prospecto_suborigen_tel',
+  'prospecto_match_dni', 'prospecto_vendedor_dni', 'prospecto_fecha_asig_dni', 'prospecto_coincide_asesor_dni', 'prospecto_origen_dni', 'prospecto_suborigen_dni',
+  'lead_match_tel',      'lead_vendedor_tel',      'lead_fecha_asig_tel',      'lead_coincide_asesor_tel',      'lead_origen_tel',      'lead_suborigen_tel',
+  'lead_match_dni',      'lead_vendedor_dni',      'lead_fecha_asig_dni',      'lead_coincide_asesor_dni',      'lead_origen_dni',      'lead_suborigen_dni',
   'match_cualquiera',
 ];
 
@@ -435,10 +439,10 @@ const rows = leadsCrm.map((l, i) => {
     l.id_lead, l.dni ?? '', l.numero ?? '', l.nombre ?? '', l.apellido ?? '',
     l.fecha_creacion instanceof Date ? l.fecha_creacion.toISOString() : l.fecha_creacion,
     l.nombre_asesor ?? '', l.total_acciones ?? 0,
-    p.porTel.match, p.porTel.vendedor, p.porTel.fecha, p.porTel.coincide_asesor,
-    p.porDni.match, p.porDni.vendedor, p.porDni.fecha, p.porDni.coincide_asesor,
-    b.porTel.match, b.porTel.vendedor, b.porTel.fecha, b.porTel.coincide_asesor,
-    b.porDni.match, b.porDni.vendedor, b.porDni.fecha, b.porDni.coincide_asesor,
+    p.porTel.match, p.porTel.vendedor, p.porTel.fecha, p.porTel.coincide_asesor, p.porTel.origen, p.porTel.suborigen,
+    p.porDni.match, p.porDni.vendedor, p.porDni.fecha, p.porDni.coincide_asesor, p.porDni.origen, p.porDni.suborigen,
+    b.porTel.match, b.porTel.vendedor, b.porTel.fecha, b.porTel.coincide_asesor, b.porTel.origen, b.porTel.suborigen,
+    b.porDni.match, b.porDni.vendedor, b.porDni.fecha, b.porDni.coincide_asesor, b.porDni.origen, b.porDni.suborigen,
     matchAny,
   ];
 });
