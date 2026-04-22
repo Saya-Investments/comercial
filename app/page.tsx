@@ -16,18 +16,19 @@ import { AdvisorsActivityModule } from '@/components/modules/advisors-activity-m
 import { AdvisorDashboardModule } from '@/components/modules/advisor-dashboard-module'
 import { CallCenterDashboardModule } from '@/components/modules/call-center-dashboard-module'
 import { ReassignmentModule } from '@/components/modules/reassignment-module'
+import { ProspectsFunnelModule } from '@/components/modules/prospects-funnel-module'
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment'
+type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel'
 
-const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules']
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel']
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment']
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel']
 
   const defaultModule: ModuleType = user?.role === 'asesor'
     ? 'advisor-dashboard'
@@ -131,6 +132,7 @@ export default function Home() {
           {activeModule === 'users' && <UsersModule />}
           {activeModule === 'advisors-activity' && <AdvisorsActivityModule />}
           {activeModule === 'reassignment' && <ReassignmentModule />}
+          {activeModule === 'prospects-funnel' && <ProspectsFunnelModule />}
           {activeModule === 'bot-cost' && <BotCostModule initialLeads={150} />}
           {activeModule === 'routing-rules' && <RoutingRulesModule />}
         </div>
