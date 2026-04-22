@@ -85,6 +85,19 @@ export async function GET(req: NextRequest) {
               fecha_actualizacion = NOW()
           WHERE id_call_center = ${c.id_call_center}::uuid
         `
+
+        // 3. Reiniciar el timer de 24h del asesor backup: el lead recien
+        //    cae en su bandeja ahora. Sin esto, el cron de reasignaciones
+        //    (que cuenta desde matching.fecha_asignacion) creeria que el
+        //    asesor lleva >24h sin gestion y lo reasignaria al instante.
+        await tx.matching.updateMany({
+          where: {
+            id_lead: c.id_lead,
+            id_asesor: c.id_asesor_actual,
+            asignado: true,
+          },
+          data: { fecha_asignacion: now },
+        })
       }, { timeout: 30000, maxWait: 10000 })
 
       derivados++

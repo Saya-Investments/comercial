@@ -33,11 +33,15 @@ export async function GET(req: NextRequest) {
   const now = new Date()
   const limite = new Date(now.getTime() - HORAS_LIMITE * 60 * 60 * 1000)
 
-  // 1. Buscar matchings asignados cuya fecha_asignacion supero las 24h
+  // 1. Buscar matchings asignados cuya fecha_asignacion supero las 24h.
+  // Se excluyen leads que estan actualmente en el Call Center: mientras el
+  // CC los trabaja, el timer del asesor backup no debe correr (el cron de
+  // derivacion-cc se encarga de liberar al asesor si el CC se pasa de 2h).
   const matchingsVencidos = await prisma.matching.findMany({
     where: {
       asignado: true,
       fecha_asignacion: { not: null, lt: limite },
+      bd_leads: { asignado_call_center: null },
     },
     include: {
       bd_leads: {
