@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
   // ─── Funnel del Bot: estado_de_lead ───
   // Admin (supervisedIds=null): cuenta TODOS los leads del bot.
   // Supervisor: solo cuenta leads con matching activo a sus asesores supervisados.
+  // En ambos casos se filtra por Base='Caliente': los leads Stock son importados
+  // de campañas y aun no entraron al flow conversacional del bot, no deben contar
+  // en el embudo "En Gestion / Asignado".
   let totalLeads = 0, enGestion = 0, asignados = 0, descartados = 0
 
   if (supervisedIds) {
@@ -37,6 +40,7 @@ export async function GET(req: NextRequest) {
         SELECT DISTINCT m.id_lead FROM comercial.matching m
         WHERE m.asignado = true AND m.id_asesor = ANY(${supervisedIds}::uuid[])
       )
+        AND l."Base" = 'Caliente'
       GROUP BY l.estado_de_lead
     `
     const estadoMap: Record<string, number> = {}
@@ -50,6 +54,7 @@ export async function GET(req: NextRequest) {
   } else {
     const estadoLeadCounts = await prisma.bd_leads.groupBy({
       by: ['estado_de_lead'],
+      where: { base: 'Caliente' },
       _count: { id_lead: true },
     })
     const estadoMap: Record<string, number> = {}
