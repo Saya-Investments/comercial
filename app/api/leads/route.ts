@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const userId = searchParams.get('userId') || ''
   const role = searchParams.get('role') || ''
   const asesorId = searchParams.get('asesorId') || ''
+  const callCenterId = searchParams.get('callCenterId') || ''
 
   const where: Record<string, unknown> = {}
 
@@ -115,6 +116,7 @@ export async function GET(req: NextRequest) {
       where.OR = searchFilter
     }
   }
+  if (callCenterId) where.asignado_call_center = callCenterId
   if (estado) where.estado_de_lead = estado
   if (producto) where.producto = producto
 

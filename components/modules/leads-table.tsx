@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Eye, MessageSquare, Briefcase, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Eye, MessageSquare, Briefcase, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
@@ -37,6 +37,7 @@ interface LeadsTableProps {
   filterDate?: string
   filterDateTo?: string
   filterAsesor?: string
+  filterCallCenter?: string
   filterBase?: string
   filterEstadoAsesor?: string
   onEstadoAsesorOptionsChange?: (options: string[]) => void
@@ -49,6 +50,7 @@ export function LeadsTable({
   filterDate = '',
   filterDateTo = '',
   filterAsesor = '',
+  filterCallCenter = '',
   filterBase = '',
   filterEstadoAsesor = '',
   onEstadoAsesorOptionsChange,
@@ -56,6 +58,7 @@ export function LeadsTable({
   const { user } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | 'prospect' | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
@@ -68,6 +71,7 @@ export function LeadsTable({
       if (user?.id) params.set('userId', user.id)
       if (user?.role) params.set('role', user.role)
       if (filterAsesor) params.set('asesorId', filterAsesor)
+      if (filterCallCenter) params.set('callCenterId', filterCallCenter)
       const res = await fetch(`/api/leads?${params}`)
       if (res.ok) {
         const data = await res.json()
@@ -78,7 +82,7 @@ export function LeadsTable({
     } finally {
       setLoading(false)
     }
-  }, [searchTerm, user?.id, user?.role, filterAsesor])
+  }, [searchTerm, user?.id, user?.role, filterAsesor, filterCallCenter])
 
   useEffect(() => {
     fetchLeads()
@@ -111,7 +115,7 @@ export function LeadsTable({
 
   useEffect(() => {
     setCurrentPage(0)
-  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterAsesor, filterBase, filterEstadoAsesor])
+  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor])
 
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE))
   const safePage = Math.min(currentPage, totalPages - 1)
@@ -195,6 +199,15 @@ export function LeadsTable({
     URL.revokeObjectURL(url)
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await fetchLeads()
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   if (loading) {
     return <div className="p-6 text-center text-muted-foreground">Cargando leads...</div>
   }
@@ -203,9 +216,22 @@ export function LeadsTable({
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-muted-foreground">{filteredLeads.length} leads encontrados</div>
-        <Button size="sm" variant="outline" onClick={() => exportCSV(filteredLeads)} className="text-muted-foreground">
-          Exportar data
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="text-muted-foreground"
+            title="Recargar leads (mantiene filtros)"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => exportCSV(filteredLeads)} className="text-muted-foreground">
+            Exportar data
+          </Button>
+        </div>
       </div>
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

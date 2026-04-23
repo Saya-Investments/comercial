@@ -13,6 +13,11 @@ interface AsesorOption {
   name: string
 }
 
+interface CallCenterOption {
+  id: string
+  name: string
+}
+
 export function LeadsModule() {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
@@ -21,10 +26,12 @@ export function LeadsModule() {
   const [filterDate, setFilterDate] = useState<string>('')
   const [filterDateTo, setFilterDateTo] = useState<string>('')
   const [filterAsesor, setFilterAsesor] = useState<string>('')
+  const [filterCallCenter, setFilterCallCenter] = useState<string>('')
   const [filterBase, setFilterBase] = useState<string>('')
   const [filterEstadoAsesor, setFilterEstadoAsesor] = useState<string>('')
   const [estadoAsesorOptions, setEstadoAsesorOptions] = useState<string[]>([])
   const [asesores, setAsesores] = useState<AsesorOption[]>([])
+  const [callCenters, setCallCenters] = useState<CallCenterOption[]>([])
 
   const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
   const isSupervisor = user?.role === 'supervisor'
@@ -40,12 +47,23 @@ export function LeadsModule() {
     }
   }, [canFilterAsesores, isSupervisor, user?.id])
 
+  useEffect(() => {
+    if (!canFilterAsesores) return
+    fetch('/api/advisors/call-center-ranking')
+      .then(res => res.json())
+      .then((data: Array<{ id: string; name: string }>) =>
+        setCallCenters(data.map((c) => ({ id: c.id, name: c.name })))
+      )
+      .catch(console.error)
+  }, [canFilterAsesores])
+
   const activeFilters = [
     filterPriority && `Prioridad: ${filterPriority}`,
     filterStatus && `Estado: ${filterStatus}`,
     filterDate && `Desde: ${filterDate}`,
     filterDateTo && `Hasta: ${filterDateTo}`,
     filterAsesor && `Asesor: ${asesores.find(a => a.id === filterAsesor)?.name || filterAsesor}`,
+    filterCallCenter && `Call center: ${callCenters.find(c => c.id === filterCallCenter)?.name || filterCallCenter}`,
     filterBase && `Base: ${filterBase}`,
     filterEstadoAsesor && `Estado asesor: ${filterEstadoAsesor}`,
   ].filter(Boolean)
@@ -56,6 +74,7 @@ export function LeadsModule() {
     setFilterDate('')
     setFilterDateTo('')
     setFilterAsesor('')
+    setFilterCallCenter('')
     setFilterBase('')
     setFilterEstadoAsesor('')
   }
@@ -153,6 +172,16 @@ export function LeadsModule() {
             />
           )}
 
+          {canFilterAsesores && (
+            <AsesorFilter
+              asesores={callCenters}
+              value={filterCallCenter}
+              onChange={setFilterCallCenter}
+              placeholder="Call center"
+              className="flex-1 md:flex-none md:w-52"
+            />
+          )}
+
           {activeFilters.length > 0 && (
             <Button
               variant="outline"
@@ -184,6 +213,7 @@ export function LeadsModule() {
           filterDate={filterDate}
           filterDateTo={filterDateTo}
           filterAsesor={filterAsesor}
+          filterCallCenter={filterCallCenter}
           filterBase={filterBase}
           filterEstadoAsesor={filterEstadoAsesor}
           onEstadoAsesorOptionsChange={setEstadoAsesorOptions}
