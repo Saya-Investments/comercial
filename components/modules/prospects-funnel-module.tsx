@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -19,6 +19,7 @@ import {
   TrendingDown,
   Users,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react'
 
 type EstadoChip = {
@@ -44,16 +45,20 @@ type GrupoTerminal = {
   estados: { nombre: string; cantidad: number }[]
 }
 
-// === MOCK DATA (sin conexión a BD todavía) ===
-const ETAPAS: Etapa[] = [
+// Esqueleto del pipeline: titulos, iconos, colores y el orden de los chips.
+// Las cantidades arrancan en 0 y se hidratan con /api/prospects-funnel (cruce
+// con el excel Prospectos_22, match por telefono y fecha_registro > fecha_creacion
+// del lead CRM). Los estados que no aparezcan en el excel quedan en 0 — asi
+// conservamos la lectura visual del pipeline completo.
+const ETAPAS_ESQUELETO: Etapa[] = [
   {
     numero: 1,
     titulo: 'Contacto',
     icon: Phone,
     color: 'sky',
     estados: [
-      { nombre: 'No contactado', cantidad: 42 },
-      { nombre: 'Contactado', cantidad: 108 },
+      { nombre: 'No contactado', cantidad: 0 },
+      { nombre: 'Contactado', cantidad: 0 },
     ],
   },
   {
@@ -62,8 +67,8 @@ const ETAPAS: Etapa[] = [
     icon: FileText,
     color: 'indigo',
     estados: [
-      { nombre: 'Con proforma', cantidad: 64 },
-      { nombre: 'Proforma aprobada', cantidad: 41 },
+      { nombre: 'Con proforma', cantidad: 0 },
+      { nombre: 'Proforma aprobada', cantidad: 0 },
     ],
   },
   {
@@ -72,8 +77,8 @@ const ETAPAS: Etapa[] = [
     icon: FolderCheck,
     color: 'violet',
     estados: [
-      { nombre: 'Documentación EDB', cantidad: 28 },
-      { nombre: 'Subsanado', cantidad: 9, hint: 'Reingreso tras observación' },
+      { nombre: 'Documentación EDB', cantidad: 0 },
+      { nombre: 'Subsanado', cantidad: 0, hint: 'Reingreso tras observación' },
     ],
   },
   {
@@ -82,16 +87,16 @@ const ETAPAS: Etapa[] = [
     icon: ClipboardCheck,
     color: 'fuchsia',
     estados: [
-      { nombre: 'Enviado a EDB', cantidad: 14 },
-      { nombre: 'En evaluación EDB', cantidad: 11 },
-      { nombre: 'Aprobado EDB', cantidad: 9 },
-      { nombre: 'Enviado a Supervisor', cantidad: 6 },
-      { nombre: 'En Oficial de Cumplimiento', cantidad: 5 },
-      { nombre: 'Enviado a ADV', cantidad: 4 },
-      { nombre: 'En evaluación ADV', cantidad: 3 },
-      { nombre: 'En evaluación Riesgo', cantidad: 7, hint: 'Checkpoint común' },
-      { nombre: 'Aprobado', cantidad: 12, parallelGroup: 'aprobacion' },
-      { nombre: 'Aprobado con observación', cantidad: 5, parallelGroup: 'aprobacion' },
+      { nombre: 'Enviado a EDB', cantidad: 0 },
+      { nombre: 'En evaluación EDB', cantidad: 0 },
+      { nombre: 'Aprobado EDB', cantidad: 0 },
+      { nombre: 'Enviado a Supervisor', cantidad: 0 },
+      { nombre: 'En Oficial de Cumplimiento', cantidad: 0 },
+      { nombre: 'Enviado a ADV', cantidad: 0 },
+      { nombre: 'En evaluación ADV', cantidad: 0 },
+      { nombre: 'En evaluación Riesgo', cantidad: 0, hint: 'Checkpoint común' },
+      { nombre: 'Aprobado', cantidad: 0, parallelGroup: 'aprobacion' },
+      { nombre: 'Aprobado con observación', cantidad: 0, parallelGroup: 'aprobacion' },
     ],
   },
   {
@@ -100,11 +105,11 @@ const ETAPAS: Etapa[] = [
     icon: PenLine,
     color: 'amber',
     estados: [
-      { nombre: 'En coordinación', cantidad: 8 },
-      { nombre: 'Firmas en Revisión', cantidad: 6 },
-      { nombre: 'Firmando', cantidad: 4 },
-      { nombre: 'Firmado Parcialmente', cantidad: 3 },
-      { nombre: 'Firmado', cantidad: 11 },
+      { nombre: 'En coordinación', cantidad: 0 },
+      { nombre: 'Firmas en Revisión', cantidad: 0 },
+      { nombre: 'Firmando', cantidad: 0 },
+      { nombre: 'Firmado Parcialmente', cantidad: 0 },
+      { nombre: 'Firmado', cantidad: 0 },
     ],
   },
   {
@@ -113,8 +118,8 @@ const ETAPAS: Etapa[] = [
     icon: UserCheck,
     color: 'lime',
     estados: [
-      { nombre: 'Inscrito Parcialmente', cantidad: 3 },
-      { nombre: 'Inscrito', cantidad: 9 },
+      { nombre: 'Inscrito Parcialmente', cantidad: 0 },
+      { nombre: 'Inscrito', cantidad: 0 },
     ],
   },
   {
@@ -123,21 +128,21 @@ const ETAPAS: Etapa[] = [
     icon: CreditCard,
     color: 'emerald',
     estados: [
-      { nombre: 'Pago parcial', cantidad: 2 },
-      { nombre: 'Pago completo', cantidad: 7, hint: 'Cierre exitoso' },
+      { nombre: 'Pago parcial', cantidad: 0 },
+      { nombre: 'Pago completo', cantidad: 0, hint: 'Cierre exitoso' },
     ],
   },
 ]
 
-const GRUPOS_TERMINALES: GrupoTerminal[] = [
+const GRUPOS_TERMINALES_ESQUELETO: GrupoTerminal[] = [
   {
     titulo: 'Rechazos de evaluación',
     descripcion: 'Caídos en validaciones back-office',
     icon: XCircle,
     color: 'rose',
     estados: [
-      { nombre: 'Rechazado', cantidad: 6 },
-      { nombre: 'Devuelto', cantidad: 4 },
+      { nombre: 'Rechazado', cantidad: 0 },
+      { nombre: 'Devuelto', cantidad: 0 },
     ],
   },
   {
@@ -146,9 +151,9 @@ const GRUPOS_TERMINALES: GrupoTerminal[] = [
     icon: FileX,
     color: 'orange',
     estados: [
-      { nombre: 'Firma Rechazada', cantidad: 2 },
-      { nombre: 'Firma Cancelada', cantidad: 1 },
-      { nombre: 'Firma Expirada', cantidad: 1 },
+      { nombre: 'Firma Rechazada', cantidad: 0 },
+      { nombre: 'Firma Cancelada', cantidad: 0 },
+      { nombre: 'Firma Expirada', cantidad: 0 },
     ],
   },
   {
@@ -157,11 +162,25 @@ const GRUPOS_TERMINALES: GrupoTerminal[] = [
     icon: Ban,
     color: 'slate',
     estados: [
-      { nombre: 'Descartado', cantidad: 8 },
-      { nombre: 'Anulado', cantidad: 3 },
+      { nombre: 'Descartado', cantidad: 0 },
+      { nombre: 'Anulado', cantidad: 0 },
     ],
   },
 ]
+
+function hidratarEtapas(counts: Record<string, number>): Etapa[] {
+  return ETAPAS_ESQUELETO.map(e => ({
+    ...e,
+    estados: e.estados.map(s => ({ ...s, cantidad: counts[s.nombre] ?? 0 })),
+  }))
+}
+
+function hidratarGrupos(counts: Record<string, number>): GrupoTerminal[] {
+  return GRUPOS_TERMINALES_ESQUELETO.map(g => ({
+    ...g,
+    estados: g.estados.map(s => ({ ...s, cantidad: counts[s.nombre] ?? 0 })),
+  }))
+}
 
 // Mapas de colores predefinidos para que Tailwind no los purgue
 const COLOR_MAP: Record<string, { bg: string; bgSoft: string; text: string; border: string; ring: string; chip: string }> = {
@@ -177,15 +196,53 @@ const COLOR_MAP: Record<string, { bg: string; bgSoft: string; text: string; bord
   slate: { bg: 'bg-slate-500', bgSoft: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', ring: 'ring-slate-200', chip: 'bg-slate-100 text-slate-800 border-slate-200' },
 }
 
+type FunnelResponse = {
+  counts: Record<string, number>
+  totalCruzados: number
+  totalLeadsCrm: number
+  rango: { desde: string; hastaIso: string }
+}
+
 export function ProspectsFunnelModule() {
   const [estadoSeleccionado, setEstadoSeleccionado] = useState<string | null>(null)
+  const [counts, setCounts] = useState<Record<string, number>>({})
+  const [meta, setMeta] = useState<Pick<FunnelResponse, 'totalCruzados' | 'totalLeadsCrm' | 'rango'> | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    fetch('/api/prospects-funnel')
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return (await r.json()) as FunnelResponse
+      })
+      .then(data => {
+        if (cancelled) return
+        setCounts(data.counts ?? {})
+        setMeta({ totalCruzados: data.totalCruzados, totalLeadsCrm: data.totalLeadsCrm, rango: data.rango })
+      })
+      .catch(e => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : 'Error cargando funnel')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  const etapas = useMemo(() => hidratarEtapas(counts), [counts])
+  const grupos = useMemo(() => hidratarGrupos(counts), [counts])
 
   const totales = useMemo(() => {
-    const enPipeline = ETAPAS.reduce((sum, e) => sum + e.estados.reduce((s, x) => s + x.cantidad, 0), 0)
-    const exitosos = ETAPAS[6].estados.find((e) => e.nombre === 'Pago completo')?.cantidad ?? 0
-    const caidos = GRUPOS_TERMINALES.reduce((sum, g) => sum + g.estados.reduce((s, x) => s + x.cantidad, 0), 0)
+    const enPipeline = etapas.reduce((sum, e) => sum + e.estados.reduce((s, x) => s + x.cantidad, 0), 0)
+    const exitosos = etapas[6]?.estados.find((e) => e.nombre === 'Pago completo')?.cantidad ?? 0
+    const caidos = grupos.reduce((sum, g) => sum + g.estados.reduce((s, x) => s + x.cantidad, 0), 0)
     return { total: enPipeline + caidos, enPipeline, exitosos, caidos }
-  }, [])
+  }, [etapas, grupos])
 
   const totalEtapa = (etapa: Etapa) => etapa.estados.reduce((s, x) => s + x.cantidad, 0)
 
@@ -259,7 +316,7 @@ export function ProspectsFunnelModule() {
 
             <div className="overflow-x-auto pb-2">
               <div className="flex items-stretch gap-2 min-w-max">
-                {ETAPAS.map((etapa, i) => (
+                {etapas.map((etapa, i) => (
                   <div key={etapa.numero} className="flex items-stretch gap-2">
                     {i > 0 && (
                       <div className="flex items-center">
@@ -286,7 +343,7 @@ export function ProspectsFunnelModule() {
               <span className="text-xs text-muted-foreground">(no avanzan)</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {GRUPOS_TERMINALES.map((grupo) => (
+              {grupos.map((grupo) => (
                 <GrupoTerminalCard
                   key={grupo.titulo}
                   grupo={grupo}
@@ -297,9 +354,21 @@ export function ProspectsFunnelModule() {
             </div>
           </div>
 
-          {/* Nota mock */}
+          {/* Metadata del cruce */}
           <div className="text-xs text-muted-foreground italic text-center pt-2">
-            Vista preliminar · datos de ejemplo (sin conexión a BD)
+            {loading ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="w-3 h-3 animate-spin" /> Cargando cruce con Prospectos_22…
+              </span>
+            ) : error ? (
+              <span className="text-rose-600">Error cargando el funnel: {error}</span>
+            ) : meta ? (
+              <>
+                Cruce Prospectos_22 · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
+                {meta.totalLeadsCrm.toLocaleString('es-PE')} leads CRM con match (tel + Fecha Registro &gt; fecha de creación) ·
+                rango desde {new Date(meta.rango.desde).toLocaleDateString('es-PE')} hasta hoy
+              </>
+            ) : null}
           </div>
         </div>
       </div>
