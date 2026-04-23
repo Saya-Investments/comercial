@@ -19,7 +19,11 @@ export function LeadsModule() {
   const [filterPriority, setFilterPriority] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('')
   const [filterDate, setFilterDate] = useState<string>('')
+  const [filterDateTo, setFilterDateTo] = useState<string>('')
   const [filterAsesor, setFilterAsesor] = useState<string>('')
+  const [filterBase, setFilterBase] = useState<string>('')
+  const [filterEstadoAsesor, setFilterEstadoAsesor] = useState<string>('')
+  const [estadoAsesorOptions, setEstadoAsesorOptions] = useState<string[]>([])
   const [asesores, setAsesores] = useState<AsesorOption[]>([])
 
   const isAdmin = user?.role === 'admin' || user?.role === 'Admin'
@@ -40,14 +44,20 @@ export function LeadsModule() {
     filterPriority && `Prioridad: ${filterPriority}`,
     filterStatus && `Estado: ${filterStatus}`,
     filterDate && `Desde: ${filterDate}`,
+    filterDateTo && `Hasta: ${filterDateTo}`,
     filterAsesor && `Asesor: ${asesores.find(a => a.id === filterAsesor)?.name || filterAsesor}`,
+    filterBase && `Base: ${filterBase}`,
+    filterEstadoAsesor && `Estado asesor: ${filterEstadoAsesor}`,
   ].filter(Boolean)
 
   const clearFilters = () => {
     setFilterPriority('')
     setFilterStatus('')
     setFilterDate('')
+    setFilterDateTo('')
     setFilterAsesor('')
+    setFilterBase('')
+    setFilterEstadoAsesor('')
   }
 
   return (
@@ -94,6 +104,45 @@ export function LeadsModule() {
             <option value="descartado">Descartado</option>
           </select>
 
+          <select
+            value={filterBase}
+            onChange={(e) => setFilterBase(e.target.value)}
+            className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:flex-none"
+          >
+            <option value="">Base</option>
+            <option value="Caliente">Caliente</option>
+            <option value="Stock">Stock</option>
+          </select>
+
+          <select
+            value={filterEstadoAsesor}
+            onChange={(e) => setFilterEstadoAsesor(e.target.value)}
+            className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:flex-none"
+          >
+            <option value="">Estado asesor</option>
+            {estadoAsesorOptions.map((estado) => (
+              <option key={estado} value={estado}>{estado}</option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-1 flex-1 md:flex-none">
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              title="Fecha de creación desde"
+              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:w-40"
+            />
+            <span className="text-muted-foreground text-xs">-</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              title="Fecha de creación hasta"
+              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm flex-1 md:w-40"
+            />
+          </div>
+
           {canFilterAsesores && (
             <AsesorFilter
               asesores={asesores}
@@ -133,7 +182,11 @@ export function LeadsModule() {
           filterPriority={filterPriority}
           filterStatus={filterStatus}
           filterDate={filterDate}
+          filterDateTo={filterDateTo}
           filterAsesor={filterAsesor}
+          filterBase={filterBase}
+          filterEstadoAsesor={filterEstadoAsesor}
+          onEstadoAsesorOptionsChange={setEstadoAsesorOptions}
         />
       </div>
 

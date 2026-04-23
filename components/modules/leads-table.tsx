@@ -35,10 +35,24 @@ interface LeadsTableProps {
   filterPriority?: string
   filterStatus?: string
   filterDate?: string
+  filterDateTo?: string
   filterAsesor?: string
+  filterBase?: string
+  filterEstadoAsesor?: string
+  onEstadoAsesorOptionsChange?: (options: string[]) => void
 }
 
-export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '', filterDate = '', filterAsesor = '' }: LeadsTableProps) {
+export function LeadsTable({
+  searchTerm,
+  filterPriority = '',
+  filterStatus = '',
+  filterDate = '',
+  filterDateTo = '',
+  filterAsesor = '',
+  filterBase = '',
+  filterEstadoAsesor = '',
+  onEstadoAsesorOptionsChange,
+}: LeadsTableProps) {
   const { user } = useAuth()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,11 +89,22 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    if (!onEstadoAsesorOptionsChange) return
+    const unique = Array.from(
+      new Set(leads.map((l) => l.estadoAsesor).filter((e): e is string => !!e))
+    ).sort()
+    onEstadoAsesorOptionsChange(unique)
+  }, [leads, onEstadoAsesorOptionsChange])
+
   const filteredLeads = leads.filter((lead) => {
     const matchesPriority = !filterPriority || lead.priority === filterPriority
     const matchesStatus = !filterStatus || lead.status === filterStatus
     const matchesDate = !filterDate || lead.assignedDate >= filterDate
-    return matchesPriority && matchesStatus && matchesDate
+    const matchesDateTo = !filterDateTo || lead.assignedDate <= filterDateTo
+    const matchesBase = !filterBase || (lead.base || 'Caliente') === filterBase
+    const matchesEstadoAsesor = !filterEstadoAsesor || lead.estadoAsesor === filterEstadoAsesor
+    return matchesPriority && matchesStatus && matchesDate && matchesDateTo && matchesBase && matchesEstadoAsesor
   })
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail' | 'prospect') => {
