@@ -73,6 +73,16 @@ const ETAPAS_ESQUELETO: Etapa[] = [
   },
   {
     numero: 3,
+    titulo: 'Pago',
+    icon: CreditCard,
+    color: 'emerald',
+    estados: [
+      { nombre: 'Pago parcial', cantidad: 0 },
+      { nombre: 'Pago completo', cantidad: 0, hint: 'Cierre exitoso' },
+    ],
+  },
+  {
+    numero: 4,
     titulo: 'Documentación',
     icon: FolderCheck,
     color: 'violet',
@@ -82,7 +92,7 @@ const ETAPAS_ESQUELETO: Etapa[] = [
     ],
   },
   {
-    numero: 4,
+    numero: 5,
     titulo: 'Evaluación',
     icon: ClipboardCheck,
     color: 'fuchsia',
@@ -100,7 +110,7 @@ const ETAPAS_ESQUELETO: Etapa[] = [
     ],
   },
   {
-    numero: 5,
+    numero: 6,
     titulo: 'Firma',
     icon: PenLine,
     color: 'amber',
@@ -113,23 +123,13 @@ const ETAPAS_ESQUELETO: Etapa[] = [
     ],
   },
   {
-    numero: 6,
+    numero: 7,
     titulo: 'Inscripción',
     icon: UserCheck,
     color: 'lime',
     estados: [
       { nombre: 'Inscrito Parcialmente', cantidad: 0 },
       { nombre: 'Inscrito', cantidad: 0 },
-    ],
-  },
-  {
-    numero: 7,
-    titulo: 'Pago',
-    icon: CreditCard,
-    color: 'emerald',
-    estados: [
-      { nombre: 'Pago parcial', cantidad: 0 },
-      { nombre: 'Pago completo', cantidad: 0, hint: 'Cierre exitoso' },
     ],
   },
 ]
@@ -239,7 +239,10 @@ export function ProspectsFunnelModule() {
 
   const totales = useMemo(() => {
     const enPipeline = etapas.reduce((sum, e) => sum + e.estados.reduce((s, x) => s + x.cantidad, 0), 0)
-    const exitosos = etapas[6]?.estados.find((e) => e.nombre === 'Pago completo')?.cantidad ?? 0
+    // "Cerrado con éxito" = Inscrito. El pago solo es una fase temprana del flujo
+    // (tras proforma), no representa cierre.
+    const inscripcion = etapas.find(e => e.titulo === 'Inscripción')
+    const exitosos = inscripcion?.estados.find(s => s.nombre === 'Inscrito')?.cantidad ?? 0
     const caidos = grupos.reduce((sum, g) => sum + g.estados.reduce((s, x) => s + x.cantidad, 0), 0)
     return { total: enPipeline + caidos, enPipeline, exitosos, caidos }
   }, [etapas, grupos])
