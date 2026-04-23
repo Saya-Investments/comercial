@@ -662,7 +662,18 @@ interface CallCenterEntry {
   enCola: number
 }
 
-function CallCenterTab() {
+interface CallCenterDerivacion {
+  id: string
+  name: string
+  recibidos: number
+  derivados: number
+  enGestion: number
+  derivadosPorTimeout: number
+  derivadosManual: number
+  ventasCerradas: number
+}
+
+function CallCenterRankingSection() {
   const [data, setData] = useState<CallCenterEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -734,6 +745,177 @@ function CallCenterTab() {
         </table>
       </div>
     </Card>
+  )
+}
+
+function CallCenterDerivacionesSection() {
+  const [data, setData] = useState<CallCenterDerivacion[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const todayLima = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })
+  const [mode, setMode] = useState<'day' | 'all'>('all')
+  const [date, setDate] = useState<string>(todayLima)
+  const [tab, setTab] = useState<'derivados' | 'en_gestion'>('derivados')
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (mode === 'day') params.set('date', date)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    setLoading(true)
+    fetch(`/api/advisors/call-center-derivaciones${qs}`)
+      .then((res) => res.json())
+      .then((d: CallCenterDerivacion[]) => setData(d))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [mode, date])
+
+  return (
+    <Card className="p-4 md:p-6 mt-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg md:text-xl font-semibold text-foreground">Derivaciones del Call Center</h3>
+      </div>
+
+      {/* Toggle Derivados / En Gestion */}
+      <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs mb-3">
+        <button
+          onClick={() => setTab('derivados')}
+          className={`px-3 py-1.5 transition-colors ${
+            tab === 'derivados'
+              ? 'bg-accent text-white'
+              : 'bg-background text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          Derivados
+        </button>
+        <button
+          onClick={() => setTab('en_gestion')}
+          className={`px-3 py-1.5 border-l border-border transition-colors ${
+            tab === 'en_gestion'
+              ? 'bg-accent text-white'
+              : 'bg-background text-muted-foreground hover:bg-secondary'
+          }`}
+        >
+          En gestion
+        </button>
+      </div>
+
+      {/* Filtro de fecha: solo aplica al modo Derivados (En gestion es estado actual) */}
+      {tab === 'derivados' && (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="inline-flex rounded-lg border border-border overflow-hidden text-xs">
+            <button
+              onClick={() => setMode('day')}
+              className={`px-3 py-1.5 transition-colors ${
+                mode === 'day'
+                  ? 'bg-accent text-white'
+                  : 'bg-background text-muted-foreground hover:bg-secondary'
+              }`}
+            >
+              Por dia
+            </button>
+            <button
+              onClick={() => setMode('all')}
+              className={`px-3 py-1.5 border-l border-border transition-colors ${
+                mode === 'all'
+                  ? 'bg-accent text-white'
+                  : 'bg-background text-muted-foreground hover:bg-secondary'
+              }`}
+            >
+              Acumulado
+            </button>
+          </div>
+          {mode === 'day' && (
+            <input
+              type="date"
+              value={date}
+              max={todayLima}
+              onChange={(e) => setDate(e.target.value)}
+              className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground outline-none focus:border-accent"
+            />
+          )}
+          <span className="text-xs text-muted-foreground italic ml-auto">
+            {mode === 'day' ? 'Derivados ese dia' : 'Acumulado historico'}
+          </span>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent" />
+        </div>
+      ) : (
+        <div className="overflow-y-auto max-h-[300px]">
+          {tab === 'derivados' ? (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-background">
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium w-8">#</th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Agente</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Derivados</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Por timeout</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Manual</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">Ventas cerradas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((cc, i) => (
+                  <tr key={cc.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-2 px-2 text-muted-foreground font-medium">{i + 1}</td>
+                    <td className="py-2 px-2 font-medium text-foreground truncate max-w-[150px]">{cc.name}</td>
+                    <td className="py-2 px-2 text-right font-bold text-blue-600">{cc.derivados}</td>
+                    <td className="py-2 px-2 text-right text-foreground">{cc.derivadosPorTimeout}</td>
+                    <td className="py-2 px-2 text-right text-foreground">{cc.derivadosManual}</td>
+                    <td className="py-2 px-2 text-right font-bold text-green-600">{cc.ventasCerradas}</td>
+                  </tr>
+                ))}
+                {data.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      No hay derivaciones en este periodo
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-background">
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium w-8">#</th>
+                  <th className="text-left py-2 px-2 text-muted-foreground font-medium">Agente</th>
+                  <th className="text-right py-2 px-2 text-muted-foreground font-medium">En gestion ahora</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((cc, i) => (
+                  <tr key={cc.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-2 px-2 text-muted-foreground font-medium">{i + 1}</td>
+                    <td className="py-2 px-2 font-medium text-foreground truncate max-w-[150px]">{cc.name}</td>
+                    <td className="py-2 px-2 text-right font-bold text-orange-600">{cc.enGestion}</td>
+                  </tr>
+                ))}
+                {data.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-8 text-center text-muted-foreground">
+                      No hay agentes del call center
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function CallCenterTab() {
+  return (
+    <>
+      <CallCenterRankingSection />
+      <CallCenterDerivacionesSection />
+    </>
   )
 }
 
