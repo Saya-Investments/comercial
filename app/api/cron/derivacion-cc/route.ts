@@ -100,6 +100,24 @@ export async function GET(req: NextRequest) {
           },
           data: { fecha_asignacion: now, notificado_asesor: false },
         })
+
+        // 4. Cerrar la fila abierta en hist_cc_derivaciones (la mas reciente
+        //    sin fecha_derivacion). Se filtra por id_lead + id_call_center por
+        //    si en el futuro un lead pasa por CC mas de una vez — cerramos
+        //    solo la que esta actualmente abierta.
+        await tx.$executeRaw`
+          UPDATE comercial.hist_cc_derivaciones
+          SET fecha_derivacion = ${now},
+              motivo_derivacion = 'timeout_4h'
+          WHERE id_hist_cc = (
+            SELECT id_hist_cc FROM comercial.hist_cc_derivaciones
+            WHERE id_lead = ${c.id_lead}::uuid
+              AND id_call_center = ${c.id_call_center}::uuid
+              AND fecha_derivacion IS NULL
+            ORDER BY fecha_asignacion_cc DESC
+            LIMIT 1
+          )
+        `
       }, { timeout: 30000, maxWait: 10000 })
 
       derivados++
