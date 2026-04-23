@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
-const HORAS_TIMEOUT = 4
+const HORAS_TIMEOUT = 12
 
 /**
  * Cron de derivacion automatica del Call Center a asesor backup.
