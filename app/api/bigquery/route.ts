@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
 
     const filters = {
       buckets: searchParams.getAll('bucket'),
+      lineas: searchParams.getAll('linea'),
     }
 
     if (action === 'filters') {
@@ -42,8 +43,13 @@ export async function GET(req: NextRequest) {
         query: `SELECT DISTINCT Bucket FROM ${fullTable} WHERE Bucket IS NOT NULL AND Bucket != '' ORDER BY Bucket`,
       })
 
+      const [lineaRows] = await bq.query({
+        query: `SELECT DISTINCT Linea FROM ${fullTable} WHERE Linea IS NOT NULL AND Linea != '' ORDER BY Linea`,
+      })
+
       return NextResponse.json({
         buckets: bucketRows.map((r: Record<string, string>) => r.Bucket),
+        lineas: lineaRows.map((r: Record<string, string>) => r.Linea),
       })
     }
 

@@ -156,7 +156,55 @@ Esto evita que quede una campaña creada pero sin leads relacionados.
 
 ---
 
-## 7. Optimización de la creación de campaña
+## 7. Variables mappings de campaña
+
+También se mantuvo y ajustó el guardado de variables de campaña.
+
+Cuando se crea una campaña, las variables que llegan desde el formulario no se guardan con el nombre original de columna de BigQuery, sino que primero se normalizan y luego se guardan en la tabla de campañas en postgre.
+
+### Dónde se guardan
+
+Se guardan en:
+
+- `crm_campanas.variables`
+
+### Qué hace la normalización
+
+Si desde la UI llega algo como:
+
+- `{{1}} -> Nombres`
+- `{{2}} -> Apellidos`
+- `{{3}} -> Email`
+
+antes de guardarlo se convierte a los nombres internos del CRM, por ejemplo:
+
+- `{{1}} -> nombre`
+- `{{2}} -> apellido`
+- `{{3}} -> correo`
+
+### Equivalencias principales usadas
+
+- `Nombres` / `nombres` -> `nombre`
+- `Apellidos` / `apellidos` -> `apellido`
+- `Telefono` / `telefono_normalizado` -> `numero`
+- `Email` / `email_normalizado` -> `correo`
+- `Bucket` -> `bucket`
+- `Base` -> `base`
+- `Sede` -> `zona`
+- `Origen` -> `origen_lead`
+- `SubOrigen` -> `suborigen_lead`
+- `Linea` -> `linea`
+- `Estado` -> `estado_de_lead`
+- `Motivo_Descarte` -> `motivo_de_descarte`
+- `DNI` -> `dni`
+
+### Resultado
+
+La campaña sí conserva el mapping de variables, pero lo hace ya traducido al modelo interno para que después sea más consistente usarlo desde el CRM.
+
+---
+
+## 8. Optimización de la creación de campaña
 
 El proceso original era muy lento porque trabajaba lead por lead:
 
@@ -185,7 +233,7 @@ Esto reduce significativamente el tiempo de creación de campañas con muchas fi
 
 ---
 
-## 8. Manejo transaccional: todo o nada
+## 9. Manejo transaccional: todo o nada
 
 Se cambió el comportamiento para que la creación de campaña sea atómica.
 
@@ -215,7 +263,7 @@ No debe quedar ninguna campaña parcialmente creada.
 
 ---
 
-## 9. Ajuste por timeout de transacción
+## 10. Ajuste por timeout de transacción
 
 Durante las pruebas apareció un error de expiración de transacción de Prisma (`P2028`), porque el tiempo por defecto era muy corto para campañas grandes.
 
@@ -228,7 +276,7 @@ Con eso el proceso tiene más margen para completar operaciones grandes sin expi
 
 ---
 
-## 10. Archivos principales modificados
+## 11. Archivos principales modificados
 
 - `app/api/campaigns/route.ts`
 - `app/api/bigquery/route.ts`
@@ -242,7 +290,7 @@ Con eso el proceso tiene más margen para completar operaciones grandes sin expi
 
 ---
 
-## 11. Estado funcional esperado
+## 12. Estado funcional esperado
 
 Con estos cambios, al crear una campaña debería ocurrir lo siguiente:
 

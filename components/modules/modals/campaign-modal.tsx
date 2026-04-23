@@ -58,11 +58,13 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     description: '',
     table: '',
     buckets: [] as string[],
+    lineas: [] as string[],
     templateId: '',
   })
 
   const [variableMapping, setVariableMapping] = useState<Record<string, string>>({})
   const [bucketOptions, setBucketOptions] = useState<string[]>([])
+  const [lineaOptions, setLineaOptions] = useState<string[]>([])
   const [loadingFilters, setLoadingFilters] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [columns, setColumns] = useState<BQColumn[]>([])
@@ -109,12 +111,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
 
     setLoadingFilters(true)
     setBucketOptions([])
-    setFormData(prev => ({ ...prev, buckets: [] }))
+    setLineaOptions([])
+    setFormData(prev => ({ ...prev, buckets: [], lineas: [] }))
 
     fetch(`/api/bigquery?action=filters&table=${formData.table}`)
       .then(res => res.json())
       .then(data => {
         setBucketOptions(data.buckets || [])
+        setLineaOptions(data.lineas || [])
       })
       .catch(console.error)
       .finally(() => setLoadingFilters(false))
@@ -124,8 +128,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     const params = new URLSearchParams()
     params.set('table', formData.table)
     formData.buckets.forEach(bucket => params.append('bucket', bucket))
+    formData.lineas.forEach(linea => params.append('linea', linea))
     return params
-  }, [formData.table, formData.buckets])
+  }, [formData.table, formData.buckets, formData.lineas])
 
   useEffect(() => {
     if ((step !== 'config' && step !== 'preview') || !formData.table) return
@@ -177,6 +182,15 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     })
   }
 
+  const handleLineaChange = (linea: string, checked: boolean) => {
+    setFormData({
+      ...formData,
+      lineas: checked
+        ? [...formData.lineas, linea]
+        : formData.lineas.filter(l => l !== linea),
+    })
+  }
+
   const handleVariableChange = (variable: string, column: string) => {
     setVariableMapping(prev => ({ ...prev, [variable]: column }))
   }
@@ -199,6 +213,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     try {
       const filters = {
         buckets: formData.buckets,
+        lineas: formData.lineas,
       }
 
       const res = await fetch('/api/campaigns', {
@@ -347,6 +362,31 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
               </div>
 
               <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Filtro por Linea</label>
+                {loadingFilters ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando lineas...
+                  </div>
+                ) : lineaOptions.length > 0 ? (
+                  <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
+                    {lineaOptions.map((linea) => (
+                      <label key={linea} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.lineas.includes(linea)}
+                          onChange={(e) => handleLineaChange(linea, e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <span className="ml-2 text-sm text-foreground">{linea}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hay lineas disponibles</p>
+                )}
+              </div>
+
+              <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Plantilla de Mensaje</label>
                 <select
                   name="templateId"
@@ -406,6 +446,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p>Tabla: {formData.table}</p>
                   <p>Buckets: {formData.buckets.length > 0 ? formData.buckets.join(', ') : 'Todos'}</p>
+                  <p>Lineas: {formData.lineas.length > 0 ? formData.lineas.join(', ') : 'Todas'}</p>
                   <p>Plantilla: {selectedTemplate?.name || 'Sin seleccionar'}</p>
                   <p className="font-semibold text-foreground">
                     Leads encontrados:{' '}
@@ -473,6 +514,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                       Tabla: <span className="font-medium text-foreground">{formData.table}</span>
                       {formData.buckets.length > 0 && (
                         <> | Buckets: <span className="font-medium text-foreground">{formData.buckets.join(', ')}</span></>
+                      )}
+                      {formData.lineas.length > 0 && (
+                        <> | Lineas: <span className="font-medium text-foreground">{formData.lineas.join(', ')}</span></>
                       )}
                     </div>
                   </div>

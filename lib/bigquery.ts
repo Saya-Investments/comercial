@@ -30,6 +30,7 @@ export async function fetchBQTables(): Promise<string[]> {
 
 type BQFilters = {
   buckets?: string[]
+  lineas?: string[]
 }
 
 // Build WHERE clause from filter arrays
@@ -45,6 +46,16 @@ export function buildBQWhereClause(filters: BQFilters) {
   } else if (buckets.length > 1) {
     conditions.push('Bucket IN UNNEST(@buckets)')
     params.buckets = buckets
+  }
+
+  const lineas = filters.lineas || []
+
+  if (lineas.length === 1) {
+    conditions.push('Linea = @linea')
+    params.linea = lineas[0]
+  } else if (lineas.length > 1) {
+    conditions.push('Linea IN UNNEST(@lineas)')
+    params.lineas = lineas
   }
 
   return {
