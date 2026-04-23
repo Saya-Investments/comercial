@@ -130,7 +130,6 @@ export async function GET(req: NextRequest) {
       },
     },
     orderBy: { fecha_creacion: 'desc' },
-    take: 200,
   })
 
   const leadIds = leads.map((l) => l.id_lead)

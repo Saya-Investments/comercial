@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Eye, MessageSquare, Briefcase, UserCheck, Clock, CheckCircle2 } from 'lucide-react'
+import { Eye, MessageSquare, Briefcase, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ActionModal } from './modals/action-modal'
 import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
@@ -58,6 +58,8 @@ export function LeadsTable({
   const [loading, setLoading] = useState(true)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | 'prospect' | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  const PAGE_SIZE = 15
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -106,6 +108,14 @@ export function LeadsTable({
     const matchesEstadoAsesor = !filterEstadoAsesor || lead.estadoAsesor === filterEstadoAsesor
     return matchesPriority && matchesStatus && matchesDate && matchesDateTo && matchesBase && matchesEstadoAsesor
   })
+
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterAsesor, filterBase, filterEstadoAsesor])
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE))
+  const safePage = Math.min(currentPage, totalPages - 1)
+  const pagedLeads = filteredLeads.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail' | 'prospect') => {
     setSelectedLead(lead)
@@ -216,7 +226,7 @@ export function LeadsTable({
               </tr>
             </thead>
             <tbody>
-              {filteredLeads.length > 0 ? filteredLeads.map((lead) => (
+              {pagedLeads.length > 0 ? pagedLeads.map((lead) => (
                 <tr
                   key={lead.id}
                   className={`border-b border-border transition-colors ${
@@ -302,6 +312,37 @@ export function LeadsTable({
           </table>
         </div>
       </Card>
+
+      {filteredLeads.length > 0 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-xs text-muted-foreground">
+            Mostrando {safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, filteredLeads.length)} de {filteredLeads.length.toLocaleString()} leads
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={safePage === 0}
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Página {safePage + 1} / {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={safePage >= totalPages - 1}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {modalType === 'action' && selectedLead && <ActionModal lead={selectedLead} onClose={() => setModalType(null)} onActionSaved={() => { setModalType(null); fetchLeads() }} />}
       {modalType === 'conversation' && selectedLead && <ConversationModal lead={selectedLead} onClose={() => setModalType(null)} />}
