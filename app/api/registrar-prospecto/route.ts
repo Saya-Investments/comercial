@@ -1,11 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+type TitularInput = {
+  nombre?: string | null
+  apellido?: string | null
+  dni?: string | null
+  numero?: string | null
+  correo?: string | null
+  direccion?: string | null
+}
+
+const clean = (v: unknown) => {
+  if (typeof v !== 'string') return null
+  const t = v.trim()
+  return t.length > 0 ? t : null
+}
+
 export async function POST(req: NextRequest) {
-  const { leadId, userId } = await req.json()
+  const { leadId, userId, titular } = (await req.json()) as {
+    leadId?: string
+    userId?: string
+    titular?: TitularInput
+  }
 
   if (!leadId || !userId) {
     return NextResponse.json({ error: 'leadId y userId son requeridos' }, { status: 400 })
+  }
+
+  const titularData = {
+    nombre: clean(titular?.nombre),
+    apellido: clean(titular?.apellido),
+    dni: clean(titular?.dni),
+    numero: clean(titular?.numero),
+    correo: clean(titular?.correo),
+    direccion: clean(titular?.direccion),
   }
 
   // 1. Obtener datos del lead con su asesor
@@ -53,22 +81,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No se obtuvo token de autenticacion' }, { status: 502 })
   }
 
-  // 3. Separar apellidos (paterno y materno)
-  const apellidos = (lead.apellido || '').trim().split(/\s+/)
+  // 3. Resolver datos del titular (titular_* si viene, sino lead)
+  const resolvedNombre = titularData.nombre ?? lead.nombre ?? ''
+  const resolvedApellido = titularData.apellido ?? lead.apellido ?? ''
+  const resolvedDni = titularData.dni ?? lead.dni ?? ''
+  const resolvedNumero = titularData.numero ?? lead.numero ?? ''
+  const resolvedCorreo = titularData.correo ?? lead.correo ?? ''
+  const resolvedDireccion = titularData.direccion ?? ''
+
+  // 4. Separar apellidos (paterno y materno)
+  const apellidos = resolvedApellido.trim().split(/\s+/).filter(Boolean)
   const lastname = apellidos[0] || ''
   const secondLastname = apellidos.slice(1).join(' ') || ''
 
-  // 4. Registrar prospecto en API NSV
+  // 5. Registrar prospecto en API NSV
   const body = {
     customer: {
       doctype: 'DNI',
-      docnumber: lead.dni || '',
-      name: lead.nombre || '',
+      docnumber: resolvedDni,
+      name: resolvedNombre,
       lastname,
       second_lastname: secondLastname,
-      phonenumber: lead.numero || '',
-      email: lead.correo || '',
-      address: '',
+      phonenumber: resolvedNumero,
+      email: resolvedCorreo,
+      address: resolvedDireccion,
     },
     sales: {
       agent_docnumber: lead.bd_asesores.dni,
@@ -129,6 +165,12 @@ export async function POST(req: NextRequest) {
       data: {
         ultimo_estado_asesor: 'Prospecto',
         fecha_actualizacion: new Date(),
+        titular_nombre: titularData.nombre,
+        titular_apellido: titularData.apellido,
+        titular_dni: titularData.dni,
+        titular_numero: titularData.numero,
+        titular_correo: titularData.correo,
+        titular_direccion: titularData.direccion,
       },
     })
   })

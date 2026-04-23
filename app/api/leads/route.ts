@@ -162,6 +162,8 @@ export async function GET(req: NextRequest) {
     return {
       id: l.id_lead,
       dni: l.dni || '',
+      nombre: l.nombre || '',
+      apellido: l.apellido || '',
       name: `${l.nombre || ''} ${l.apellido || ''}`.trim(),
       phone: l.numero || '',
       email: l.correo || '',

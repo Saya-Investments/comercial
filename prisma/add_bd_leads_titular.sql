@@ -1,0 +1,7 @@
+ALTER TABLE comercial.bd_leads
+  ADD COLUMN IF NOT EXISTS titular_nombre VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS titular_apellido VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS titular_dni VARCHAR(20),
+  ADD COLUMN IF NOT EXISTS titular_numero VARCHAR(15),
+  ADD COLUMN IF NOT EXISTS titular_correo VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS titular_direccion VARCHAR(500);

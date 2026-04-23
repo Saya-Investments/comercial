@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/auth-context'
 interface Lead {
   id: string
   dni: string
+  nombre?: string
+  apellido?: string
   name: string
   phone: string
   email?: string
