@@ -28,28 +28,23 @@ export async function fetchBQTables(): Promise<string[]> {
   return rows.map((r: Record<string, string>) => r.table_name)
 }
 
+type BQFilters = {
+  buckets?: string[]
+}
+
 // Build WHERE clause from filter arrays
-export function buildBQWhereClause(filters: { sedes?: string[]; subOrigenes?: string[] }) {
+export function buildBQWhereClause(filters: BQFilters) {
   const conditions: string[] = []
   const params: Record<string, string | string[]> = {}
 
-  const sedes = filters.sedes || []
-  const subOrigenes = filters.subOrigenes || []
+  const buckets = filters.buckets || []
 
-  if (sedes.length === 1) {
-    conditions.push('Sede = @sede')
-    params.sede = sedes[0]
-  } else if (sedes.length > 1) {
-    conditions.push('Sede IN UNNEST(@sedes)')
-    params.sedes = sedes
-  }
-
-  if (subOrigenes.length === 1) {
-    conditions.push('SubOrigen = @suborigen')
-    params.suborigen = subOrigenes[0]
-  } else if (subOrigenes.length > 1) {
-    conditions.push('SubOrigen IN UNNEST(@suborigenes)')
-    params.suborigenes = subOrigenes
+  if (buckets.length === 1) {
+    conditions.push('Bucket = @bucket')
+    params.bucket = buckets[0]
+  } else if (buckets.length > 1) {
+    conditions.push('Bucket IN UNNEST(@buckets)')
+    params.buckets = buckets
   }
 
   return {
@@ -61,7 +56,7 @@ export function buildBQWhereClause(filters: { sedes?: string[]; subOrigenes?: st
 // Fetch all leads from BigQuery with filters
 export async function fetchBQLeads(
   table: string,
-  filters: { sedes?: string[]; subOrigenes?: string[] }
+  filters: BQFilters
 ): Promise<Record<string, unknown>[]> {
   const bq = getBigQueryClient()
   const fullTable = `\`${BQ_DATASET}.${table}\``

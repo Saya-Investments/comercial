@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+type LeadMetadataRow = {
+  id_lead: string
+  Base: string | null
+  Bucket: string | null
+}
+
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
@@ -128,6 +134,12 @@ export async function GET(req: NextRequest) {
   })
 
   const leadIds = leads.map((l) => l.id_lead)
+  const leadMetadata = leadIds.length > 0
+    ? await prisma.$queryRawUnsafe<LeadMetadataRow[]>(
+        'SELECT id_lead, "Base", "Bucket" FROM comercial.bd_leads WHERE id_lead = ANY($1::uuid[])',
+        leadIds
+      )
+    : []
   const accionesAgg = leadIds.length > 0
     ? await prisma.crm_acciones_comerciales.groupBy({
         by: ['id_lead'],
@@ -138,17 +150,23 @@ export async function GET(req: NextRequest) {
   const maxAccionByLead = new Map(
     accionesAgg.map((a) => [a.id_lead, a._max.fecha_creacion])
   )
+  const leadMetadataById = new Map(
+    leadMetadata.map((row) => [row.id_lead, row])
+  )
 
   const mapped = leads.map((l) => {
     const fechaAsignacion = l.matching[0]?.fecha_asignacion ?? null
     const maxAccion = maxAccionByLead.get(l.id_lead) ?? null
     const gestionado = !!(fechaAsignacion && maxAccion && maxAccion >= fechaAsignacion)
+    const metadata = leadMetadataById.get(l.id_lead)
     return {
       id: l.id_lead,
       dni: l.dni || '',
       name: `${l.nombre || ''} ${l.apellido || ''}`.trim(),
       phone: l.numero || '',
       email: l.correo || '',
+      base: metadata?.Base || 'Caliente',
+      bucket: metadata?.Bucket || '',
       status: l.estado_de_lead || 'lead',
       assignedDate: l.fecha_creacion.toISOString().split('T')[0],
       product: l.producto || '',
@@ -189,6 +207,12 @@ export async function POST(req: NextRequest) {
       estado_de_lead: 'lead',
     },
   })
+
+  await prisma.$executeRawUnsafe(
+    'UPDATE comercial.bd_leads SET "Base" = $1 WHERE id_lead = $2',
+    'Caliente',
+    lead.id_lead
+  )
 
   return NextResponse.json({ id: lead.id_lead }, { status: 201 })
 }

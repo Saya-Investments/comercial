@@ -246,8 +246,7 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
     try {
       const f = typeof campaign.filters === 'string' ? JSON.parse(campaign.filters) : campaign.filters
       const parts: string[] = []
-      if (f.sedes?.length) parts.push(`Sedes: ${f.sedes.join(', ')}`)
-      if (f.subOrigenes?.length) parts.push(`SubOrígenes: ${f.subOrigenes.join(', ')}`)
+      if (f.buckets?.length) parts.push(`Buckets: ${f.buckets.join(', ')}`)
       return parts.length ? parts.join(' | ') : 'Sin filtros'
     } catch {
       return campaign.filters || 'Sin filtros'

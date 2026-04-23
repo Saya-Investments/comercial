@@ -69,6 +69,8 @@ model bd_leads {
   origen_lead                       String?                    @db.VarChar(50)
   suborigen_lead                    String?                    @db.VarChar(50)
   linea                             String?                    @db.VarChar(50)
+  bucket                            String?                    @map("Bucket") @db.VarChar(50)
+  base                              String?                    @default("Caliente") @map("Base") @db.VarChar(20)
   scoring                           Decimal?                   @db.Decimal(5, 4)
   cluster                           Int?
   contactabilidad                   Decimal?                   @db.Decimal(3, 2)

@@ -15,6 +15,9 @@ interface Lead {
   dni: string
   name: string
   phone: string
+  email?: string
+  base?: string
+  bucket?: string
   status: string
   assignedDate: string
   product: string
@@ -91,13 +94,6 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
       case 'Baja': return 'bg-red-100 text-red-700 border border-red-300'
       default: return ''
     }
-  }
-
-  const getBase = (assignedDate: string) => {
-    const twoMonthsAgo = new Date()
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
-    const date = new Date(assignedDate)
-    return date < twoMonthsAgo ? 'Stock' : 'Caliente'
   }
 
   const getBaseColor = (base: string) => {
@@ -215,7 +211,7 @@ export function LeadsTable({ searchTerm, filterPriority = '', filterStatus = '',
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(getBase(lead.assignedDate))}`}>{getBase(lead.assignedDate)}</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(lead.base || 'Caliente')}`}>{lead.base || 'Caliente'}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
                     {lead.gestionado ? (

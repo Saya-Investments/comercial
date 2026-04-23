@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 // GET /api/bigquery?action=tables
 // GET /api/bigquery?action=filters&table=Leads_normalizados
 // GET /api/bigquery?action=columns&table=Leads_normalizados
-// GET /api/bigquery?action=leads&table=Leads_normalizados&sede=Lima
-// GET /api/bigquery?action=count&table=Leads_normalizados&sede=Lima
+// GET /api/bigquery?action=leads&table=Leads_normalizados&bucket=A
+// GET /api/bigquery?action=count&table=Leads_normalizados&bucket=A
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const action = searchParams.get('action')
@@ -34,21 +34,16 @@ export async function GET(req: NextRequest) {
     const fullTable = `\`${BQ_DATASET}.${table}\``
 
     const filters = {
-      sedes: searchParams.getAll('sede'),
-      subOrigenes: searchParams.getAll('suborigen'),
+      buckets: searchParams.getAll('bucket'),
     }
 
     if (action === 'filters') {
-      const [sedeRows] = await bq.query({
-        query: `SELECT DISTINCT Sede FROM ${fullTable} WHERE Sede IS NOT NULL AND Sede != '' ORDER BY Sede`,
-      })
-      const [subOrigenRows] = await bq.query({
-        query: `SELECT DISTINCT SubOrigen FROM ${fullTable} WHERE SubOrigen IS NOT NULL AND SubOrigen != '' ORDER BY SubOrigen`,
+      const [bucketRows] = await bq.query({
+        query: `SELECT DISTINCT Bucket FROM ${fullTable} WHERE Bucket IS NOT NULL AND Bucket != '' ORDER BY Bucket`,
       })
 
       return NextResponse.json({
-        sedes: sedeRows.map((r: Record<string, string>) => r.Sede),
-        subOrigenes: subOrigenRows.map((r: Record<string, string>) => r.SubOrigen),
+        buckets: bucketRows.map((r: Record<string, string>) => r.Bucket),
       })
     }
 
@@ -68,10 +63,15 @@ export async function GET(req: NextRequest) {
 
     if (action === 'leads') {
       const { where, params } = buildBQWhereClause(filters)
-      const limit = Math.min(Number(searchParams.get('limit') || 50), 200)
+      const rawLimit = searchParams.get('limit')
+      const parsedLimit = rawLimit ? Number(rawLimit) : null
+      const limitClause =
+        parsedLimit && Number.isFinite(parsedLimit) && parsedLimit > 0
+          ? ` LIMIT ${Math.floor(parsedLimit)}`
+          : ''
 
       const [rows] = await bq.query({
-        query: `SELECT * FROM ${fullTable} ${where} LIMIT ${limit}`,
+        query: `SELECT * FROM ${fullTable} ${where}${limitClause}`,
         params,
       })
 
