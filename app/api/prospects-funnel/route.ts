@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 // Rango fijo del funnel (acordado con negocio): desde 14-abr-2026 hasta hoy.
 const RANGO_DESDE = '2026-04-14T00:00:00-05:00'
 
-const XLSX_PATH = path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_22.xlsx')
+const XLSX_PATH = path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_24.xlsx')
 
 // Ambos lados a string + solo digitos + ultimos 9. Mismo criterio que
 // scripts/cruce-excels.mjs para mantener consistencia con el CSV de cruce.
@@ -63,12 +63,35 @@ function readProspectos(): ProspExcel[] {
   return out
 }
 
+type LeadCrm = {
+  id_lead: string
+  numero: string | null
+  dni: string | null
+  nombre: string | null
+  apellido: string | null
+  base: string | null
+  fecha_creacion: Date
+  asesor: string | null
+}
+
 // Leads CRM con al menos una accion comercial y fecha_creacion >= 14-abr-2026.
 // EXISTS es mas barato que INNER JOIN + GROUP BY porque no materializa las acciones.
-async function fetchLeadsCrm(): Promise<Array<{ id_lead: string; numero: string | null; fecha_creacion: Date }>> {
-  const rows = await prisma.$queryRaw<Array<{ id_lead: string; numero: string | null; fecha_creacion: Date }>>`
-    SELECT l.id_lead::text AS id_lead, l.numero, l.fecha_creacion
+// LEFT JOIN a bd_asesores para traer el nombre del ultimo asesor asignado (puede ser null).
+// La columna fisica "Base" tiene mayuscula (ver schema.prisma @map("Base")), por eso
+// va entre comillas dobles en el SELECT — Postgres hace case-fold a minusculas si no.
+async function fetchLeadsCrm(): Promise<LeadCrm[]> {
+  const rows = await prisma.$queryRaw<LeadCrm[]>`
+    SELECT
+      l.id_lead::text AS id_lead,
+      l.numero,
+      l.dni,
+      l.nombre,
+      l.apellido,
+      l."Base" AS base,
+      l.fecha_creacion,
+      a.nombre_asesor AS asesor
     FROM comercial.bd_leads l
+    LEFT JOIN comercial.bd_asesores a ON a.id_asesor = l.ultimo_asesor_asignado
     WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
       AND l.fecha_creacion <= NOW()
       AND EXISTS (
@@ -77,6 +100,19 @@ async function fetchLeadsCrm(): Promise<Array<{ id_lead: string; numero: string 
       )
   `
   return rows
+}
+
+type LeadMatch = {
+  id_lead: string
+  dni: string | null
+  numero: string | null
+  nombre: string | null
+  apellido: string | null
+  base: string | null
+  fecha_creacion: string
+  fecha_registro_prosp: string | null
+  asesor: string | null
+  estado: string
 }
 
 export async function GET() {
@@ -96,7 +132,7 @@ export async function GET() {
   }
 
   const counts: Record<string, number> = {}
-  let totalCruzados = 0
+  const leadsMatched: LeadMatch[] = []
 
   for (const l of leadsCrm) {
     const phone = normPhone(l.numero)
@@ -120,13 +156,25 @@ export async function GET() {
 
     const key = mejor.estado || '(sin estado)'
     counts[key] = (counts[key] || 0) + 1
-    totalCruzados++
+    leadsMatched.push({
+      id_lead: l.id_lead,
+      dni: l.dni,
+      numero: l.numero,
+      nombre: l.nombre,
+      apellido: l.apellido,
+      base: l.base,
+      fecha_creacion: l.fecha_creacion.toISOString(),
+      fecha_registro_prosp: mejor.fechaRegistro ? mejor.fechaRegistro.toISOString() : null,
+      asesor: l.asesor,
+      estado: key,
+    })
   }
 
   return NextResponse.json({
     counts,
-    totalCruzados,
+    totalCruzados: leadsMatched.length,
     totalLeadsCrm: leadsCrm.length,
+    leads: leadsMatched,
     rango: { desde: RANGO_DESDE, hastaIso: new Date().toISOString() },
   })
 }
