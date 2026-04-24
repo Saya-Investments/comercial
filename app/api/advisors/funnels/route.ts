@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getActiveAsesorIds, getSupervisedAsesorIds } from '@/lib/supervisor'
 
@@ -27,45 +28,43 @@ export async function GET(req: NextRequest) {
   // ─── Funnel del Bot: estado_de_lead ───
   // Admin (supervisedIds=null): cuenta TODOS los leads del bot.
   // Supervisor: solo cuenta leads con matching activo a sus asesores supervisados.
-  // En ambos casos se filtra por Base='Caliente': los leads Stock son importados
-  // de campañas y aun no entraron al flow conversacional del bot, no deben contar
-  // en el embudo "En Gestion / Asignado".
-  let totalLeads = 0, enGestion = 0, asignados = 0, descartados = 0
-
-  if (supervisedIds) {
-    const leadRows: Array<{ estado_de_lead: string; cnt: bigint }> = await prisma.$queryRaw`
-      SELECT l.estado_de_lead, COUNT(*) as cnt
-      FROM comercial.bd_leads l
-      WHERE l.id_lead IN (
+  //
+  // Filtro de Base: incluye Caliente siempre + Stock SOLO si ya tienen al menos
+  // un mensaje inbound en hist_conversaciones (es decir, el lead interactuo con
+  // el bot despues de la campaña). Stock sin interaccion se excluye — son
+  // leads importados que aun no entraron al flow real del bot.
+  const supervisorFilter = supervisedIds
+    ? Prisma.sql`AND l.id_lead IN (
         SELECT DISTINCT m.id_lead FROM comercial.matching m
         WHERE m.asignado = true AND m.id_asesor = ANY(${supervisedIds}::uuid[])
+      )`
+    : Prisma.empty
+
+  const leadRows: Array<{ estado_de_lead: string; cnt: bigint }> = await prisma.$queryRaw`
+    SELECT l.estado_de_lead, COUNT(*) AS cnt
+    FROM comercial.bd_leads l
+    WHERE (
+      l."Base" = 'Caliente'
+      OR (
+        l."Base" = 'Stock'
+        AND EXISTS (
+          SELECT 1 FROM comercial.hist_conversaciones hc
+          WHERE hc.id_lead = l.id_lead AND hc.direccion = 'inbound'
+        )
       )
-        AND l."Base" = 'Caliente'
-      GROUP BY l.estado_de_lead
-    `
-    const estadoMap: Record<string, number> = {}
-    for (const row of leadRows) {
-      estadoMap[row.estado_de_lead || 'sin_estado'] = Number(row.cnt)
-    }
-    totalLeads = Object.values(estadoMap).reduce((a, b) => a + b, 0)
-    enGestion = estadoMap['en_gestion'] || 0
-    asignados = estadoMap['asignado'] || 0
-    descartados = estadoMap['descartado'] || 0
-  } else {
-    const estadoLeadCounts = await prisma.bd_leads.groupBy({
-      by: ['estado_de_lead'],
-      where: { base: 'Caliente' },
-      _count: { id_lead: true },
-    })
-    const estadoMap: Record<string, number> = {}
-    for (const row of estadoLeadCounts) {
-      estadoMap[row.estado_de_lead || 'sin_estado'] = row._count.id_lead
-    }
-    totalLeads = Object.values(estadoMap).reduce((a, b) => a + b, 0)
-    enGestion = estadoMap['en_gestion'] || 0
-    asignados = estadoMap['asignado'] || 0
-    descartados = estadoMap['descartado'] || 0
+    )
+    ${supervisorFilter}
+    GROUP BY l.estado_de_lead
+  `
+
+  const estadoMap: Record<string, number> = {}
+  for (const row of leadRows) {
+    estadoMap[row.estado_de_lead || 'sin_estado'] = Number(row.cnt)
   }
+  const totalLeads = Object.values(estadoMap).reduce((a, b) => a + b, 0)
+  const enGestion = estadoMap['en_gestion'] || 0
+  const asignados = estadoMap['asignado'] || 0
+  const descartados = estadoMap['descartado'] || 0
 
   // ─── Funnel de Gestion (solo asesores activos) ───
   let leadsEnrutados = 0, leadsGestionados = 0, ventasCerradas = 0
