@@ -77,14 +77,21 @@ export async function GET(req: NextRequest) {
     `
     leadsEnrutados = Number(enrutadosResult[0]?.count || 0)
 
+    // Gestionados incluye acciones de asesores activos del piloto Y de cualquier
+    // usuario del call center. El CC es otro actor legitimo que gestiona leads
+    // (leads Stock y 50% de Calientes), sus acciones deben contar en el embudo.
     const gestionadosResult: Array<{ count: bigint }> = await prisma.$queryRaw`
       SELECT COUNT(DISTINCT ac.id_lead) as count
       FROM comercial.crm_acciones_comerciales ac
       JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
       WHERE u.id_asesor = ANY(${activeIds}::uuid[])
+         OR u.id_call_center IS NOT NULL
     `
     leadsGestionados = Number(gestionadosResult[0]?.count || 0)
 
+    // Idem para ventas cerradas: si el CC llegase a marcar estado_asesor='Venta_cerrada'
+    // (hoy solo lo hacen los asesores, el CC deriva a la app del vendedor), se
+    // contempla aca.
     const ventasResult: Array<{ count: bigint }> = await prisma.$queryRaw`
       SELECT COUNT(*) as count
       FROM (
@@ -92,6 +99,7 @@ export async function GET(req: NextRequest) {
         FROM comercial.crm_acciones_comerciales ac
         JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
         WHERE u.id_asesor = ANY(${activeIds}::uuid[])
+           OR u.id_call_center IS NOT NULL
         ORDER BY ac.id_lead, ac.fecha_creacion DESC
       ) latest
       WHERE estado_asesor = 'Venta_cerrada'
