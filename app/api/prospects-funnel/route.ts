@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 // Rango fijo del funnel (acordado con negocio): desde 14-abr-2026 hasta hoy.
 const RANGO_DESDE = '2026-04-14T00:00:00-05:00'
 
-const XLSX_PATH = path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_24.xlsx')
+const XLSX_PATH = path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_27.xlsx')
 
 // Ambos lados a string + solo digitos + ultimos 9. Mismo criterio que
 // scripts/cruce-excels.mjs para mantener consistencia con el CSV de cruce.
