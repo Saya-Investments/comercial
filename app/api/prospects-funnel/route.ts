@@ -20,17 +20,24 @@ function normPhone(v: unknown): string {
 
 // xlsx devuelve numero (serial Excel: dias desde 1899-12-30) si la celda esta
 // formateada como fecha, y string si es texto. Soportamos ambos + Date directo.
+// El serial de Excel es wall-clock sin timezone; el back-office lo llena en hora
+// Lima (UTC-5, sin DST), por eso sumamos 5h para obtener el UTC equivalente y
+// poder comparar contra fecha_creacion del CRM (que ya esta en UTC).
+const LIMA_OFFSET_MS = 5 * 3600 * 1000
 function parseExcelDate(v: unknown): Date | null {
   if (v == null || v === '') return null
   if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v
   if (typeof v === 'number' && Number.isFinite(v)) {
     const epoch = Date.UTC(1899, 11, 30)
-    return new Date(epoch + v * 86400000)
+    return new Date(epoch + v * 86400000 + LIMA_OFFSET_MS)
   }
   const s = String(v).trim()
   if (!s) return null
   const normalized = s.replace(/\//g, '-')
-  const d = new Date(normalized)
+  // Si el string trae timezone (Z, +hh:mm, -hh:mm) lo respetamos; si no, lo
+  // tratamos como hora Lima.
+  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized)
+  const d = new Date(hasTz ? normalized : normalized + '-05:00')
   return Number.isNaN(d.getTime()) ? null : d
 }
 
