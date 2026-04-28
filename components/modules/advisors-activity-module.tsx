@@ -79,6 +79,7 @@ const ESTADO_PIE_ORDER: string[] = [
   'Cita_agendada',
   'Venta_cerrada',
   'No_interesado',
+  'Numero_equivocado',
   'Prospecto',
 ]
 
