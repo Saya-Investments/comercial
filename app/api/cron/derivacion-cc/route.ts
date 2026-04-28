@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
         await tx.$executeRaw`
           UPDATE comercial.hist_cc_derivaciones
           SET fecha_derivacion = ${now},
-              motivo_derivacion = 'timeout_4h'
+              motivo_derivacion = ${`timeout_${HORAS_TIMEOUT}h`}
           WHERE id_hist_cc = (
             SELECT id_hist_cc FROM comercial.hist_cc_derivaciones
             WHERE id_lead = ${c.id_lead}::uuid
