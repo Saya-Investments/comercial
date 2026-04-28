@@ -17,18 +17,19 @@ import { AdvisorDashboardModule } from '@/components/modules/advisor-dashboard-m
 import { CallCenterDashboardModule } from '@/components/modules/call-center-dashboard-module'
 import { ReassignmentModule } from '@/components/modules/reassignment-module'
 import { ProspectsFunnelModule } from '@/components/modules/prospects-funnel-module'
+import { VersionModule } from '@/components/modules/version-module'
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel'
+type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel' | 'version'
 
-const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel']
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'version']
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel']
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel', 'version']
 
   const defaultModule: ModuleType = user?.role === 'asesor'
     ? 'advisor-dashboard'
@@ -135,6 +136,7 @@ export default function Home() {
           {activeModule === 'prospects-funnel' && <ProspectsFunnelModule />}
           {activeModule === 'bot-cost' && <BotCostModule initialLeads={150} />}
           {activeModule === 'routing-rules' && <RoutingRulesModule />}
+          {activeModule === 'version' && <VersionModule />}
         </div>
       </main>
     </div>

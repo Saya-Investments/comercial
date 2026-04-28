@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard, Headphones, RefreshCw, Filter } from 'lucide-react'
+import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard, Headphones, RefreshCw, Filter, GitBranch } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 
@@ -30,6 +30,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
     // { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, roles: ['admin'] as string[] },
     { id: 'routing-rules', label: 'Enrutamiento', icon: Settings, roles: ['admin'] as string[] },
     { id: 'users', label: 'Usuarios', icon: Users2, roles: ['admin'] as string[] },
+    { id: 'version', label: 'Versión', icon: GitBranch, roles: ['admin'] as string[] },
   ]
 
   const modules = allModules.filter(m => user?.role && m.roles.includes(user.role))
