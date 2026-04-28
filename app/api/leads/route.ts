@@ -21,6 +21,11 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = {}
 
+  // Contexto del actor que consulta — usado para calcular "gestionado" filtrando
+  // acciones por el actor correcto (asesor o CC).
+  let viewerAsesorId: string | null = null
+  let viewerCallCenterId: string | null = null
+
   // Filter by specific asesor (admin filtering)
   if (asesorId) {
     const matchings = await prisma.matching.findMany({
@@ -32,6 +37,7 @@ export async function GET(req: NextRequest) {
       { id_lead: { in: leadIds } },
       { ultimo_asesor_asignado: asesorId },
     ]
+    viewerAsesorId = asesorId
   } else if (userId && role === 'asesor') {
     const usuario = await prisma.crm_usuarios.findUnique({
       where: { id_usuario: userId },
@@ -58,7 +64,12 @@ export async function GET(req: NextRequest) {
             { ultimo_estado_asesor: { not: 'No_interesado' } },
           ],
         },
+        // Ocultar leads que actualmente estan en Call Center: el asesor backup
+        // no debe verlos en su bandeja mientras el CC los trabaja. Reaparecen
+        // automaticamente cuando el CC los libera (timeout 12h o derivacion).
+        { asignado_call_center: null },
       ]
+      viewerAsesorId = usuario.id_asesor
     } else {
       // User has no linked asesor, show nothing
       return NextResponse.json([])
@@ -83,6 +94,8 @@ export async function GET(req: NextRequest) {
         { id_lead: { in: leadIds } },
         { ultimo_asesor_asignado: { in: asesorIds } },
       ]
+      // Igual que asesor: ocultar leads en CC de la vista del supervisor.
+      where.AND = [{ asignado_call_center: null }]
     } else {
       return NextResponse.json([])
     }
@@ -95,6 +108,7 @@ export async function GET(req: NextRequest) {
     if (usuario?.id_call_center) {
       // Show only leads assigned to this call center user
       where.asignado_call_center = usuario.id_call_center
+      viewerCallCenterId = usuario.id_call_center
     } else {
       return NextResponse.json([])
     }
@@ -141,15 +155,43 @@ export async function GET(req: NextRequest) {
         leadIds
       )
     : []
-  const accionesAgg = leadIds.length > 0
-    ? await prisma.crm_acciones_comerciales.groupBy({
+  // "gestionado" se calcula respecto al actor que consulta:
+  //   - asesor (incluye admin filtrando por asesorId): solo cuentan acciones
+  //     hechas por usuarios vinculados a ese id_asesor.
+  //   - call center: solo cuentan acciones hechas por usuarios del mismo CC.
+  //   - supervisor / sin contexto: cualquier accion cuenta (vista agregada).
+  type AccionAggRow = { id_lead: string; max_fecha: Date | null }
+  let accionesAgg: AccionAggRow[] = []
+  if (leadIds.length > 0) {
+    if (viewerAsesorId) {
+      accionesAgg = await prisma.$queryRaw<AccionAggRow[]>`
+        SELECT ac.id_lead, MAX(ac.fecha_creacion) AS max_fecha
+        FROM comercial.crm_acciones_comerciales ac
+        JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
+        WHERE ac.id_lead = ANY(${leadIds}::uuid[])
+          AND u.id_asesor = ${viewerAsesorId}::uuid
+        GROUP BY ac.id_lead
+      `
+    } else if (viewerCallCenterId) {
+      accionesAgg = await prisma.$queryRaw<AccionAggRow[]>`
+        SELECT ac.id_lead, MAX(ac.fecha_creacion) AS max_fecha
+        FROM comercial.crm_acciones_comerciales ac
+        JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
+        WHERE ac.id_lead = ANY(${leadIds}::uuid[])
+          AND u.id_call_center = ${viewerCallCenterId}::uuid
+        GROUP BY ac.id_lead
+      `
+    } else {
+      const fallback = await prisma.crm_acciones_comerciales.groupBy({
         by: ['id_lead'],
         where: { id_lead: { in: leadIds } },
         _max: { fecha_creacion: true },
       })
-    : []
+      accionesAgg = fallback.map((a) => ({ id_lead: a.id_lead, max_fecha: a._max.fecha_creacion }))
+    }
+  }
   const maxAccionByLead = new Map(
-    accionesAgg.map((a) => [a.id_lead, a._max.fecha_creacion])
+    accionesAgg.map((a) => [a.id_lead, a.max_fecha])
   )
   const leadMetadataById = new Map(
     leadMetadata.map((row) => [row.id_lead, row])
