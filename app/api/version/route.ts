@@ -18,9 +18,18 @@ export async function GET() {
     changelog = '# Changelog\n\n_(archivo no encontrado en el deploy)_'
   }
 
+  let buildTime: string | null = null
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), 'build-info.json'), 'utf-8')
+    buildTime = JSON.parse(raw).buildTime ?? null
+  } catch {
+    // archivo no presente (modo dev local sin build previo)
+  }
+
   return NextResponse.json({
     commit: sha ? { sha, short: sha.slice(0, 7), message, author, branch } : null,
     env,
+    buildTime,
     changelog,
   })
 }

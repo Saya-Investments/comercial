@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { GitCommit, RefreshCw } from 'lucide-react'
+import { GitCommit, RefreshCw, Clock } from 'lucide-react'
 
 type VersionInfo = {
   commit: {
@@ -14,7 +14,18 @@ type VersionInfo = {
     branch: string | null
   } | null
   env: string
+  buildTime: string | null
   changelog: string
+}
+
+function formatLima(iso: string): string {
+  const d = new Date(iso)
+  return d.toLocaleString('es-PE', {
+    timeZone: 'America/Lima',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  })
 }
 
 export function VersionModule() {
@@ -73,6 +84,12 @@ export function VersionModule() {
               )}
               {data.commit.author && (
                 <div className="text-muted-foreground text-xs">por {data.commit.author}</div>
+              )}
+              {data.buildTime && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/50 mt-2">
+                  <Clock className="w-3 h-3" />
+                  <span>Desplegado: {formatLima(data.buildTime)} (Lima)</span>
+                </div>
               )}
             </div>
           ) : (
