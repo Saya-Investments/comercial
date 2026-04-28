@@ -52,6 +52,7 @@ const ESTADO_ASESOR_LABELS: Record<string, string> = {
   Venta_cerrada: 'Venta cerrada',
   No_interesado: 'No interesado',
   Prospecto: 'Prospecto',
+  Numero_equivocado: 'Número equivocado',
 }
 
 const ESTADO_PIE_COLORS: Record<string, string> = {
@@ -64,6 +65,7 @@ const ESTADO_PIE_COLORS: Record<string, string> = {
   Venta_cerrada: '#22c55e',
   No_interesado: '#ef4444',
   Prospecto: '#10b981',
+  Numero_equivocado: '#dc2626',
 }
 
 // Orden canonico de las tajadas del pie (sigue el embudo del asesor).

@@ -24,6 +24,7 @@ const ESTADO_ASESOR_LLAMADA = [
   { value: 'Contactado', label: 'Contactado' },
   { value: 'Seguimiento', label: 'Seguimiento' },
   { value: 'Venta_cerrada', label: 'Venta cerrada' },
+  { value: 'Numero_equivocado', label: 'Número equivocado' },
 ]
 
 export function ActionModal({ lead, onClose, onActionSaved }: ActionModalProps) {

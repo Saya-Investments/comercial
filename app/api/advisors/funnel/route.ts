@@ -24,6 +24,7 @@ const STAGE_LABELS: Record<string, string> = {
   Cita_agendada: 'Cita agendada',
   Venta_cerrada: 'Venta cerrada',
   No_interesado: 'No interesado',
+  Numero_equivocado: 'Número equivocado',
 }
 
 export async function GET(req: NextRequest) {

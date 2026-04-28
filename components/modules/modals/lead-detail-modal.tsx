@@ -61,6 +61,7 @@ const ESTADO_LABELS: Record<string, string> = {
   Seguimiento: 'Seguimiento',
   Venta_cerrada: 'Venta cerrada',
   Prospecto: 'Prospecto',
+  Numero_equivocado: 'Número equivocado',
 }
 
 const TIPO_LABELS: Record<string, string> = {
