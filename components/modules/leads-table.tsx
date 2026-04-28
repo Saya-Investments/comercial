@@ -307,7 +307,7 @@ export function LeadsTable({
                       <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'detail')} className="text-foreground hover:bg-secondary" title="Ver detalle">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      {user?.role === 'asesor' && (
+                      {(user?.role === 'asesor' || user?.role === 'call center') && (
                         <Button
                           variant="ghost"
                           size="sm"
