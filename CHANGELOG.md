@@ -3,6 +3,11 @@
 Cambios relevantes del CRM publicados en cada deploy.
 La entrada mas reciente va arriba.
 
+## 2026-04-29
+
+- Vista **Asesores** → distribucion por estado (pie chart): se fusionan **Venta cerrada** y **Prospecto** en una sola tajada "Prospecto". Un Prospecto registrado en NSV ya es un cierre comercial, asi que mostrar las dos categorias por separado dividia el conteo de cierres reales.
+- Vista **Asesores** → embudo de gestion: la metrica **Ventas cerradas** ahora cuenta tanto los leads en estado `Venta_cerrada` como los `Prospecto`. Refleja el total real de cierres comerciales del piloto.
+
 ## 2026-04-28
 
 - Pestaña **Leads** del asesor: ya no aparecen los leads que estan actualmente en Call Center. Vuelven automaticamente cuando el CC los libera (timeout 12h o derivacion manual).

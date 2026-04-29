@@ -89,9 +89,10 @@ export async function GET(req: NextRequest) {
     `
     leadsGestionados = Number(gestionadosResult[0]?.count || 0)
 
-    // Idem para ventas cerradas: si el CC llegase a marcar estado_asesor='Venta_cerrada'
-    // (hoy solo lo hacen los asesores, el CC deriva a la app del vendedor), se
-    // contempla aca.
+    // "Ventas cerradas" del embudo cuenta tanto Venta_cerrada como Prospecto:
+    // un Prospecto registrado en NSV ya es un cierre comercial (operativamente
+    // equivalente a Venta_cerrada para el funnel del piloto). Si el CC llegase
+    // a marcar uno de esos estados, tambien cuenta.
     const ventasResult: Array<{ count: bigint }> = await prisma.$queryRaw`
       SELECT COUNT(*) as count
       FROM (
@@ -102,7 +103,7 @@ export async function GET(req: NextRequest) {
            OR u.id_call_center IS NOT NULL
         ORDER BY ac.id_lead, ac.fecha_creacion DESC
       ) latest
-      WHERE estado_asesor = 'Venta_cerrada'
+      WHERE estado_asesor IN ('Venta_cerrada', 'Prospecto')
     `
     ventasCerradas = Number(ventasResult[0]?.count || 0)
   }

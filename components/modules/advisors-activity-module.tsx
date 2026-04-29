@@ -77,10 +77,9 @@ const ESTADO_PIE_ORDER: string[] = [
   'Interesado',
   'Llamada_agendada',
   'Cita_agendada',
-  'Venta_cerrada',
+  'Prospecto',
   'No_interesado',
   'Numero_equivocado',
-  'Prospecto',
 ]
 
 function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
@@ -114,11 +113,15 @@ function ActivityTab({ advisors, searchTerm, setSearchTerm, supervisorId }: {
     fetch(`/api/advisors/estado-distribution${qs}`)
       .then(res => res.json())
       .then((data: EstadoDistribution[]) => {
-        // Fusion UI-only: Contactado + Seguimiento → una sola entrada "Seguimiento".
-        // Mas adelante se unifican los estados internamente; por ahora solo se muestra asi.
+        // Fusion UI-only:
+        //  - Contactado + Seguimiento → una sola entrada "Seguimiento".
+        //  - Venta_cerrada + Prospecto → una sola entrada "Prospecto" (un Prospecto
+        //    registrado en NSV ya es un cierre comercial, equivalente operativo).
         const merged = new Map<string, number>()
         for (const item of data) {
-          const key = item.name === 'Contactado' ? 'Seguimiento' : item.name
+          let key = item.name
+          if (key === 'Contactado') key = 'Seguimiento'
+          else if (key === 'Venta_cerrada') key = 'Prospecto'
           merged.set(key, (merged.get(key) ?? 0) + item.value)
         }
         // Ordenar por el orden canonico (para mantener Llamada_agendada y Cita_agendada
