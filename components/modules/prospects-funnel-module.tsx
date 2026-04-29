@@ -141,7 +141,7 @@ const ETAPAS_ESQUELETO: Etapa[] = [
 const GRUPOS_TERMINALES_ESQUELETO: GrupoTerminal[] = [
   {
     titulo: 'Rechazos de evaluación',
-    descripcion: 'Caídos en validaciones back-office',
+    descripcion: 'Cayeron en la etapa 5',
     icon: XCircle,
     color: 'rose',
     estados: [
@@ -151,7 +151,7 @@ const GRUPOS_TERMINALES_ESQUELETO: GrupoTerminal[] = [
   },
   {
     titulo: 'Rechazos de firma',
-    descripcion: 'Cayeron en la etapa de firma',
+    descripcion: 'Cayeron en la etapa 6',
     icon: FileX,
     color: 'orange',
     estados: [
