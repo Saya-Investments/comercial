@@ -51,7 +51,7 @@ type GrupoTerminal = {
 
 // Esqueleto del pipeline: titulos, iconos, colores y el orden de los chips.
 // Las cantidades arrancan en 0 y se hidratan con /api/prospects-funnel (cruce
-// con el excel Prospectos_27, match por telefono y fecha_registro > fecha_creacion
+// con el excel Prospectos_29, match por telefono y fecha_registro > fecha_creacion
 // del lead CRM). Los estados que no aparezcan en el excel quedan en 0 — asi
 // conservamos la lectura visual del pipeline completo.
 const ETAPAS_ESQUELETO: Etapa[] = [
@@ -426,13 +426,13 @@ export function ProspectsFunnelModule() {
           <div className="text-xs text-muted-foreground italic text-center pt-2">
             {loading ? (
               <span className="inline-flex items-center gap-1.5">
-                <Loader2 className="w-3 h-3 animate-spin" /> Cargando cruce con Prospectos_27…
+                <Loader2 className="w-3 h-3 animate-spin" /> Cargando cruce con Prospectos_29…
               </span>
             ) : error ? (
               <span className="text-rose-600">Error cargando el funnel: {error}</span>
             ) : meta ? (
               <>
-                Cruce Prospectos_27 · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
+                Cruce Prospectos_29 · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
                 {meta.totalLeadsCrm.toLocaleString('es-PE')} leads CRM con match (tel + Fecha Registro &gt; fecha de creación) ·
                 rango desde {new Date(meta.rango.desde).toLocaleDateString('es-PE')} hasta hoy
               </>
