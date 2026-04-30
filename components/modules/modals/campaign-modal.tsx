@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { X, Loader2, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
+import { BQ_NULL_SENTINEL } from '@/lib/bq-constants'
 
 interface Template {
   id: string
@@ -59,12 +60,15 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     table: '',
     buckets: [] as string[],
     lineas: [] as string[],
+    estadosAsociadosFondos: [] as string[],
     templateId: '',
   })
 
   const [variableMapping, setVariableMapping] = useState<Record<string, string>>({})
   const [bucketOptions, setBucketOptions] = useState<string[]>([])
   const [lineaOptions, setLineaOptions] = useState<string[]>([])
+  const [estadoAsociadoFondosOptions, setEstadoAsociadoFondosOptions] = useState<string[]>([])
+  const [hasNullEstadoAsociadoFondos, setHasNullEstadoAsociadoFondos] = useState(false)
   const [loadingFilters, setLoadingFilters] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [columns, setColumns] = useState<BQColumn[]>([])
@@ -112,13 +116,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     setLoadingFilters(true)
     setBucketOptions([])
     setLineaOptions([])
-    setFormData(prev => ({ ...prev, buckets: [], lineas: [] }))
+    setEstadoAsociadoFondosOptions([])
+    setHasNullEstadoAsociadoFondos(false)
+    setFormData(prev => ({ ...prev, buckets: [], lineas: [], estadosAsociadosFondos: [] }))
 
     fetch(`/api/bigquery?action=filters&table=${formData.table}`)
       .then(res => res.json())
       .then(data => {
         setBucketOptions(data.buckets || [])
         setLineaOptions(data.lineas || [])
+        setEstadoAsociadoFondosOptions(data.estadosAsociadosFondos || [])
+        setHasNullEstadoAsociadoFondos(Boolean(data.hasNullEstadoAsociadoFondos))
       })
       .catch(console.error)
       .finally(() => setLoadingFilters(false))
@@ -129,8 +137,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     params.set('table', formData.table)
     formData.buckets.forEach(bucket => params.append('bucket', bucket))
     formData.lineas.forEach(linea => params.append('linea', linea))
+    formData.estadosAsociadosFondos.forEach(estado => params.append('estado_asociado_fondos', estado))
     return params
-  }, [formData.table, formData.buckets, formData.lineas])
+  }, [formData.table, formData.buckets, formData.lineas, formData.estadosAsociadosFondos])
 
   useEffect(() => {
     if ((step !== 'config' && step !== 'preview') || !formData.table) return
@@ -191,6 +200,18 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     })
   }
 
+  const handleEstadoAsociadoFondosChange = (estado: string, checked: boolean) => {
+    setFormData({
+      ...formData,
+      estadosAsociadosFondos: checked
+        ? [...formData.estadosAsociadosFondos, estado]
+        : formData.estadosAsociadosFondos.filter(e => e !== estado),
+    })
+  }
+
+  const formatEstadoAsociadoFondos = (estado: string) =>
+    estado === BQ_NULL_SENTINEL ? '(Sin estado)' : estado
+
   const handleVariableChange = (variable: string, column: string) => {
     setVariableMapping(prev => ({ ...prev, [variable]: column }))
   }
@@ -223,6 +244,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
           name: formData.name,
           database: formData.table,
           filters,
+          ephemeralFilters: {
+            estadosAsociadosFondos: formData.estadosAsociadosFondos,
+          },
           templateId: formData.templateId || null,
           totalLeads: leadCount || 0,
           variables: templateVars.length > 0 ? variableMapping : {},
@@ -387,6 +411,48 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
               </div>
 
               <div>
+                <label className="mb-2 block text-sm font-semibold text-foreground">
+                  Filtro por Estado Asociado Fondos
+                </label>
+                {loadingFilters ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando estados...
+                  </div>
+                ) : estadoAsociadoFondosOptions.length > 0 || hasNullEstadoAsociadoFondos ? (
+                  <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
+                    {estadoAsociadoFondosOptions.map((estado) => (
+                      <label key={estado} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.estadosAsociadosFondos.includes(estado)}
+                          onChange={(e) => handleEstadoAsociadoFondosChange(estado, e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <span className="ml-2 text-sm text-foreground">{estado}</span>
+                      </label>
+                    ))}
+                    {hasNullEstadoAsociadoFondos && (
+                      <label key={BQ_NULL_SENTINEL} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.estadosAsociadosFondos.includes(BQ_NULL_SENTINEL)}
+                          onChange={(e) =>
+                            handleEstadoAsociadoFondosChange(BQ_NULL_SENTINEL, e.target.checked)
+                          }
+                          className="rounded border-border"
+                        />
+                        <span className="ml-2 text-sm italic text-muted-foreground">(Sin estado)</span>
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Esta tabla no tiene la columna estado_asociado_fondos
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Plantilla de Mensaje</label>
                 <select
                   name="templateId"
@@ -447,6 +513,12 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                   <p>Tabla: {formData.table}</p>
                   <p>Buckets: {formData.buckets.length > 0 ? formData.buckets.join(', ') : 'Todos'}</p>
                   <p>Lineas: {formData.lineas.length > 0 ? formData.lineas.join(', ') : 'Todas'}</p>
+                  <p>
+                    Estado Asociado Fondos:{' '}
+                    {formData.estadosAsociadosFondos.length > 0
+                      ? formData.estadosAsociadosFondos.map(formatEstadoAsociadoFondos).join(', ')
+                      : 'Todos'}
+                  </p>
                   <p>Plantilla: {selectedTemplate?.name || 'Sin seleccionar'}</p>
                   <p className="font-semibold text-foreground">
                     Leads encontrados:{' '}
@@ -517,6 +589,13 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                       )}
                       {formData.lineas.length > 0 && (
                         <> | Lineas: <span className="font-medium text-foreground">{formData.lineas.join(', ')}</span></>
+                      )}
+                      {formData.estadosAsociadosFondos.length > 0 && (
+                        <> | Estado Asociado Fondos:{' '}
+                          <span className="font-medium text-foreground">
+                            {formData.estadosAsociadosFondos.map(formatEstadoAsociadoFondos).join(', ')}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>

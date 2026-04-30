@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     const filters = {
       buckets: searchParams.getAll('bucket'),
       lineas: searchParams.getAll('linea'),
+      estadosAsociadosFondos: searchParams.getAll('estado_asociado_fondos'),
     }
 
     if (action === 'filters') {
@@ -47,9 +48,30 @@ export async function GET(req: NextRequest) {
         query: `SELECT DISTINCT Linea FROM ${fullTable} WHERE Linea IS NOT NULL AND Linea != '' ORDER BY Linea`,
       })
 
+      const [columnRows] = await bq.query({
+        query: `SELECT column_name FROM \`${BQ_DATASET}.INFORMATION_SCHEMA.COLUMNS\` WHERE table_name = @tableName AND LOWER(column_name) = 'estado_asociado_fondos'`,
+        params: { tableName: table },
+      })
+
+      let estadosAsociadosFondos: string[] = []
+      let hasNullEstadoAsociadoFondos = false
+      if (columnRows.length > 0) {
+        const [estadoRows] = await bq.query({
+          query: `SELECT DISTINCT estado_asociado_fondos FROM ${fullTable} WHERE estado_asociado_fondos IS NOT NULL AND estado_asociado_fondos != '' ORDER BY estado_asociado_fondos`,
+        })
+        estadosAsociadosFondos = estadoRows.map((r: Record<string, string>) => r.estado_asociado_fondos)
+
+        const [nullCheckRows] = await bq.query({
+          query: `SELECT 1 FROM ${fullTable} WHERE estado_asociado_fondos IS NULL OR estado_asociado_fondos = '' LIMIT 1`,
+        })
+        hasNullEstadoAsociadoFondos = nullCheckRows.length > 0
+      }
+
       return NextResponse.json({
         buckets: bucketRows.map((r: Record<string, string>) => r.Bucket),
         lineas: lineaRows.map((r: Record<string, string>) => r.Linea),
+        estadosAsociadosFondos,
+        hasNullEstadoAsociadoFondos,
       })
     }
 

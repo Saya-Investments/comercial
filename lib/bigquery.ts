@@ -1,4 +1,7 @@
 import { BigQuery } from '@google-cloud/bigquery'
+import { BQ_NULL_SENTINEL } from './bq-constants'
+
+export { BQ_NULL_SENTINEL }
 
 let bigqueryClient: BigQuery | null = null
 
@@ -31,6 +34,7 @@ export async function fetchBQTables(): Promise<string[]> {
 type BQFilters = {
   buckets?: string[]
   lineas?: string[]
+  estadosAsociadosFondos?: string[]
 }
 
 // Build WHERE clause from filter arrays
@@ -56,6 +60,30 @@ export function buildBQWhereClause(filters: BQFilters) {
   } else if (lineas.length > 1) {
     conditions.push('Linea IN UNNEST(@lineas)')
     params.lineas = lineas
+  }
+
+  const estadosAsociadosFondosRaw = filters.estadosAsociadosFondos || []
+  const includeNullEstado = estadosAsociadosFondosRaw.includes(BQ_NULL_SENTINEL)
+  const estadosAsociadosFondos = estadosAsociadosFondosRaw.filter((v) => v !== BQ_NULL_SENTINEL)
+
+  const estadoConditions: string[] = []
+
+  if (estadosAsociadosFondos.length === 1) {
+    estadoConditions.push('estado_asociado_fondos = @estadoAsociadoFondos')
+    params.estadoAsociadoFondos = estadosAsociadosFondos[0]
+  } else if (estadosAsociadosFondos.length > 1) {
+    estadoConditions.push('estado_asociado_fondos IN UNNEST(@estadosAsociadosFondos)')
+    params.estadosAsociadosFondos = estadosAsociadosFondos
+  }
+
+  if (includeNullEstado) {
+    estadoConditions.push("(estado_asociado_fondos IS NULL OR estado_asociado_fondos = '')")
+  }
+
+  if (estadoConditions.length === 1) {
+    conditions.push(estadoConditions[0])
+  } else if (estadoConditions.length > 1) {
+    conditions.push(`(${estadoConditions.join(' OR ')})`)
   }
 
   return {

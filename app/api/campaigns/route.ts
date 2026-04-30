@@ -274,10 +274,18 @@ export async function POST(req: NextRequest) {
   }
 
   const filters = typeof body.filters === 'string' ? JSON.parse(body.filters) : body.filters || {}
+  const ephemeralFilters =
+    typeof body.ephemeralFilters === 'string'
+      ? JSON.parse(body.ephemeralFilters)
+      : body.ephemeralFilters || {}
+
+  // Ephemeral filters are applied to the BigQuery fetch but NOT persisted
+  // (e.g. estado_asociado_fondos exists only in BQ; we don't store it on bd_leads).
+  const bqQueryFilters = { ...filters, ...ephemeralFilters }
 
   let bqLeads: BQRow[]
   try {
-    bqLeads = await fetchBQLeads(table, filters)
+    bqLeads = await fetchBQLeads(table, bqQueryFilters)
   } catch (err) {
     console.error('Error fetching BQ leads:', err)
     return NextResponse.json(
