@@ -16,8 +16,10 @@ const RANGO_DESDE = '2026-04-14T00:00:00-05:00'
 // unico indice por telefono — un mismo numero puede aparecer en varios
 // archivos y la regla de "Fecha Registro mas reciente posterior a la
 // fecha_creacion del lead" opera sobre el conjunto unificado.
+// Prospectos_30 vino partido en parte1 + parte2 (ambos de abril).
 const XLSX_FILES = [
-  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30.xlsx'),
+  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30_parte1.xlsx'),
+  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30_parte2.xlsx'),
   path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_04_mayo.xlsx'),
 ]
 
