@@ -3,6 +3,10 @@
 Cambios relevantes del CRM publicados en cada deploy.
 La entrada mas reciente va arriba.
 
+## 2026-05-04
+
+- Cron `reasignaciones`: ahora ordena candidatos por **progreso de cuota ASC** (con desempate por posicion del ranking), igual que el routing inicial. Antes tomaba al primero del ranking con cupo, lo que generaba desbalance (todas las reasignaciones de 24h sin gestion caian al mismo asesor mientras los demas estaban en 0%). Con el fix, los leads reasignados se distribuyen al asesor de menor carga.
+
 ## 2026-04-29
 
 - Vista **Asesores** → distribucion por estado (pie chart): se fusionan **Venta cerrada** y **Prospecto** en una sola tajada "Prospecto". Un Prospecto registrado en NSV ya es un cierre comercial, asi que mostrar las dos categorias por separado dividia el conteo de cierres reales.

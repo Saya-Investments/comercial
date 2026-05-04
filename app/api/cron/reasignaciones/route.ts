@@ -142,13 +142,27 @@ export async function GET(req: NextRequest) {
         enriquecidos.push({ ranking: sig, cuota, recibidos, progreso })
       }
 
-      // 7. Regla 1: preferir candidatos con cuota disponible del nivel del lead.
-      //    El orden viene ya por posicion ASC del ranking, asi que tomamos el primero con cupo.
-      let elegido = enriquecidos.find((e) => e.progreso < 1.0)
+      // 7. Regla 1: priorizar BALANCE de cuota sobre orden del ranking.
+      //    Igual que el routing inicial (comercial_routing/app.py): ordenamos
+      //    candidatos por progreso ASC y desempatamos por posicion ASC del
+      //    ranking. Asi un asesor con menor carga de cuota gana sobre uno con
+      //    mejor score que ya viene cargado.
+      //    Sin esto, las reasignaciones caen siempre al primero del ranking
+      //    con cupo, generando desbalance (ej: todos los leads reasignados
+      //    terminan en el mismo asesor mientras otros estan en 0%).
+      const conCupo = enriquecidos
+        .filter((e) => e.progreso < 1.0)
+        .sort((a, b) => {
+          if (a.progreso !== b.progreso) return a.progreso - b.progreso
+          return a.ranking.posicion - b.ranking.posicion
+        })
+
+      let elegido = conCupo[0]
 
       if (!elegido) {
         // Fallback: todos los del ranking ya cumplieron cuota del nivel.
-        // Tomar el primero disponible del ranking sin filtro de cuota.
+        // Tomar el primero disponible del ranking sin filtro de cuota
+        // (orden original por posicion ASC).
         elegido = enriquecidos[0]
       }
 
