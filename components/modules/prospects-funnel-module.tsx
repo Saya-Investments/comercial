@@ -51,9 +51,10 @@ type GrupoTerminal = {
 
 // Esqueleto del pipeline: titulos, iconos, colores y el orden de los chips.
 // Las cantidades arrancan en 0 y se hidratan con /api/prospects-funnel (cruce
-// con el excel Prospectos_30, match por telefono y fecha_registro > fecha_creacion
-// del lead CRM). Los estados que no aparezcan en el excel quedan en 0 — asi
-// conservamos la lectura visual del pipeline completo.
+// con los Excels de Prospectos del back-office, match por telefono y
+// Fecha Registro Excel > fecha_creacion del lead CRM). Los estados que no
+// aparezcan quedan en 0 — asi conservamos la lectura visual del pipeline
+// completo.
 const ETAPAS_ESQUELETO: Etapa[] = [
   {
     numero: 1,
@@ -218,7 +219,19 @@ type FunnelResponse = {
   totalCruzados: number
   totalLeadsCrm: number
   leads: LeadMatch[]
+  mesesDisponibles: string[]
+  mes: string | null
   rango: { desde: string; hastaIso: string }
+}
+
+const NOMBRES_MES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+]
+function labelMes(yyyymm: string): string {
+  const [y, m] = yyyymm.split('-').map(Number)
+  if (!y || !m || m < 1 || m > 12) return yyyymm
+  return `${NOMBRES_MES[m - 1]} ${y}`
 }
 
 type LeadModalData = {
@@ -237,6 +250,9 @@ export function ProspectsFunnelModule() {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [leads, setLeads] = useState<LeadMatch[]>([])
   const [meta, setMeta] = useState<Pick<FunnelResponse, 'totalCruzados' | 'totalLeadsCrm' | 'rango'> | null>(null)
+  const [mesesDisponibles, setMesesDisponibles] = useState<string[]>([])
+  // null = "Todos los meses" (default al abrir, segun acuerdo con negocio).
+  const [mesActual, setMesActual] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [leadDetalle, setLeadDetalle] = useState<LeadModalData | null>(null)
@@ -245,7 +261,8 @@ export function ProspectsFunnelModule() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    fetch('/api/prospects-funnel')
+    const url = mesActual ? `/api/prospects-funnel?mes=${mesActual}` : '/api/prospects-funnel'
+    fetch(url)
       .then(async r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return (await r.json()) as FunnelResponse
@@ -255,6 +272,7 @@ export function ProspectsFunnelModule() {
         setCounts(data.counts ?? {})
         setLeads(data.leads ?? [])
         setMeta({ totalCruzados: data.totalCruzados, totalLeadsCrm: data.totalLeadsCrm, rango: data.rango })
+        setMesesDisponibles(data.mesesDisponibles ?? [])
       })
       .catch(e => {
         if (cancelled) return
@@ -264,7 +282,7 @@ export function ProspectsFunnelModule() {
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [])
+  }, [mesActual])
 
   const leadsDelEstado = useMemo(
     () => (estadoSeleccionado ? leads.filter(l => l.estado === estadoSeleccionado) : []),
@@ -290,16 +308,24 @@ export function ProspectsFunnelModule() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="bg-background border-b border-border p-4 md:p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-            <Filter className="w-5 h-5 text-primary" />
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Filter className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Funnel de Prospectos</h1>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                Vista de pipeline back-office: dónde se queda cada prospecto en su gestión
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Funnel de Prospectos</h1>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">
-              Vista de pipeline back-office: dónde se queda cada prospecto en su gestión
-            </p>
-          </div>
+
+          <SelectorMes
+            mesActual={mesActual}
+            mesesDisponibles={mesesDisponibles}
+            onChange={setMesActual}
+          />
         </div>
       </div>
 
@@ -426,15 +452,15 @@ export function ProspectsFunnelModule() {
           <div className="text-xs text-muted-foreground italic text-center pt-2">
             {loading ? (
               <span className="inline-flex items-center gap-1.5">
-                <Loader2 className="w-3 h-3 animate-spin" /> Cargando cruce con Prospectos_30…
+                <Loader2 className="w-3 h-3 animate-spin" /> Cargando cruce con Excels de prospectos…
               </span>
             ) : error ? (
               <span className="text-rose-600">Error cargando el funnel: {error}</span>
             ) : meta ? (
               <>
-                Cruce Prospectos_30 · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
+                Cruce Prospectos_30 + Prospectos_04_mayo · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
                 {meta.totalLeadsCrm.toLocaleString('es-PE')} leads CRM con match (tel + Fecha Registro &gt; fecha de creación) ·
-                rango desde {new Date(meta.rango.desde).toLocaleDateString('es-PE')} hasta hoy
+                {mesActual ? ` mes ${labelMes(mesActual)}` : ` rango desde ${new Date(meta.rango.desde).toLocaleDateString('es-PE')} hasta hoy`}
               </>
             ) : null}
           </div>
@@ -445,6 +471,49 @@ export function ProspectsFunnelModule() {
 }
 
 // ====================== Subcomponentes ======================
+
+function SelectorMes({
+  mesActual,
+  mesesDisponibles,
+  onChange,
+}: {
+  mesActual: string | null
+  mesesDisponibles: string[]
+  onChange: (mes: string | null) => void
+}) {
+  // Si todavia no tenemos meses disponibles (primera carga), no pintamos nada
+  // para evitar un boton "Todos" suelto sin contexto.
+  if (mesesDisponibles.length === 0 && mesActual === null) return null
+
+  const opciones: { value: string | null; label: string }[] = [
+    { value: null, label: 'Todos' },
+    ...mesesDisponibles.map((m) => ({ value: m, label: labelMes(m) })),
+  ]
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">Mes</span>
+      <div className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 p-0.5">
+        {opciones.map((op) => {
+          const activo = op.value === mesActual
+          return (
+            <button
+              key={op.value ?? 'todos'}
+              onClick={() => onChange(op.value)}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                activo
+                  ? 'bg-background text-foreground shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {op.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function KpiCard({
   label,

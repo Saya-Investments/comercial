@@ -7,9 +7,19 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 // Rango fijo del funnel (acordado con negocio): desde 14-abr-2026 hasta hoy.
+// Por encima de eso, el front puede filtrar por mes via ?mes=YYYY-MM. El mes
+// se decide por la fecha_creacion del lead CRM en hora Lima, NO por la fecha
+// del Excel ni por el archivo de origen.
 const RANGO_DESDE = '2026-04-14T00:00:00-05:00'
 
-const XLSX_PATH = path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30.xlsx')
+// Lista de Excels que se cruzan contra el CRM. Las filas se mezclan en un
+// unico indice por telefono — un mismo numero puede aparecer en varios
+// archivos y la regla de "Fecha Registro mas reciente posterior a la
+// fecha_creacion del lead" opera sobre el conjunto unificado.
+const XLSX_FILES = [
+  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30.xlsx'),
+  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_04_mayo.xlsx'),
+]
 
 // Ambos lados a string + solo digitos + ultimos 9. Mismo criterio que
 // scripts/cruce-excels.mjs para mantener consistencia con el CSV de cruce.
@@ -51,21 +61,24 @@ function readProspectos(): ProspExcel[] {
   // xlsx.readFile internamente usa `fs` con el path como argv: falla con paths
   // que tienen caracteres no-ASCII (tildes, ñ) en Windows bajo el runtime de
   // Next.js. Por eso leemos el buffer nosotros y pasamos a `read()`.
-  const buf = fs.readFileSync(XLSX_PATH)
-  const wb = read(buf, { type: 'buffer' })
-  const sheetName = wb.SheetNames.includes('Prospectos') ? 'Prospectos' : wb.SheetNames[0]
-  const ws = wb.Sheets[sheetName]
-  if (!ws) return []
-  const rows = utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, raw: true })
   const out: ProspExcel[] = []
-  for (const r of rows) {
-    const phone = normPhone(r['Telefono'])
-    if (!phone) continue
-    out.push({
-      phone,
-      fechaRegistro: parseExcelDate(r['Fecha Registro']),
-      estado: (r['Estado'] ?? '').toString().trim(),
-    })
+  for (const filePath of XLSX_FILES) {
+    if (!fs.existsSync(filePath)) continue
+    const buf = fs.readFileSync(filePath)
+    const wb = read(buf, { type: 'buffer' })
+    const sheetName = wb.SheetNames.includes('Prospectos') ? 'Prospectos' : wb.SheetNames[0]
+    const ws = wb.Sheets[sheetName]
+    if (!ws) continue
+    const rows = utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, raw: true })
+    for (const r of rows) {
+      const phone = normPhone(r['Telefono'])
+      if (!phone) continue
+      out.push({
+        phone,
+        fechaRegistro: parseExcelDate(r['Fecha Registro']),
+        estado: (r['Estado'] ?? '').toString().trim(),
+      })
+    }
   }
   return out
 }
@@ -122,15 +135,30 @@ type LeadMatch = {
   estado: string
 }
 
-export async function GET() {
+// Devuelve el mes (YYYY-MM) de un Date en hora Lima (UTC-5, sin DST). Lo usamos
+// para agrupar leads por mes de fecha_creacion: un lead creado el 30-abr 23:00
+// UTC = 30-abr 18:00 Lima, asi que cae en abril, no en mayo.
+function leadMonthLima(d: Date): string {
+  const lima = new Date(d.getTime() - LIMA_OFFSET_MS)
+  const y = lima.getUTCFullYear()
+  const m = String(lima.getUTCMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
+
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  // ?mes=YYYY-MM filtra leads por su fecha_creacion (hora Lima). Sin parametro
+  // o vacio = devuelve todo el rango.
+  const mesParam = url.searchParams.get('mes')?.trim() || null
+
   const [prospectos, leadsCrm] = await Promise.all([
     Promise.resolve().then(readProspectos),
     fetchLeadsCrm(),
   ])
 
   // Indice: telefono -> lista de registros del excel. Un mismo telefono puede
-  // aparecer varias veces (reingresos, etc.), por eso guardamos todos y elegimos
-  // despues el mas reciente que cumpla la condicion temporal.
+  // aparecer varias veces (reingresos, archivos distintos), por eso guardamos
+  // todos y elegimos despues el mas reciente que cumpla la condicion temporal.
   const idxProsp = new Map<string, ProspExcel[]>()
   for (const p of prospectos) {
     const arr = idxProsp.get(p.phone)
@@ -138,8 +166,10 @@ export async function GET() {
     else idxProsp.set(p.phone, [p])
   }
 
-  const counts: Record<string, number> = {}
-  const leadsMatched: LeadMatch[] = []
+  // Hago el cruce completo (sin filtro de mes) para poder derivar
+  // mesesDisponibles independientemente de la seleccion actual del usuario.
+  type LeadMatchConMes = LeadMatch & { mes: string }
+  const allMatches: LeadMatchConMes[] = []
 
   for (const l of leadsCrm) {
     const phone = normPhone(l.numero)
@@ -161,9 +191,7 @@ export async function GET() {
     }
     if (!mejor) continue
 
-    const key = mejor.estado || '(sin estado)'
-    counts[key] = (counts[key] || 0) + 1
-    leadsMatched.push({
+    allMatches.push({
       id_lead: l.id_lead,
       dni: l.dni,
       numero: l.numero,
@@ -173,8 +201,29 @@ export async function GET() {
       fecha_creacion: l.fecha_creacion.toISOString(),
       fecha_registro_prosp: mejor.fechaRegistro ? mejor.fechaRegistro.toISOString() : null,
       asesor: l.asesor,
-      estado: key,
+      estado: mejor.estado || '(sin estado)',
+      mes: leadMonthLima(l.fecha_creacion),
     })
+  }
+
+  // Meses calculados sobre el universo CRM (no sobre matches), para que el
+  // mes en curso aparezca aunque todavia no haya cruces — el usuario igual
+  // quiere poder seleccionarlo y ver el funnel vacio.
+  const mesesDisponibles = Array.from(
+    new Set(leadsCrm.map(l => leadMonthLima(l.fecha_creacion))),
+  ).sort()
+
+  // Aplico el filtro por mes al final: la lista de meses disponibles ya quedo
+  // calculada sobre el universo completo, asi el selector del front no
+  // "pierde" opciones cuando el usuario selecciona un mes.
+  const filtered = mesParam ? allMatches.filter(m => m.mes === mesParam) : allMatches
+
+  const counts: Record<string, number> = {}
+  const leadsMatched: LeadMatch[] = []
+  for (const m of filtered) {
+    counts[m.estado] = (counts[m.estado] || 0) + 1
+    const { mes: _mes, ...lead } = m
+    leadsMatched.push(lead)
   }
 
   return NextResponse.json({
@@ -182,6 +231,8 @@ export async function GET() {
     totalCruzados: leadsMatched.length,
     totalLeadsCrm: leadsCrm.length,
     leads: leadsMatched,
+    mesesDisponibles,
+    mes: mesParam,
     rango: { desde: RANGO_DESDE, hastaIso: new Date().toISOString() },
   })
 }
