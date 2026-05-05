@@ -548,7 +548,7 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
           <p className="text-xl md:text-2xl font-bold text-red-500 mt-1">{data.bot.descartados}</p>
         </Card>
         <Card className="p-3 md:p-4">
-          <p className="text-xs text-muted-foreground">Ventas Cerradas</p>
+          <p className="text-xs text-muted-foreground">Prospectos</p>
           <p className="text-xl md:text-2xl font-bold text-green-600 mt-1">{data.gestion.ventasCerradas}</p>
         </Card>
         <Card className="p-3 md:p-4">
@@ -601,7 +601,7 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
 
       {/* Funnel de Gestión - horizontal flow */}
       <Card className="p-4 md:p-6 mb-6">
-        <h3 className="text-lg font-semibold text-foreground mb-1">Embudo de Gestion: Enrutado → Gestionado → Venta</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-1">Embudo de Gestion: Enrutado → Gestionado → Prospectos</h3>
         <p className="text-xs text-muted-foreground mb-6">Flujo del asesor</p>
 
         <div className="flex items-center justify-center gap-4 md:gap-8 mb-6">
@@ -634,7 +634,7 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
             <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-green-500 flex items-center justify-center">
               <span className="text-xl md:text-2xl font-bold text-white">{data.gestion.ventasCerradas}</span>
             </div>
-            <p className="text-sm font-semibold text-foreground mt-2">Venta Cerrada</p>
+            <p className="text-sm font-semibold text-foreground mt-2">Prospectos</p>
             <p className="text-xs text-muted-foreground">{gestionConversionRate}%</p>
           </div>
         </div>
@@ -650,7 +650,7 @@ function FunnelTab({ supervisorId }: { supervisorId?: string }) {
           <div className="bg-muted/50 rounded-lg p-4 text-center">
             <p className="text-sm font-semibold text-foreground">Tasa de Cierre</p>
             <p className="text-2xl font-bold text-green-500 mt-1">{gestionConversionRate}%</p>
-            <p className="text-xs text-muted-foreground mt-1">Enrutado → Venta Cerrada</p>
+            <p className="text-xs text-muted-foreground mt-1">Enrutado → Prospectos</p>
           </div>
         </div>
       </Card>
