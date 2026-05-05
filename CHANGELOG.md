@@ -7,6 +7,7 @@ La entrada mas reciente va arriba.
 
 - Vista **Asesores** → embudo de gestion: la metrica **Ventas cerradas** ahora usa el cruce con los Excels del back-office (mismo dato que la pestaña "Funnel de prospectos"). Antes contaba leads con estado `Venta_cerrada` o `Prospecto` en `crm_acciones_comerciales` — esa metrica refleja lo que el asesor marca en el CRM, pero no garantiza que el lead haya llegado al sistema oficial. El cruce con back-office es el dato mas fiel al cierre real.
 - Vista **Asesores** → embudo de gestion: el ultimo paso del embudo (y la card del stats row) pasa a llamarse **Prospectos** en lugar de **Venta Cerrada**, ya que el dato proviene del cruce con back-office (estados como Contactado, Con proforma, Inscrito, etc.) y no solo de cierres confirmados.
+- Vista **Asesores** → embudo de gestion: la metrica **Enrutados** ahora cuenta leads que *alguna vez* fueron asignados a un asesor activo (antes solo contaba los con `matching.asignado = true` actual). Sin este cambio, leads que el asesor gestiono y luego descarto bajaban el conteo de Enrutados pero seguian sumando en Gestionados, rompiendo la monotonia del embudo.
 
 ## 2026-05-04
 

@@ -71,10 +71,14 @@ export async function GET(req: NextRequest) {
   let leadsEnrutados = 0, leadsGestionados = 0, ventasCerradas = 0
 
   if (activeIds.length > 0) {
+    // Enrutados cuenta leads que ALGUNA VEZ fueron asignados a un asesor activo.
+    // Sin el filtro `asignado = true` el conteo no se cae cuando el lead se
+    // descarta o se reasigna (donde matching.asignado pasa a false). Asi el
+    // embudo queda monotonico: enrutados >= gestionados >= ventas.
     const enrutadosResult: Array<{ count: bigint }> = await prisma.$queryRaw`
       SELECT COUNT(DISTINCT id_lead) as count
       FROM comercial.matching
-      WHERE asignado = true AND id_asesor = ANY(${activeIds}::uuid[])
+      WHERE id_asesor = ANY(${activeIds}::uuid[])
     `
     leadsEnrutados = Number(enrutadosResult[0]?.count || 0)
 
