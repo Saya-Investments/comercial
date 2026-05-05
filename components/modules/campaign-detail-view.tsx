@@ -342,34 +342,6 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
           </Card>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          <Card className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">Total</div>
-            <div className="text-2xl font-bold text-foreground">{campaign.stats.total}</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">Pendientes</div>
-            <div className="text-2xl font-bold text-gray-600">{campaign.stats.pendiente}</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">Enviados</div>
-            <div className="text-2xl font-bold text-cyan-600">{campaign.stats.enviado}</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">Entregados</div>
-            <div className="text-2xl font-bold text-green-600">{campaign.stats.entregado}</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">Leídos</div>
-            <div className="text-2xl font-bold text-blue-600">{campaign.stats.leido}</div>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-sm text-muted-foreground">Fallidos</div>
-            <div className="text-2xl font-bold text-red-600">{campaign.stats.fallido}</div>
-          </Card>
-        </div>
-
         {/* Send Section */}
         <Card className="p-5">
           <div className="flex items-center justify-between">
