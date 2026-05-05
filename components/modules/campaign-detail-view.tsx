@@ -573,22 +573,42 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
 }
 
 function ContactabilidadSection({ campaign }: { campaign: CampaignDetail }) {
-  const { stats, leads } = campaign
-  const enviadosBase = stats.enviado + stats.entregado + stats.leido + stats.respondido
-  const enviadosTotal = enviadosBase + stats.fallido
-  const tasaEntrega = enviadosTotal > 0 ? (stats.entregado + stats.leido + stats.respondido) / enviadosTotal : 0
-  const tasaLectura = enviadosTotal > 0 ? (stats.leido + stats.respondido) / enviadosTotal : 0
-  const tasaFallo = enviadosTotal > 0 ? stats.fallido / enviadosTotal : 0
+  const { leads } = campaign
+
+  // Mutually exclusive buckets — a lead counts in exactly one
+  const buckets = leads.reduce(
+    (acc, l) => {
+      const isFailed = ['failed', 'error'].includes(l.estadoEnvio)
+      const isSent = ['accepted', 'enviado'].includes(l.estadoEnvio)
+      if (isFailed) acc.fallido++
+      else if (l.respondio) acc.respondido++
+      else if (l.leido) acc.leido++
+      else if (l.entregado) acc.entregado++
+      else if (isSent) acc.enviado++
+      else acc.pendiente++
+      return acc
+    },
+    { pendiente: 0, enviado: 0, entregado: 0, leido: 0, respondido: 0, fallido: 0 }
+  )
+
+  const total = leads.length
+  // Cumulative counts (each level includes the next states)
+  const enviadosTotal = total - buckets.pendiente
+  const entregadosTotal = buckets.entregado + buckets.leido + buckets.respondido
+  const leidosTotal = buckets.leido + buckets.respondido
+  const fallidosTotal = buckets.fallido
+
+  const tasaEntrega = enviadosTotal > 0 ? entregadosTotal / enviadosTotal : 0
+  const tasaLectura = enviadosTotal > 0 ? leidosTotal / enviadosTotal : 0
+  const tasaFallo = enviadosTotal > 0 ? fallidosTotal / enviadosTotal : 0
 
   const distribucion = [
-    { name: 'Enviados', value: stats.enviado, color: '#2b6cb0' },
-    { name: 'Entregados', value: stats.entregado, color: '#16a34a' },
-    { name: 'Leídos', value: stats.leido, color: '#7c3aed' },
-    { name: 'Fallidos', value: stats.fallido, color: '#ef4444' },
+    { name: 'Enviados', value: buckets.enviado, color: '#2b6cb0' },
+    { name: 'Entregados', value: buckets.entregado, color: '#16a34a' },
+    { name: 'Leídos', value: buckets.leido + buckets.respondido, color: '#7c3aed' },
+    { name: 'Fallidos', value: buckets.fallido, color: '#ef4444' },
   ].filter((d) => d.value > 0)
 
-  const entregadosTotal = stats.entregado + stats.leido + stats.respondido
-  const leidosTotal = stats.leido + stats.respondido
   const funnel = [
     { label: 'Enviados', value: enviadosTotal, base: enviadosTotal, color: 'bg-blue-500' },
     { label: 'Entregados', value: entregadosTotal, base: enviadosTotal, color: 'bg-green-500' },
@@ -615,11 +635,11 @@ function ContactabilidadSection({ campaign }: { campaign: CampaignDetail }) {
   const handleExport = () => {
     const rows = [
       ['Métrica', 'Valor'],
-      ['Total', String(stats.total)],
+      ['Total', String(total)],
       ['Enviados', String(enviadosTotal)],
       ['Entregados', String(entregadosTotal)],
       ['Leídos', String(leidosTotal)],
-      ['Fallidos', String(stats.fallido)],
+      ['Fallidos', String(fallidosTotal)],
       ['Tasa de Entrega', `${(tasaEntrega * 100).toFixed(1)}%`],
       ['Tasa de Lectura', `${(tasaLectura * 100).toFixed(1)}%`],
       ['Tasa de Fallo', `${(tasaFallo * 100).toFixed(1)}%`],
@@ -647,7 +667,7 @@ function ContactabilidadSection({ campaign }: { campaign: CampaignDetail }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-4 text-center">
           <div className="text-sm text-muted-foreground">Total</div>
-          <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+          <div className="text-2xl font-bold text-foreground">{total}</div>
         </Card>
         <Card className="p-4 text-center">
           <div className="text-sm text-muted-foreground">Enviados</div>
@@ -663,7 +683,7 @@ function ContactabilidadSection({ campaign }: { campaign: CampaignDetail }) {
         </Card>
         <Card className="p-4 text-center">
           <div className="text-sm text-muted-foreground">Fallidos</div>
-          <div className="text-2xl font-bold text-red-600">{stats.fallido}</div>
+          <div className="text-2xl font-bold text-red-600">{fallidosTotal}</div>
         </Card>
       </div>
 
