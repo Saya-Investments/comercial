@@ -1,0 +1,3081 @@
+{
+  "resumen": {
+    "total_stock": 437,
+    "con_numero": 437,
+    "sin_firestore": 42,
+    "con_interaccion_firestore": 395,
+    "respondio_al_bot": 131,
+    "solo_bot_envio_no_respondio": 264,
+    "pct_respondio": "30.0%",
+    "pct_solo_bot": "60.4%",
+    "pct_sin_firestore": "9.6%"
+  },
+  "distribucion_msgs_lead": {
+    "0": 306,
+    "1-3": 85,
+    "4-10": 34,
+    "11-30": 8,
+    ">30": 4
+  },
+  "detalle": [
+    {
+      "celular": "51902301615",
+      "id_lead": "59930c04-8dfd-4624-b9a1-90ceac0cf9fd",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51974259245",
+      "id_lead": "fa5f5fc8-1306-4e92-9687-822af88896ca",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51972950482",
+      "id_lead": "cba3319f-8a5e-4cbd-ba42-0d144a545de8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51993775861",
+      "id_lead": "38380c01-f091-4321-b423-84c2d2645677",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51918369170",
+      "id_lead": "57639ff6-2ea3-4d3e-9378-cad2a2c95b7d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51966730689",
+      "id_lead": "6b95488c-126e-43e0-84aa-062effc32c67",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51933418519",
+      "id_lead": "864ae77e-1ccc-46b2-9bd8-a707f58e2462",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51982394958",
+      "id_lead": "f5e536c6-7a84-45c4-b915-98637ae71d0f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51900625624",
+      "id_lead": "91381820-09fb-4c8c-b6a9-852550060aa9",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51987263258",
+      "id_lead": "b3f6c30b-829e-4a66-8daa-8dae78d866f3",
+      "lead_msgs": 1,
+      "bot_msgs": 3,
+      "total": 4
+    },
+    {
+      "celular": "51968344230",
+      "id_lead": "75ecf926-3c62-44cd-aedb-ab618fa4ede5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981882603",
+      "id_lead": "a2d1d3e7-0d3b-4502-acec-b1cd06ff11a2",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51906394684",
+      "id_lead": "5806435e-befe-4d41-87f7-460e426fad43",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51971136472",
+      "id_lead": "fc54b5d6-bc71-40ef-abef-5ad796c385af",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51923598524",
+      "id_lead": "0cca8d22-884e-4538-a185-c03e2668d83c",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51954510199",
+      "id_lead": "fb7b436c-ebd6-4969-ad79-c62bf3157107",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51982333895",
+      "id_lead": "3e48a7e2-96b5-44e8-9352-56974f5a24a4",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51929213451",
+      "id_lead": "800443d4-cc67-4025-a39b-27fcf7820299",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51967555817",
+      "id_lead": "44f99ae7-a7e4-47c9-8b59-62f090f6ccda",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51948884932",
+      "id_lead": "eeb8b022-156c-47e8-86f1-5a8cd46be1fb",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51964589605",
+      "id_lead": "f4ac3b15-315e-4db7-83a4-a62eb664489e",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51940594003",
+      "id_lead": "14f5f650-cce2-4e36-9ef9-08c06ccb6f50",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51943204109",
+      "id_lead": "b75e0ace-962c-4d46-ae39-e07b1a149ec0",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51941489707",
+      "id_lead": "1f6ec659-a830-4daf-9aa5-f2aa2a4514d5",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51984426044",
+      "id_lead": "d4a898eb-7787-4681-a21e-09bc4bfe1f80",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51966890249",
+      "id_lead": "2e4c02fc-5bf7-40df-a491-26b1f36e9250",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51927540180",
+      "id_lead": "e4907228-642a-46fb-a65b-bfb746ba73f3",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51974174072",
+      "id_lead": "c8c78fe0-a8f5-4121-ac73-b49eef53ac28",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51940202134",
+      "id_lead": "8b298cde-3dd7-418d-8432-22248ac1b75b",
+      "lead_msgs": 11,
+      "bot_msgs": 13,
+      "total": 24
+    },
+    {
+      "celular": "51935162268",
+      "id_lead": "777f3f17-3953-4c7c-b8b2-f20d3d57ea88",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51962928317",
+      "id_lead": "996f6d4d-8443-4f02-8deb-838e1108dc9e",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51934558370",
+      "id_lead": "1af66e1d-0beb-4b5c-ae21-cb722ca9ce9d",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51954112735",
+      "id_lead": "29a0de15-ac78-4ed1-a2c5-9bcca513b993",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51902936451",
+      "id_lead": "efaa10e2-e0ee-4245-be60-00d33e39f1ad",
+      "lead_msgs": 10,
+      "bot_msgs": 11,
+      "total": 21
+    },
+    {
+      "celular": "51941347528",
+      "id_lead": "3b13bf20-8d52-4eac-b59b-caaf1aa4b7e7",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51941141075",
+      "id_lead": "3ac22ac8-d86c-4c14-a4b4-1fc99fe9da03",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51920037342",
+      "id_lead": "fbd50c89-9e25-40e4-8879-8fe114291ecf",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51992000837",
+      "id_lead": "7a9cab61-82d1-48aa-9fc1-770ead248842",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51921231312",
+      "id_lead": "dbba2ff9-87a5-4f62-91df-b3a5a01149d8",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51959076982",
+      "id_lead": "90c23817-ca98-4d14-8e75-cdaea04ddd24",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51970433819",
+      "id_lead": "c6f91bfb-8108-4ac1-9b95-f9ebf0970f21",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51860872525",
+      "id_lead": "d4172d51-b7a8-43cb-860e-4a739ea656c4",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51997087626",
+      "id_lead": "c8100c18-5dd7-4685-89e9-7726c1ef9956",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51964416871",
+      "id_lead": "0a5b8f89-96e1-40a2-909a-f3b45d42bf0a",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51933423159",
+      "id_lead": "43bde19a-1908-4ffe-95d5-dfbe215aa1e1",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51992222642",
+      "id_lead": "3b5c4ddb-a14a-4020-9f1b-a48be7890632",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51917035836",
+      "id_lead": "532bd18f-f868-462e-8a5e-94ab2318fffa",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51927862388",
+      "id_lead": "d0babf09-60fb-4320-bb46-21b2eefd2baf",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51918964130",
+      "id_lead": "fc4a8a4c-0485-43b7-b01c-2420228dd0ec",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51971474989",
+      "id_lead": "12c1a13b-f445-42fd-b6ed-c40af6e932f5",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51944830176",
+      "id_lead": "9748f248-bc26-479a-b366-1d8790f1bf37",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51981341654",
+      "id_lead": "4f568846-7dee-4adf-99ff-ec28c2b61243",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51973865090",
+      "id_lead": "0b785518-f8ec-4ff1-8e81-3149136c48e7",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51935189385",
+      "id_lead": "83a134d5-fb2a-41bb-a07c-38f724594ba8",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51989426850",
+      "id_lead": "7b930c18-9109-4a0b-9855-b4e631de3b99",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51920202499",
+      "id_lead": "d8fc5405-6578-4b4b-9fc6-cd337a5590a3",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51990279311",
+      "id_lead": "bb3bc307-378a-4528-aaa9-670adfd4b73c",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51912528198",
+      "id_lead": "5d98447a-9be6-42cb-8ee9-c8ad4bda1e1c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51957068789",
+      "id_lead": "9aa4adac-8e21-4d5f-ba41-297f7177dd8e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51967117280",
+      "id_lead": "a8b18cc1-de00-4782-84fc-c6d9a744f77d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981136248",
+      "id_lead": "1e0b9bb9-317e-4f90-8121-a4dc7de217f8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51972073053",
+      "id_lead": "9e800ff4-f1af-4bc6-a89f-73626008418d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51916089795",
+      "id_lead": "5aa1262e-c506-4783-b9ce-cc26c6fe38d3",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51907227273",
+      "id_lead": "6923f4cb-a59b-4f47-a301-6ef205589e94",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51937471363",
+      "id_lead": "549d2c73-e737-41ff-a6fe-54b2570799f8",
+      "lead_msgs": 46,
+      "bot_msgs": 47,
+      "total": 93
+    },
+    {
+      "celular": "51962069726",
+      "id_lead": "98e359a7-5716-49f0-b762-76fb89fd69d3",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51992119688",
+      "id_lead": "fe83453a-6f3e-420a-ac73-efedf4904685",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51907189708",
+      "id_lead": "9dc9f6c7-3fc9-40f2-ae52-fd20875e5ba0",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51982227131",
+      "id_lead": "d047afb1-0ea1-488d-8b04-466c12b536de",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51928275392",
+      "id_lead": "6cb3d19b-1624-44e8-89b2-4589bf7d1ea8",
+      "lead_msgs": 9,
+      "bot_msgs": 10,
+      "total": 19
+    },
+    {
+      "celular": "51997500894",
+      "id_lead": "7c61b431-cb1b-4661-8daf-b7a06dbd253b",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51977656255",
+      "id_lead": "90b2d71e-87eb-4d51-a707-ab32523f4be6",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51956035316",
+      "id_lead": "b7d700bc-8314-467a-aa2b-bc485b989363",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51930509794",
+      "id_lead": "33bbbb1e-f28f-449b-8f0c-19e7aea3f47f",
+      "lead_msgs": 13,
+      "bot_msgs": 13,
+      "total": 26
+    },
+    {
+      "celular": "51952345394",
+      "id_lead": "bbbf7d51-e8db-48c0-b0b5-9d78783f6f58",
+      "lead_msgs": 7,
+      "bot_msgs": 8,
+      "total": 15
+    },
+    {
+      "celular": "51904256523",
+      "id_lead": "a06fe86d-c86f-40af-803d-5207e1730ab4",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51962143949",
+      "id_lead": "330051fd-7d45-4bc6-975b-ee4f294732ff",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51991232717",
+      "id_lead": "42ff32b5-8699-4a84-b63f-5688bb7ee39d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51998626996",
+      "id_lead": "dc4532ad-723a-426e-84c2-f0ed72b179cf",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51936914884",
+      "id_lead": "40e89e17-201c-4674-8209-2de7b6d1d21a",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51943558599",
+      "id_lead": "62cfe0b8-cec5-4810-9a2b-3ad970f17e2b",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51934602003",
+      "id_lead": "e254f792-c39b-410b-b407-99ec84ec08e7",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51944304640",
+      "id_lead": "bbf89fcd-3baf-4318-aaaf-35ab04b213ba",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51932529048",
+      "id_lead": "a98c92fe-b863-427d-a679-fdfa86ae47c3",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51986407728",
+      "id_lead": "d5fddcd4-ff4f-4ec3-bba7-ea1f431c8f5e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51928567525",
+      "id_lead": "589806dd-ba45-404c-a639-1108149a9120",
+      "lead_msgs": 1,
+      "bot_msgs": 1,
+      "total": 2
+    },
+    {
+      "celular": "51928061060",
+      "id_lead": "0d88cc3e-dc33-4fc6-8251-54f21656b58c",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51983574391",
+      "id_lead": "dfac060d-34e3-49e4-9736-e9a461f32d36",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51971176251",
+      "id_lead": "e00e843f-ca2f-48eb-ba65-7737425d4f03",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51997308986",
+      "id_lead": "dd413039-434c-4f4d-966a-6af93eb74085",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51946187814",
+      "id_lead": "da91fe2f-cf48-44c9-9ada-677a823ad168",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51959147087",
+      "id_lead": "2a6e85e0-b232-4653-b3c9-cde10fff1f6e",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51975394973",
+      "id_lead": "0f88f187-0673-4ea6-b703-fa413700681c",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51922706121",
+      "id_lead": "a732feec-5a7e-4bc0-8e70-2efc6f6694c3",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51997038894",
+      "id_lead": "b0017a9c-d66a-426d-a978-693fce0f038a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51963598317",
+      "id_lead": "2978dcd2-556c-4680-b863-f0efb102d9ce",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51912277929",
+      "id_lead": "c03eb0d4-1570-4bdf-a050-8e712699d3a7",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51994441835",
+      "id_lead": "3d96eb3c-0af7-4364-962e-ed45b308d18e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51991484084",
+      "id_lead": "70727e2b-114d-48a0-a4af-0ec95cf08272",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51992263384",
+      "id_lead": "f884b821-899d-493d-919b-4ef05df3a2da",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51934017740",
+      "id_lead": "3c098f4f-659b-4165-8186-267b5461a06a",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51900381954",
+      "id_lead": "5f619ac6-e7bb-465b-855d-ef66657e5786",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51990018511",
+      "id_lead": "13bbeb5b-e6ae-488a-8235-18ab81427d60",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51960500936",
+      "id_lead": "1fb57b8f-cf29-4fe0-aea6-8c5bc33ab18f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51928334783",
+      "id_lead": "16ebf804-2b4f-44c8-a33f-8063d308d21e",
+      "lead_msgs": 35,
+      "bot_msgs": 36,
+      "total": 71
+    },
+    {
+      "celular": "51933239035",
+      "id_lead": "dd1b2623-cd95-4bb8-9d7b-50368a9b50cc",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51946906922",
+      "id_lead": "3c0e18ea-3019-41ce-98a4-46edd965579b",
+      "lead_msgs": 29,
+      "bot_msgs": 30,
+      "total": 59
+    },
+    {
+      "celular": "51953193894",
+      "id_lead": "70c56d68-36f8-4813-b449-6689bd8c142e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51980837887",
+      "id_lead": "0f31e613-3f5a-4bd0-9fa7-6f5ac65cb6bb",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51974407844",
+      "id_lead": "ad9b26bc-f5ca-4f06-84a0-e22780a45986",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51984315602",
+      "id_lead": "09952c50-fd02-4959-803b-8b13b36dd95b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921419041",
+      "id_lead": "3df98c7b-c270-44d8-a98a-6cd1e62c35ba",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51983765222",
+      "id_lead": "4f5e5252-685f-4651-af27-923d4d7db88a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51927403188",
+      "id_lead": "eb2b170a-8953-4855-9747-f4a829c21d22",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51926725855",
+      "id_lead": "ad8e5076-dba1-4063-add2-d59d136d6be0",
+      "lead_msgs": 6,
+      "bot_msgs": 7,
+      "total": 13
+    },
+    {
+      "celular": "51923213993",
+      "id_lead": "d60dd941-97c2-470a-b5a4-58ddf7b9bcd5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51957429075",
+      "id_lead": "ad294d4d-f461-4e24-8756-8b4fcea3e5b1",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51913883632",
+      "id_lead": "cbfed04d-f6f9-45f0-90da-c329faa99935",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51910643935",
+      "id_lead": "9cab4418-4639-43af-9f3d-554609aa8861",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51944917941",
+      "id_lead": "c5c7b23a-b67f-4d9f-a0d7-55a4dd2606d2",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51922297499",
+      "id_lead": "4893d75d-f576-4d50-b625-9eb54ab8fb3a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51917398067",
+      "id_lead": "f336a76d-3000-4b65-b51c-90a566487dd9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51924050590",
+      "id_lead": "09192a03-cb0f-4d2d-ac1a-62ac60d07b44",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51931971792",
+      "id_lead": "62acfc39-10a4-41dc-8e04-4aaafdfe4f8a",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51954755705",
+      "id_lead": "d669507b-3081-4197-812e-36eeced7f9ab",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51963508161",
+      "id_lead": "c72e8783-10b4-4ce7-a98c-0b1654e03324",
+      "lead_msgs": 33,
+      "bot_msgs": 34,
+      "total": 67
+    },
+    {
+      "celular": "51969822731",
+      "id_lead": "a07cdc91-ba08-4218-a8d3-c4f70f8ac9ac",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51958057521",
+      "id_lead": "dc8b8d9a-2b8d-4630-934f-90c831fcf2b2",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51933894345",
+      "id_lead": "407b7325-c0b4-4832-958a-03078debd82e",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51970930613",
+      "id_lead": "b6d02731-d4f7-4e4a-ad6b-c38b6537e2e7",
+      "lead_msgs": 8,
+      "bot_msgs": 9,
+      "total": 17
+    },
+    {
+      "celular": "51952723627",
+      "id_lead": "76f52201-a160-4144-bf60-b4e7bbb1d8ba",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51930776408",
+      "id_lead": "13063fdc-cd22-4603-b004-743c8ff497f1",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51980487813",
+      "id_lead": "fd5055ee-ce83-49a3-9ce7-053fb2ad6658",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51916630018",
+      "id_lead": "8401e6ed-727f-4bca-b120-6b1cbfeb17a4",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "5930303114",
+      "id_lead": "9815149e-db11-49df-9357-3091910a74e3",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51921365465",
+      "id_lead": "b2c43a7c-07dd-4602-bc52-3009a6ffa2de",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51983149235",
+      "id_lead": "5fe51304-c8c5-4a34-910e-b92f61fcc78b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51925468217",
+      "id_lead": "f97b1e3c-ab82-48f2-b5d0-bfef4f183c63",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51937175734",
+      "id_lead": "a55dca0c-c91b-4a60-abee-861921fa6654",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51997273642",
+      "id_lead": "e8a0b5c4-5a87-4d75-b1bf-da369dcf547f",
+      "lead_msgs": 0,
+      "bot_msgs": 0,
+      "total": 0
+    },
+    {
+      "celular": "51902551257",
+      "id_lead": "af53f210-ed46-4854-8328-554f2d24836b",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51973250771",
+      "id_lead": "2132355d-6401-4b7b-9324-5a9a2514c3a5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51956913069",
+      "id_lead": "bddba334-346f-45d9-a9fa-2f8d6318b54c",
+      "lead_msgs": 3,
+      "bot_msgs": 5,
+      "total": 8
+    },
+    {
+      "celular": "51923752987",
+      "id_lead": "b32246e7-3481-42be-a276-093fd0044055",
+      "lead_msgs": 2,
+      "bot_msgs": 4,
+      "total": 6
+    },
+    {
+      "celular": "51948055089",
+      "id_lead": "6773b928-ad04-4825-93d2-b82c83dd9c51",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51942124797",
+      "id_lead": "0f40d744-466f-4d7c-a4f7-3d192476ca3c",
+      "lead_msgs": 12,
+      "bot_msgs": 13,
+      "total": 25
+    },
+    {
+      "celular": "51920462724",
+      "id_lead": "369456fe-9f05-453f-abed-b557ec24a73d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51967670948",
+      "id_lead": "44061c80-ff32-45a9-b727-d78f967c8e1d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51919615852",
+      "id_lead": "bee6e7f2-533d-4c40-8a8a-71963f1f5310",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51970564000",
+      "id_lead": "b391ebdd-1e66-48a1-adb9-6bbb7bf779b1",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51949778505",
+      "id_lead": "3004d4cf-8833-4711-b1c9-6afb3b45c32f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51923502387",
+      "id_lead": "f6d840c3-73b6-4832-8266-a86fc1925648",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51975139391",
+      "id_lead": "862c7352-6f70-459f-be30-82b8563ab347",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51927291142",
+      "id_lead": "47318e8b-1696-47e2-97e9-a7827086dc5c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51944844362",
+      "id_lead": "c5a474d3-cdb8-472e-a77a-955f00eefb32",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51959516827",
+      "id_lead": "17339201-39ca-4e8c-8b91-6e75679e1e5c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51925326532",
+      "id_lead": "dd9c7a30-2ffa-4dee-b67f-faf99ab76066",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981704070",
+      "id_lead": "2ba8686f-cf42-4d38-adb4-124f9bee83d3",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51920880656",
+      "id_lead": "7880881f-a1af-4906-9e1d-e78ecfcf4551",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51942287961",
+      "id_lead": "aa9d5778-52f1-4553-a246-ea84dc2fbd94",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51931640630",
+      "id_lead": "2a9a9a0e-e8b7-41be-bc07-d22d9c59c19d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921806484",
+      "id_lead": "e93b798b-c9e6-44ac-b172-cdd2c00812ab",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51970991327",
+      "id_lead": "e58a6fab-bbf9-415f-91a1-9e3ff1f48eb4",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51918523180",
+      "id_lead": "e98b0255-4fc8-44d2-8586-76a4bf5459f6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51934246793",
+      "id_lead": "3af99e56-4517-4e5b-ae2b-eeb90f56b621",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51934512106",
+      "id_lead": "a3dcb2ca-fde3-440b-9e00-6162e774b07d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51968182314",
+      "id_lead": "4d7df436-b51c-4612-964f-dc76e8099be9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933918062",
+      "id_lead": "6604a0fe-c716-4925-8b9c-53cff130edd6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933099307",
+      "id_lead": "62cd29b9-f77d-4f76-99ce-4368258ee9c2",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51984024097",
+      "id_lead": "b1f592c7-07f7-41db-945f-5bfdc50c43c8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51987757488",
+      "id_lead": "757da474-9516-4b05-b88e-2b72ce904d13",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51929101973",
+      "id_lead": "2b27ce00-b032-4d7f-a6f3-2e6aeac5bbf0",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51946335211",
+      "id_lead": "c0632c6d-c8a9-402f-9cdd-bcc3f7690f30",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51991165284",
+      "id_lead": "01f8fbba-4488-4f83-b928-58ac174630d2",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51920031375",
+      "id_lead": "e0a7076e-b678-4c58-ad5d-b7f18471e9f7",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51993666118",
+      "id_lead": "8dd3ad4e-6371-4bef-8b8d-abc661d44981",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51944734449",
+      "id_lead": "3f13c6ce-cc5c-415b-8b77-758ad3947863",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51952740000",
+      "id_lead": "10cfed87-a6b6-4d2c-870c-b75ab51a09a0",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51978038335",
+      "id_lead": "36b4ca84-2d4c-48f6-a802-201603cfdd22",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51915003258",
+      "id_lead": "4dc6cb9a-2dfe-4961-8fe8-199c82f28c4e",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51907110189",
+      "id_lead": "9bf202ee-d2e1-454d-bb94-5e8b5b95c104",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51997095470",
+      "id_lead": "4d97553f-a9df-4999-9e4d-ebb58b05c20d",
+      "lead_msgs": 12,
+      "bot_msgs": 13,
+      "total": 25
+    },
+    {
+      "celular": "51958915386",
+      "id_lead": "d27691b9-340d-44a9-8e52-178420ed4b0e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51944411959",
+      "id_lead": "aa235837-f72b-4401-9add-4f5f9c735444",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51933825200",
+      "id_lead": "561042e6-b973-4335-bef9-aba4e0b5977a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51980834363",
+      "id_lead": "e0d70d0b-c7ad-44b8-9800-ba0c8e918d2a",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51975097565",
+      "id_lead": "90cefecc-c7aa-4d4f-892a-8d1538495083",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51991059476",
+      "id_lead": "7376df4c-a35d-430f-992a-b9791928401c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51935384542",
+      "id_lead": "56299a38-5ab3-4745-b420-4b273e7115c8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51918324963",
+      "id_lead": "9409a59b-1623-4b49-a3c2-a898975549f9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51961341229",
+      "id_lead": "cbb66d75-b083-4a34-8253-03db722a9855",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51938525137",
+      "id_lead": "3106a7da-d823-4d98-b619-5dc8a317f47b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51997674373",
+      "id_lead": "07d74a89-9ac7-47fd-9243-40c9ec523e43",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51960254936",
+      "id_lead": "aa12976b-ed84-40e8-bad1-88325f3f9613",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51935765564",
+      "id_lead": "bc3d8650-b7c6-4c85-944f-60f6d01a07ef",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51928113154",
+      "id_lead": "f422baeb-c556-4b50-b521-477399ba2196",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51999999999",
+      "id_lead": "e97c7526-f41c-4c0e-9ddb-d385841b4033",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51961636706",
+      "id_lead": "2ab53f1b-f0c6-432b-ba12-0d8653f48e95",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51984100794",
+      "id_lead": "b8e9aa32-f2ec-4a1e-90d7-f1f2e50777fb",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51967092289",
+      "id_lead": "d6870cb2-455d-4ab3-93bd-4078034df37b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51989856548",
+      "id_lead": "c24dc556-82dc-4bc0-921a-daa5bb372095",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51900214759",
+      "id_lead": "5da17ddc-b367-47c6-b196-3f09bf3b901b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51983321583",
+      "id_lead": "137db2ad-5031-4b8f-8d98-b6e8f5b10b27",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51941921130",
+      "id_lead": "b3efe2b8-548b-43a0-b7ea-c6a544f557ae",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955403471",
+      "id_lead": "858a9d7b-dd33-4dee-8dca-0237154883c0",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933831494",
+      "id_lead": "7a0156c5-322d-4772-8529-455a28782fe6",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51900129933",
+      "id_lead": "c0d1fcad-8399-42a0-b30b-e3c17ac17da5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933229835",
+      "id_lead": "a1908ca4-f5c4-4d97-9a25-a34c4cc639fe",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51993223741",
+      "id_lead": "21f3ae24-fa7e-434c-bd18-80a9edfa141d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51999660378",
+      "id_lead": "6397ba9d-8815-486a-be57-1b76113362a7",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51929336176",
+      "id_lead": "bb0e7cf5-bf27-40c1-b5aa-1bdcdc61f719",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51925776473",
+      "id_lead": "0e8c3589-245d-46e5-b578-e219fdc1bcc7",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51901244195",
+      "id_lead": "cb8c05e5-d5be-4a10-8e0b-16b168eed0c3",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51902013248",
+      "id_lead": "59da2128-8570-4384-9ba8-c425bc055ade",
+      "lead_msgs": 9,
+      "bot_msgs": 10,
+      "total": 19
+    },
+    {
+      "celular": "51987757041",
+      "id_lead": "79f2c2d6-5bd6-42c0-83da-2f1a0ab0e674",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51942375958",
+      "id_lead": "a2b9b6a4-f01d-4937-b27f-b75c81a54139",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51928366358",
+      "id_lead": "80bf2b92-052e-47b4-a7a4-67a10f1b77bf",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981350369",
+      "id_lead": "3d7e2111-2578-4508-846d-274791bb20e9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51923601153",
+      "id_lead": "c360bdc1-8123-4d2e-aec0-3b25b9703085",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51932283719",
+      "id_lead": "9cd7a96e-2617-4fc7-919a-4960289e5418",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51939597280",
+      "id_lead": "4a8f43d1-fb98-4b36-91f2-7a85bc7bbd48",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51901373467",
+      "id_lead": "c97e9a0b-528c-42d4-9dc7-95631889d855",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51984284190",
+      "id_lead": "6ea615b8-f045-4949-9913-a7363f7716d6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51969243831",
+      "id_lead": "9aa3a53e-502c-4555-b38c-cdb4087c0e6a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51962144158",
+      "id_lead": "2fed37d2-6c38-4408-bb3f-6f61b10dc75c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51938973578",
+      "id_lead": "1aff3d16-47c1-4807-bc61-bae3b877da0e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51945163351",
+      "id_lead": "aa7bddb8-d4cc-4acd-bd3d-96bc903aedc9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51906167132",
+      "id_lead": "edb5dac7-faa8-41f5-93c4-59c118c2aa90",
+      "lead_msgs": 7,
+      "bot_msgs": 8,
+      "total": 15
+    },
+    {
+      "celular": "51930827073",
+      "id_lead": "3c508977-a26d-422e-92fa-978c2cb5adcc",
+      "lead_msgs": 3,
+      "bot_msgs": 3,
+      "total": 6
+    },
+    {
+      "celular": "51992493660",
+      "id_lead": "4fedb443-c0ab-4b72-b915-0784f40ef333",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51965483829",
+      "id_lead": "c8d5fb5b-e3c1-4420-87c3-96fd0eedf145",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955262568",
+      "id_lead": "cf6ff6fd-2a6e-4d8b-adf4-63cdf2366b72",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51924787801",
+      "id_lead": "803e77dc-2abd-4400-832d-6e6a2719fc16",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955519773",
+      "id_lead": "34ae84e5-9327-41d1-9497-d75f733b85bf",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51924734847",
+      "id_lead": "ad61b9b4-0888-4ff9-bdc7-e88dfc7782bb",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51942773320",
+      "id_lead": "a13063ab-dd90-4806-9589-4976a86d2ef9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955051794",
+      "id_lead": "1914e43b-c733-46c7-8d5e-19ace168ec2d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51902443642",
+      "id_lead": "82b07c23-1887-475a-bcd1-8408b69369d0",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51967866223",
+      "id_lead": "9fc66df2-0f5b-4356-9100-b21c06eb3b10",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51997527367",
+      "id_lead": "b127d743-f896-456a-b1c1-9cff470c6841",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51920463736",
+      "id_lead": "824f6e65-310a-47e2-94eb-74d852d7b755",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921324439",
+      "id_lead": "7702e9e0-4a17-47d7-aaa9-85119e2f204b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51965730516",
+      "id_lead": "e5931215-850d-463d-91f1-56d2c463f7e5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51935911299",
+      "id_lead": "5c97bce3-4f06-4a86-85e5-18b6cd5d5a9e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51913809878",
+      "id_lead": "9ddda550-5bfe-4a64-87a7-4ae86b109c7a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51978460425",
+      "id_lead": "528ef85a-a930-4819-9644-793b90ab9005",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51922261779",
+      "id_lead": "6b6613c8-fdc4-43ed-add3-d89f79d704f7",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51986978565",
+      "id_lead": "340d20a2-fa47-46a1-86bd-9cf82415a4bb",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51956365663",
+      "id_lead": "683df7c0-e307-4f45-a948-db9fcbcbcb45",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51994143987",
+      "id_lead": "9248839c-289d-4bc3-a23b-05785fc1d8e0",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51958313968",
+      "id_lead": "09305015-9917-4f7d-b81f-a724caf4d793",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51993811714",
+      "id_lead": "195ff852-c197-47e4-982f-9ca495ea23f8",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51981797247",
+      "id_lead": "3b9ef084-9969-4e81-bea1-27407eddd696",
+      "lead_msgs": 6,
+      "bot_msgs": 7,
+      "total": 13
+    },
+    {
+      "celular": "51972262934",
+      "id_lead": "c6159e58-c894-415b-b460-f2830f8f4ffc",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51962297728",
+      "id_lead": "4aee7b8f-de37-4605-a5fb-6bb72194042a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51999989492",
+      "id_lead": "21305ae2-99d6-42d4-a307-7ddbb2aad3ae",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51931703884",
+      "id_lead": "d6fc6e11-a2f2-43bf-96d1-c78af5783f45",
+      "lead_msgs": 11,
+      "bot_msgs": 12,
+      "total": 23
+    },
+    {
+      "celular": "51940224723",
+      "id_lead": "891ca2e0-efb1-4ce6-9d32-dcc25d5b565c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51967617138",
+      "id_lead": "a29b6d6e-6f0e-4e6b-8284-f1b545edcb5a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51957215299",
+      "id_lead": "50faa7bf-c2db-4632-af77-fc2d5f199a3f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51930981119",
+      "id_lead": "1bc4e620-8c50-4594-a653-ef370ce671bd",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981617556",
+      "id_lead": "d694af07-c80f-4f9e-b335-e5f8865d3815",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51906391363",
+      "id_lead": "f05ffd5a-0fad-4b6a-a8ba-20273e4ff929",
+      "lead_msgs": 7,
+      "bot_msgs": 8,
+      "total": 15
+    },
+    {
+      "celular": "51982032124",
+      "id_lead": "2f88c2b7-79a9-47f9-abad-a8c2a1690c3a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51991541501",
+      "id_lead": "263c4aa1-d6c3-4d24-8ed9-a8b60b2bf6b3",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51925447935",
+      "id_lead": "d12d8c94-f21b-4751-b615-7bb48088a2a1",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51974100235",
+      "id_lead": "5e24c615-b289-4fa5-90ae-9ca9a0189eb0",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51992943013",
+      "id_lead": "63b91a27-3faf-4cab-99ca-352bb7ca8f4e",
+      "lead_msgs": 9,
+      "bot_msgs": 10,
+      "total": 19
+    },
+    {
+      "celular": "51904166389",
+      "id_lead": "9ceecea2-8bbe-4784-9dc8-9b1ff870d5a6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51949417280",
+      "id_lead": "6cceca40-55c8-418d-ad42-1cb855139a9b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51902092492",
+      "id_lead": "acb8d512-ff50-4aa3-9474-17174fb2d2dd",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51922503879",
+      "id_lead": "643bf801-41ab-42a9-bf1f-e00f5f318b0d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981693931",
+      "id_lead": "062f7062-111c-467c-b0e0-e2d7e881ece9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51916946728",
+      "id_lead": "b4a031de-0bd3-4e76-b83b-4e28f00e45d8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51915145503",
+      "id_lead": "155017c9-f9c3-493d-b458-24a629294422",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51982308546",
+      "id_lead": "f3914b8a-cdeb-4c4b-9e4c-a51baca4ba13",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51945663016",
+      "id_lead": "2f7bb9b4-ac7b-4e03-91c3-3c06ba791c73",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51966382255",
+      "id_lead": "025e07f1-2fa4-461d-9e86-266eaac871b6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51976371260",
+      "id_lead": "587a67d1-6ae8-4850-aae5-165e9fb915fd",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51968042977",
+      "id_lead": "538e3340-b240-43cf-a893-31fee3aaef33",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51904112503",
+      "id_lead": "8921fa0f-e34b-4ad5-8c3c-37adf34f1b70",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51901705970",
+      "id_lead": "f4e5a2db-f9ad-4a6e-b2b5-ec642447c749",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51943191696",
+      "id_lead": "9b6c8cc7-5006-4e43-87d0-be348d41ea22",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51934868862",
+      "id_lead": "b96a529e-9fbb-4a75-840a-8240d10fd34e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51935454213",
+      "id_lead": "8b7bfb8b-bffb-4235-b9c2-a68e82999f47",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51900095581",
+      "id_lead": "7bce2042-c10b-4712-8f3e-5f6e717a7efe",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51999907860",
+      "id_lead": "38d7767a-19e5-4086-8934-1957b0a7a5b2",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51907760170",
+      "id_lead": "66ee9a2f-ccf7-431d-aa20-6ab7008d62e4",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51905449053",
+      "id_lead": "0c7c1f05-1f9e-4829-b913-c8a135652834",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51993809050",
+      "id_lead": "64550ca0-9065-4891-bb7d-7363ddcc21b8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51952269220",
+      "id_lead": "98480b05-08f0-4e2b-9e76-5cb70a705f73",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51963011171",
+      "id_lead": "65ac0fe8-64ef-45e8-a386-a68364bae252",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51920382212",
+      "id_lead": "5db93708-767f-4f2e-b6f9-5323559fedc2",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51916913222",
+      "id_lead": "a6e57034-0fda-4689-a5b4-aed50f0e2ea3",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51942625902",
+      "id_lead": "86d01793-6066-45af-85b1-92e9d271cc38",
+      "lead_msgs": 3,
+      "bot_msgs": 3,
+      "total": 6
+    },
+    {
+      "celular": "51920659302",
+      "id_lead": "a85dc5be-1748-4d69-8b3f-f40ad4b43f23",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51982402365",
+      "id_lead": "5b5e9f1e-48f2-44aa-b72f-6412d60f10f6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51990276038",
+      "id_lead": "7bb9cd37-e525-4834-96c1-03012b698b1b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51929173742",
+      "id_lead": "7fd009c8-7a88-4b53-a3fe-f9b652d98089",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51997010904",
+      "id_lead": "2c0fb72f-3468-4b77-a2d4-e83d65b75168",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51984746308",
+      "id_lead": "e98ec6ac-b693-4a8d-8016-4946cd64c9a8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51981857272",
+      "id_lead": "f95194f5-64eb-47f8-846e-b0271f25c8fb",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51924366190",
+      "id_lead": "faa3f33b-d772-42d0-980a-02433b5fcf3c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51946158012",
+      "id_lead": "844af055-067b-438d-a218-f052d31296fc",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955076711",
+      "id_lead": "69f56ce1-132a-49bb-a53f-7e9d951eaeb0",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51954140588",
+      "id_lead": "5a8a71d0-8678-478b-9fe2-6d952566934f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51963228556",
+      "id_lead": "0545f61b-864e-4723-bf60-75b63126e4b1",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51942164282",
+      "id_lead": "b34424e8-4eab-49ae-b7c7-0fe7e9ad912b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955091130",
+      "id_lead": "d56ab339-9820-4cbd-8f2b-4d14df8fc002",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51968312339",
+      "id_lead": "0f8cb3bc-fcb5-448a-9b6f-69a89aeb7d81",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51935104028",
+      "id_lead": "03118c7b-e57a-4fde-8830-afc92dd308d3",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51944136785",
+      "id_lead": "e6bb0936-bf7a-4f28-bd3e-acb58d016f18",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51984196082",
+      "id_lead": "7d31f3ea-8717-404f-8060-e6166ef17e88",
+      "lead_msgs": 14,
+      "bot_msgs": 15,
+      "total": 29
+    },
+    {
+      "celular": "51946447202",
+      "id_lead": "a48497e8-b6c3-4d85-b44e-2aa1017a9915",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51984691084",
+      "id_lead": "e4b757e3-c1e2-49e8-a4e8-2ebbef64a67b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51942199043",
+      "id_lead": "f7ffb5db-70e9-4387-9bd8-42a620eca20a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51910890652",
+      "id_lead": "0a7ee7aa-9cea-40f3-874b-69f4fed1f25e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51943271531",
+      "id_lead": "355e0b28-f49d-466a-b110-1c021733a011",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51943494916",
+      "id_lead": "805094fe-4f70-461d-9233-3b249310ccca",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51962355869",
+      "id_lead": "0099d588-8d4c-4eb7-b16d-bbbbbdceb829",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51913673931",
+      "id_lead": "c86db6fe-8657-4a9c-be89-4f2262b70646",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51944207738",
+      "id_lead": "26e9b6ae-c85e-49ec-b813-51798ebd731c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51944811732",
+      "id_lead": "230f042f-42d2-410a-9f5f-72b75bf01840",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51902153706",
+      "id_lead": "b1c7d8ef-221c-4a2a-8299-8e0dee0478bd",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51936953469",
+      "id_lead": "a55930bc-ba69-4cc9-9d44-f6299866c3d9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51957432985",
+      "id_lead": "f7c8cb0d-4e87-4536-97b9-4e2bc6f7768a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51937304898",
+      "id_lead": "8d5f8c1e-f06e-4efd-9016-7a2c93cb9e1e",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51948341809",
+      "id_lead": "646d0795-0c58-43d9-aff5-c8e898866de2",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51946427039",
+      "id_lead": "02478ad9-999b-487a-9523-4df50d27c1fc",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51971057780",
+      "id_lead": "f57b85ec-65f1-46bb-a029-80fa6883729a",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51957667686",
+      "id_lead": "5c5fa886-974b-484b-a64f-c460051e456f",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51946093156",
+      "id_lead": "3bf64f79-b3fa-4974-8b15-70f09052936c",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51992352604",
+      "id_lead": "e3e03846-a5fb-4f6c-a632-24bf6cc5c4ee",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51994255914",
+      "id_lead": "556e65f4-565b-4e23-9f8c-d1467b2b8b1f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51929295670",
+      "id_lead": "700969ec-6660-4f62-8f3c-407b156a3efe",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933193556",
+      "id_lead": "02494aac-defc-49c2-9c44-fee28d53523b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51945227886",
+      "id_lead": "98e028db-d0fc-45eb-9eee-faaf915d7b37",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51920161679",
+      "id_lead": "bd19d180-409b-4fda-88e5-e7c0d691d359",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51932624316",
+      "id_lead": "698dc0bf-8328-4be7-8842-97b6b2b786f5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51956944760",
+      "id_lead": "a1ef11ba-fa0d-4bee-83fc-4494fb9e32a8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51958971682",
+      "id_lead": "3b0469e8-afb5-48b8-a603-b0564857b3a5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51956134757",
+      "id_lead": "42d97b13-99e5-4cd7-a28d-c6c67946e191",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955012713",
+      "id_lead": "4d3b127a-251f-499b-a02b-ce0887bacae5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933016006",
+      "id_lead": "83119acd-78eb-4c38-a3b6-9fd6dd5bde43",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51942406753",
+      "id_lead": "01222c38-a0b2-48a2-91a1-8b83416d7186",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51941899379",
+      "id_lead": "d1164ff8-74e0-45aa-a198-faa78c23a8f6",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51904267329",
+      "id_lead": "f755cc02-2d17-43a8-aa65-3b85308ce342",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51956228244",
+      "id_lead": "7f220fbf-d5e6-46ef-b068-f90791dd2725",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51906561824",
+      "id_lead": "5549df02-b238-4151-b6e3-9622663a339d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51937567462",
+      "id_lead": "c858959b-3702-45c8-8425-43ea6cf18593",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51953190559",
+      "id_lead": "59a42b1e-5171-4718-8fd2-d8b8f6387704",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51937788039",
+      "id_lead": "0a357acc-2ab8-4d8c-ab11-912ed5c97a3b",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51991766884",
+      "id_lead": "5a25c349-2c02-4eae-85ee-b1d3dd1cfd39",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51986415534",
+      "id_lead": "f0019a93-aec8-4ea0-b811-b8f3634110bf",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51920591646",
+      "id_lead": "412e27d8-7395-47b6-a253-ed731c8dcd2e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921491179",
+      "id_lead": "23a2fff7-65e5-445c-aed0-5ae714fbba26",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51901427275",
+      "id_lead": "38362555-70b2-4395-9262-4ec045a74d35",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51943847620",
+      "id_lead": "39285737-0345-4bc4-9e6a-83bf29fbe276",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51974020724",
+      "id_lead": "22ea3ddd-23fb-4d65-9bbd-9318068ed265",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51993647881",
+      "id_lead": "14dcf9d0-bba5-4f94-9ddf-9c66fe4bae90",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51912300515",
+      "id_lead": "226c251b-644d-4e43-8b77-3f1b7e2ed221",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51950107198",
+      "id_lead": "d27bcec7-a32b-4f91-a052-e9688675d930",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51950523715",
+      "id_lead": "b0102d7e-cd5f-4c04-befa-15926e227612",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51967935795",
+      "id_lead": "fc3b6cee-f0c9-486d-947f-639fe7c64c3d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51992550684",
+      "id_lead": "3cbd72d0-68a6-4dcd-a3fc-5fec25ee35ae",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51907059711",
+      "id_lead": "6e794d08-4bea-4a20-947c-458c5740898d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51959689547",
+      "id_lead": "830c7e79-0e2c-482e-bf6a-20f848d749d4",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51949489477",
+      "id_lead": "4ce3c250-37ec-4aa2-b481-17cc1c89a716",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921619679",
+      "id_lead": "6d860d17-5eef-4b4c-a186-11dcd1b6f7a9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51989100386",
+      "id_lead": "7a9649a2-0249-4312-8419-97ce30048718",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51930107870",
+      "id_lead": "7fba6123-985a-4c8f-9c7a-4f0e2935eec5",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51997055037",
+      "id_lead": "282c329a-e426-43e6-96d5-bf5828dac298",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51971593835",
+      "id_lead": "5140e5e5-96b0-4775-971b-dfee7c7ec1bf",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51904340113",
+      "id_lead": "db28c846-20b9-4984-9ff8-dcdeed45d082",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51976237944",
+      "id_lead": "edab9a42-06a9-498c-91be-08206d6b1092",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51929845833",
+      "id_lead": "21435ee9-7661-4091-9439-801281e06e7b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921479344",
+      "id_lead": "7d244928-f462-4de7-bdc4-5a9bff38087b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51991400573",
+      "id_lead": "dbd85185-0a20-44aa-b596-c1523e9887c7",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51990145545",
+      "id_lead": "596c5d60-ab6c-4e6b-b78a-e4709db5e651",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51921769447",
+      "id_lead": "cacd40a8-63fe-4787-b24d-79d2ef6ea601",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51958215648",
+      "id_lead": "724eabdb-0dc3-46f4-831b-3160b87db42c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51982834716",
+      "id_lead": "6c9af734-7c77-41e9-ad06-9cba85a9332b",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51913363977",
+      "id_lead": "5d82bb75-36a1-4609-a076-25fa8568d215",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51925821666",
+      "id_lead": "abbe42b2-be89-4d7c-bc68-fce199cf58e3",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51915183833",
+      "id_lead": "31b7fc99-72c8-4b62-a2f5-354b9d0bbe6e",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51996936402",
+      "id_lead": "876d4d7f-c50c-4be6-a4ae-91987e7be02f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51989669562",
+      "id_lead": "219dda04-c331-4eac-aa0a-295fe9abe59f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51994207180",
+      "id_lead": "79564984-d8b5-4d89-8d98-78717c0eb59d",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51955125149",
+      "id_lead": "c26331d4-53a5-467a-bb56-8e047bd38d91",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51968880988",
+      "id_lead": "7bd6a4e8-92da-4c45-a5d6-e6b34b05eff8",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51932481945",
+      "id_lead": "a8b8fe94-bfc3-4593-92c6-10b0b5465b20",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51900813797",
+      "id_lead": "aae797e6-051f-44b4-b092-a51a20d9ab8e",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51932858771",
+      "id_lead": "b869bd1b-f734-4c7f-b7a7-a538a1d37e5f",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51958135754",
+      "id_lead": "a480d9cc-bdc9-4a1b-8efb-ada204fc9392",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51900539793",
+      "id_lead": "79e28b64-2a28-4091-9a59-4979c87ec00c",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51974551979",
+      "id_lead": "4b9a2321-e744-4f52-a420-bb05acfa34b7",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51954563759",
+      "id_lead": "c2a56ffa-cf9d-432a-bb2a-d50b02fc9648",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51968085842",
+      "id_lead": "77a1d2b7-ca14-4073-b492-1abaa709f935",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51956926226",
+      "id_lead": "ac7ce2b3-1624-4335-96c1-c4e105e4dbb9",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51920668534",
+      "id_lead": "abe6c542-f72f-40fa-80fb-b5b106e4e753",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51903123187",
+      "id_lead": "18eeaca4-81c1-40df-983a-bf7915ad2c9a",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51933296586",
+      "id_lead": "b1f4d36b-b3cf-43b3-91c5-f497d304cd33",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51949235939",
+      "id_lead": "ad7ed0ce-365b-4f6c-90c5-37eb72dca1ac",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51992414304",
+      "id_lead": "db32dc68-f3c6-4aa3-aa7a-a9bcd7487055",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51980725863",
+      "id_lead": "fc863047-6793-43b6-a3ec-bda6c646dadb",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51923526737",
+      "id_lead": "95576f0b-6d31-4140-bf64-f9e8dd5d3ec4",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51913933557",
+      "id_lead": "7f1afcd2-eb2e-4d83-8167-c8321768a5e6",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51978570686",
+      "id_lead": "df70137f-97a5-4154-bf65-2edbe6b59525",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51936504214",
+      "id_lead": "464dfd99-4ae0-4fbc-95ad-121efe8591b1",
+      "lead_msgs": 0,
+      "bot_msgs": 1,
+      "total": 1
+    },
+    {
+      "celular": "51930623239",
+      "id_lead": "4b7af875-9bb1-483e-bfb1-67b3342433ed",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51922352685",
+      "id_lead": "5de85a6f-1b1f-4cbe-bb28-22d4a5c3c854",
+      "lead_msgs": 0,
+      "bot_msgs": 2,
+      "total": 2
+    },
+    {
+      "celular": "51955419153",
+      "id_lead": "6a974e3c-622e-468b-a286-505522b2306a",
+      "lead_msgs": 0,
+      "bot_msgs": 2,
+      "total": 2
+    },
+    {
+      "celular": "51969806000",
+      "id_lead": "635d23b3-9ea8-414f-9e65-71439181ddcf",
+      "lead_msgs": 0,
+      "bot_msgs": 2,
+      "total": 2
+    },
+    {
+      "celular": "51995073499",
+      "id_lead": "0c8595dd-53be-4aa2-9bd8-f55314108066",
+      "lead_msgs": 3,
+      "bot_msgs": 5,
+      "total": 8
+    },
+    {
+      "celular": "51984696661",
+      "id_lead": "7fd62715-bdbe-4a96-89d9-eca343c52a95",
+      "lead_msgs": 3,
+      "bot_msgs": 5,
+      "total": 8
+    },
+    {
+      "celular": "51925876844",
+      "id_lead": "2a7b28d8-040a-463e-ab50-d121f47a5159",
+      "lead_msgs": 0,
+      "bot_msgs": 2,
+      "total": 2
+    },
+    {
+      "celular": "51928217170",
+      "id_lead": "f700feef-ef5e-4060-aa63-c6cf7e9955e7",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51968109623",
+      "id_lead": "c73bbc4c-a973-40db-8f4d-ff3e3fb55d72",
+      "lead_msgs": 5,
+      "bot_msgs": 6,
+      "total": 11
+    },
+    {
+      "celular": "51941592878",
+      "id_lead": "682ae34b-8266-407b-8d3b-69f86f378389",
+      "lead_msgs": 13,
+      "bot_msgs": 15,
+      "total": 28
+    },
+    {
+      "celular": "51932153923",
+      "id_lead": "b6e359a5-bd72-41d3-b532-5ab0111fa790",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51992501148",
+      "id_lead": "c65ffda8-6fd3-41d7-ab2c-3d76d376f25e",
+      "lead_msgs": 1,
+      "bot_msgs": 2,
+      "total": 3
+    },
+    {
+      "celular": "51966375763",
+      "id_lead": "2e1a14a0-41c8-4eec-bbaa-912061602cf2",
+      "lead_msgs": 3,
+      "bot_msgs": 5,
+      "total": 8
+    },
+    {
+      "celular": "51970470628",
+      "id_lead": "71da81f4-80f3-423b-98fa-7a0f7438ba42",
+      "lead_msgs": 9,
+      "bot_msgs": 11,
+      "total": 20
+    },
+    {
+      "celular": "51999575672",
+      "id_lead": "53140f22-569f-4313-99c8-553c1262c215",
+      "lead_msgs": 0,
+      "bot_msgs": 2,
+      "total": 2
+    },
+    {
+      "celular": "51961274799",
+      "id_lead": "105ed13c-faa2-4b68-b0e6-b9ecd0f0d521",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51971223098",
+      "id_lead": "3049120e-e912-42fe-a663-fd2babbc83b3",
+      "lead_msgs": 6,
+      "bot_msgs": 7,
+      "total": 13
+    },
+    {
+      "celular": "51966414183",
+      "id_lead": "d6f4f8b9-bbca-475c-859f-ff2894b0ffd9",
+      "lead_msgs": 7,
+      "bot_msgs": 8,
+      "total": 15
+    },
+    {
+      "celular": "51912710480",
+      "id_lead": "5c106218-ee30-4652-aa2b-f09aadbc7fa9",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51981250458",
+      "id_lead": "07d64b96-5432-416c-8177-3b6d7b8b32fb",
+      "lead_msgs": 37,
+      "bot_msgs": 38,
+      "total": 75
+    },
+    {
+      "celular": "51927057580",
+      "id_lead": "06bdb075-864a-4df9-a765-03f3e559d223",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51922456016",
+      "id_lead": "f54ef751-5e6d-4581-815f-953c2469ccce",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51986046738",
+      "id_lead": "68d9b408-3fa1-453b-9d04-54f317edd7e3",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51926302730",
+      "id_lead": "4f42b899-86eb-4d35-8e41-26ae501ff1ea",
+      "lead_msgs": 4,
+      "bot_msgs": 5,
+      "total": 9
+    },
+    {
+      "celular": "51994201285",
+      "id_lead": "55e6d837-6627-4dcb-a5c4-166ace10db05",
+      "lead_msgs": 10,
+      "bot_msgs": 11,
+      "total": 21
+    },
+    {
+      "celular": "51910985381",
+      "id_lead": "46424068-5a5c-4936-ac1f-8f22457a660f",
+      "lead_msgs": 2,
+      "bot_msgs": 3,
+      "total": 5
+    },
+    {
+      "celular": "51973123461",
+      "id_lead": "59913a35-96a1-4dbf-a18f-758d5fa18b78",
+      "lead_msgs": 3,
+      "bot_msgs": 4,
+      "total": 7
+    },
+    {
+      "celular": "51916679740",
+      "id_lead": "367e2f5b-7aed-4166-9f54-756c385d25de",
+      "lead_msgs": 3,
+      "bot_msgs": 5,
+      "total": 8
+    }
+  ]
+}

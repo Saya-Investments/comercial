@@ -458,7 +458,7 @@ export function ProspectsFunnelModule() {
               <span className="text-rose-600">Error cargando el funnel: {error}</span>
             ) : meta ? (
               <>
-                Cruce Prospectos_30 (parte1 + parte2) + Prospectos_04_mayo · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
+                Cruce Prospectos_30 (parte1 + parte2) + Prospectos_05_mayo · {meta.totalCruzados.toLocaleString('es-PE')} de{' '}
                 {meta.totalLeadsCrm.toLocaleString('es-PE')} leads CRM con match (tel + Fecha Registro &gt; fecha de creación) ·
                 {mesActual ? ` mes ${labelMes(mesActual)}` : ` rango desde ${new Date(meta.rango.desde).toLocaleDateString('es-PE')} hasta hoy`}
               </>
