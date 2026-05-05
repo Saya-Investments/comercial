@@ -3,6 +3,10 @@
 Cambios relevantes del CRM publicados en cada deploy.
 La entrada mas reciente va arriba.
 
+## 2026-05-05
+
+- Vista **Asesores** → embudo de gestion: la metrica **Ventas cerradas** ahora usa el cruce con los Excels del back-office (mismo dato que la pestaña "Funnel de prospectos"). Antes contaba leads con estado `Venta_cerrada` o `Prospecto` en `crm_acciones_comerciales` — esa metrica refleja lo que el asesor marca en el CRM, pero no garantiza que el lead haya llegado al sistema oficial. El cruce con back-office es el dato mas fiel al cierre real.
+
 ## 2026-05-04
 
 - Cron `reasignaciones`: ahora ordena candidatos por **progreso de cuota ASC** (con desempate por posicion del ranking), igual que el routing inicial. Antes tomaba al primero del ranking con cupo, lo que generaba desbalance (todas las reasignaciones de 24h sin gestion caian al mismo asesor mientras los demas estaban en 0%). Con el fix, los leads reasignados se distribuyen al asesor de menor carga.

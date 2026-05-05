@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getActiveAsesorIds, getSupervisedAsesorIds } from '@/lib/supervisor'
+import { crossProspectsWithLeads } from '@/lib/prospect-funnel-cross'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,23 +90,11 @@ export async function GET(req: NextRequest) {
     `
     leadsGestionados = Number(gestionadosResult[0]?.count || 0)
 
-    // "Ventas cerradas" del embudo cuenta tanto Venta_cerrada como Prospecto:
-    // un Prospecto registrado en NSV ya es un cierre comercial (operativamente
-    // equivalente a Venta_cerrada para el funnel del piloto). Si el CC llegase
-    // a marcar uno de esos estados, tambien cuenta.
-    const ventasResult: Array<{ count: bigint }> = await prisma.$queryRaw`
-      SELECT COUNT(*) as count
-      FROM (
-        SELECT DISTINCT ON (ac.id_lead) ac.id_lead, ac.estado_asesor
-        FROM comercial.crm_acciones_comerciales ac
-        JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
-        WHERE u.id_asesor = ANY(${activeIds}::uuid[])
-           OR u.id_call_center IS NOT NULL
-        ORDER BY ac.id_lead, ac.fecha_creacion DESC
-      ) latest
-      WHERE estado_asesor IN ('Venta_cerrada', 'Prospecto')
-    `
-    ventasCerradas = Number(ventasResult[0]?.count || 0)
+    // "Ventas cerradas" usa el cruce con los Excels del back-office (mismo
+    // dato que la pestaña "Funnel de prospectos"). Es la metrica mas fiel
+    // a un cierre real: el lead ya esta registrado en el sistema oficial.
+    const { matches } = await crossProspectsWithLeads()
+    ventasCerradas = matches.length
   }
 
   return NextResponse.json({
