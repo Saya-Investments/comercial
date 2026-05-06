@@ -9,7 +9,7 @@ export const RANGO_DESDE = '2026-04-14T00:00:00-05:00'
 const XLSX_FILES = [
   path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30_parte1.xlsx'),
   path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30_parte2.xlsx'),
-  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_04_mayo.xlsx'),
+  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_06_mayo.xlsx'),
 ]
 
 function normPhone(v: unknown): string {
