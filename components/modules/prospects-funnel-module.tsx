@@ -330,7 +330,7 @@ export function ProspectsFunnelModule() {
       </div>
 
       <div className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="max-w-[1400px] mx-auto space-y-6">
+        <div className="w-full space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <KpiCard
@@ -381,11 +381,11 @@ export function ProspectsFunnelModule() {
             </div>
 
             <div className="overflow-x-auto pb-2">
-              <div className="flex items-stretch gap-2 min-w-max">
+              <div className="flex w-full min-w-[1120px] items-stretch gap-2">
                 {etapas.map((etapa, i) => (
-                  <div key={etapa.numero} className="flex items-stretch gap-2">
+                  <div key={etapa.numero} className="flex flex-1 items-stretch gap-2">
                     {i > 0 && (
-                      <div className="flex items-center">
+                      <div className="flex shrink-0 items-center">
                         <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
                       </div>
                     )}
@@ -573,7 +573,7 @@ function EtapaColumn({
   })
 
   return (
-    <div className={`w-44 md:w-48 rounded-lg border ${c.border} ${c.bgSoft} flex flex-col`}>
+    <div className={`min-w-44 flex-1 rounded-lg border ${c.border} ${c.bgSoft} flex flex-col`}>
       {/* Cabecera de etapa */}
       <div className={`px-3 py-2.5 border-b ${c.border} flex items-center gap-2`}>
         <div className={`w-7 h-7 rounded-md ${c.bg} flex items-center justify-center`}>
