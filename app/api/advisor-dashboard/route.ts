@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+const VENTA_CERRADA_ESTADOS = ['Venta_cerrada', 'venta_cerrada']
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const userId = searchParams.get('userId') || ''
@@ -23,12 +25,22 @@ export async function GET(req: NextRequest) {
 
   const idAsesor = usuario.id_asesor
 
-  // Recibidos: leads assigned to this asesor via matching (asignado = true)
-  const matchings = await prisma.matching.findMany({
-    where: { id_asesor: idAsesor, asignado: true },
-    select: { id_lead: true },
-  })
-  const leadIds = matchings.map(m => m.id_lead)
+  // Recibidos: leads assigned to this asesor either by active matching or by
+  // the current asesor pointer on the lead.
+  const [matchings, directLeads] = await Promise.all([
+    prisma.matching.findMany({
+      where: { id_asesor: idAsesor, asignado: true },
+      select: { id_lead: true },
+    }),
+    prisma.bd_leads.findMany({
+      where: { ultimo_asesor_asignado: idAsesor },
+      select: { id_lead: true },
+    }),
+  ])
+  const leadIds = Array.from(new Set([
+    ...matchings.map(m => m.id_lead),
+    ...directLeads.map(l => l.id_lead),
+  ]))
   const recibidos = leadIds.length
 
   if (recibidos === 0) {
@@ -45,11 +57,11 @@ export async function GET(req: NextRequest) {
   })
   const gestionados = accionesLeads.length
 
-  // Venta cerrada: leads with ultimo_estado_asesor = 'venta_cerrada'
+  // Venta cerrada: leads whose latest asesor state is closed.
   const ventaCerradaCount = await prisma.bd_leads.count({
     where: {
       id_lead: { in: leadIds },
-      ultimo_estado_asesor: 'venta_cerrada',
+      ultimo_estado_asesor: { in: VENTA_CERRADA_ESTADOS },
     },
   })
 

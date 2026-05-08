@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+const VENTA_CERRADA_ESTADOS = new Set(['Venta_cerrada', 'venta_cerrada'])
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const leadId = searchParams.get('leadId')
@@ -105,7 +107,7 @@ export async function GET(req: NextRequest) {
     entry.funnel = {
       recibidos: entry.leads.length,
       gestionados: entry.leads.filter(l => l.gestionado).length,
-      ventaCerrada: entry.leads.filter(l => l.ultimoEstadoAsesor === 'venta_cerrada').length,
+      ventaCerrada: entry.leads.filter(l => VENTA_CERRADA_ESTADOS.has(l.ultimoEstadoAsesor)).length,
     }
   }
 
