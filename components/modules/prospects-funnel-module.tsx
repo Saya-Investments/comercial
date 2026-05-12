@@ -23,8 +23,10 @@ import {
   Loader2,
   X,
   Eye,
+  MessageSquare,
 } from 'lucide-react'
 import { LeadDetailModal } from './modals/lead-detail-modal'
+import { ConversationModal } from './modals/conversation-modal'
 
 type EstadoChip = {
   nombre: string
@@ -692,6 +694,8 @@ function LeadsEnEstadoCard({
   onCerrar: () => void
   onVerDetalle: (l: LeadMatch) => void
 }) {
+  const [convLead, setConvLead] = useState<{ id: string; name: string; phone: string } | null>(null)
+
   const nombreCompleto = (l: LeadMatch) =>
     [l.nombre, l.apellido].filter(Boolean).join(' ').trim() || '—'
 
@@ -752,21 +756,36 @@ function LeadsEnEstadoCard({
                   <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">{formatoFecha(l.fecha_creacion)}</td>
                   <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">{formatoFecha(l.fecha_registro_prosp)}</td>
                   <td className="px-3 py-2 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onVerDetalle(l)}
-                      className="text-foreground hover:bg-secondary"
-                      title="Ver detalle"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConvLead({ id: l.id_lead, name: nombreCompleto(l), phone: l.numero ?? '' })}
+                        className="text-muted-foreground hover:bg-secondary"
+                        title="Ver conversación"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onVerDetalle(l)}
+                        className="text-foreground hover:bg-secondary"
+                        title="Ver detalle"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {convLead && (
+        <ConversationModal lead={convLead} onClose={() => setConvLead(null)} />
       )}
     </Card>
   )
