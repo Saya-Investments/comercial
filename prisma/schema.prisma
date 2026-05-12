@@ -111,6 +111,7 @@ model bd_leads {
   titular_numero                    String?                    @db.VarChar(15)
   titular_correo                    String?                    @db.VarChar(100)
   titular_direccion                 String?                    @db.VarChar(500)
+  motivo_descarte                   String?                    @db.VarChar(50)
   bd_call_center                    bd_call_center?            @relation(fields: [asignado_call_center], references: [id_call_center], onUpdate: NoAction)
   bd_asesores                       bd_asesores?               @relation(fields: [ultimo_asesor_asignado], references: [id_asesor], onUpdate: NoAction, map: "fk_leads_asesor")
   crm_acciones_comerciales          crm_acciones_comerciales[]
@@ -134,6 +135,7 @@ model bd_leads {
   @@index([origen_lead], map: "idx_leads_origen")
   @@index([producto], map: "idx_leads_producto")
   @@index([suborigen_lead], map: "idx_leads_suborigen")
+  @@index([motivo_descarte], map: "idx_bd_leads_motivo_descarte", where: raw("(motivo_descarte IS NOT NULL)"))
 }
 
 model config_modelo {
@@ -636,4 +638,34 @@ model mensaje_out {
 
   @@index([campaign_id], map: "idx_mensaje_out_campaign")
   @@index([campaign_contact_id], map: "idx_mensaje_out_contact")
+}
+
+model nsv_prospectos {
+  id                      String    @id @db.Uuid
+  nro_documento           String?
+  cliente                 String?
+  telefono                String?
+  telefono_norm           String?
+  email                   String?
+  fecha_registro          DateTime? @db.Timestamptz(6)
+  fecha_estado            DateTime? @db.Timestamptz(6)
+  vendedor                String?
+  sede                    String?
+  origen                  String?
+  sub_origen              String?
+  estado_documento_id     String?   @db.Uuid
+  estado_documento        String?
+  nivel_interes           Int?
+  nivel_interes_desc      String?
+  camino                  String?
+  fecha_proforma_creada   DateTime? @db.Timestamptz(6)
+  fecha_proforma_aprobada DateTime? @db.Timestamptz(6)
+  fecha_pago_realizado    DateTime? @db.Timestamptz(6)
+  fecha_firma_cliente     DateTime? @db.Timestamptz(6)
+  fecha_inscrito          DateTime? @db.Timestamptz(6)
+  actualizado_en          DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([fecha_registro], map: "idx_nsv_prospectos_fecha_registro")
+  @@index([nro_documento], map: "idx_nsv_prospectos_nro_documento")
+  @@index([telefono_norm], map: "idx_nsv_prospectos_telefono_norm")
 }

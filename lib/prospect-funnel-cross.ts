@@ -1,99 +1,9 @@
-import path from 'node:path'
-import fs from 'node:fs'
-import { read, utils } from 'xlsx'
 import { prisma } from '@/lib/prisma'
 
 // Rango fijo del piloto: desde 14-abr-2026.
 export const RANGO_DESDE = '2026-04-14T00:00:00-05:00'
 
-const XLSX_FILES = [
-  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30_parte1.xlsx'),
-  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_30_parte2.xlsx'),
-  path.resolve(process.cwd(), 'scripts', 'prospectos', 'Prospectos_06_mayo.xlsx'),
-]
-
-function normPhone(v: unknown): string {
-  const s = (v ?? '').toString().replace(/\D/g, '')
-  return s.length >= 9 ? s.slice(-9) : s
-}
-
 const LIMA_OFFSET_MS = 5 * 3600 * 1000
-function parseExcelDate(v: unknown): Date | null {
-  if (v == null || v === '') return null
-  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v
-  if (typeof v === 'number' && Number.isFinite(v)) {
-    const epoch = Date.UTC(1899, 11, 30)
-    return new Date(epoch + v * 86400000 + LIMA_OFFSET_MS)
-  }
-  const s = String(v).trim()
-  if (!s) return null
-  const normalized = s.replace(/\//g, '-')
-  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized)
-  const d = new Date(hasTz ? normalized : normalized + '-05:00')
-  return Number.isNaN(d.getTime()) ? null : d
-}
-
-export type ProspExcel = {
-  phone: string
-  fechaRegistro: Date | null
-  estado: string
-}
-
-export function readProspectos(): ProspExcel[] {
-  const out: ProspExcel[] = []
-  for (const filePath of XLSX_FILES) {
-    if (!fs.existsSync(filePath)) continue
-    const buf = fs.readFileSync(filePath)
-    const wb = read(buf, { type: 'buffer' })
-    const sheetName = wb.SheetNames.includes('Prospectos') ? 'Prospectos' : wb.SheetNames[0]
-    const ws = wb.Sheets[sheetName]
-    if (!ws) continue
-    const rows = utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, raw: true })
-    for (const r of rows) {
-      const phone = normPhone(r['Telefono'])
-      if (!phone) continue
-      out.push({
-        phone,
-        fechaRegistro: parseExcelDate(r['Fecha Registro']),
-        estado: (r['Estado'] ?? '').toString().trim(),
-      })
-    }
-  }
-  return out
-}
-
-export type LeadCrm = {
-  id_lead: string
-  numero: string | null
-  dni: string | null
-  nombre: string | null
-  apellido: string | null
-  base: string | null
-  fecha_creacion: Date
-  asesor: string | null
-}
-
-export async function fetchLeadsCrm(): Promise<LeadCrm[]> {
-  return prisma.$queryRaw<LeadCrm[]>`
-    SELECT
-      l.id_lead::text AS id_lead,
-      l.numero,
-      l.dni,
-      l.nombre,
-      l.apellido,
-      l."Base" AS base,
-      l.fecha_creacion,
-      a.nombre_asesor AS asesor
-    FROM comercial.bd_leads l
-    LEFT JOIN comercial.bd_asesores a ON a.id_asesor = l.ultimo_asesor_asignado
-    WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
-      AND l.fecha_creacion <= NOW()
-      AND EXISTS (
-        SELECT 1 FROM comercial.crm_acciones_comerciales ac
-        WHERE ac.id_lead = l.id_lead
-      )
-  `
-}
 
 export type ProspectMatch = {
   id_lead: string
@@ -116,62 +26,97 @@ export function leadMonthLima(d: Date): string {
   return `${y}-${m}`
 }
 
-// Cruza los Excels con los leads CRM. Devuelve los matches y la lista de
-// meses disponibles (sobre el universo CRM, no sobre los matches, para que
-// el selector del front no pierda opciones cuando filtra por mes).
+// Un solo JOIN en SQL: más rápido que traer todo a memoria y cruzar en JS.
+// Lógica idéntica a la anterior:
+//   - prospecto.fecha_registro > lead.fecha_creacion
+//   - match por teléfono normalizado (últimos 9 dígitos)
+//   - si hay varios prospectos para el mismo lead, se elige el más reciente
+type RawMatch = {
+  id_lead: string
+  numero: string | null
+  dni: string | null
+  nombre: string | null
+  apellido: string | null
+  base: string | null
+  fecha_creacion: Date
+  asesor: string | null
+  estado: string
+  fecha_registro_prosp: Date | null
+}
+
 export async function crossProspectsWithLeads(): Promise<{
   matches: ProspectMatch[]
   totalLeadsCrm: number
   mesesDisponibles: string[]
 }> {
-  const [prospectos, leadsCrm] = await Promise.all([
-    Promise.resolve().then(readProspectos),
-    fetchLeadsCrm(),
+  const [rawMatches, totalRow] = await Promise.all([
+    // Cruce: LATERAL JOIN toma el prospecto más reciente posterior a la creación del lead
+    prisma.$queryRaw<RawMatch[]>`
+      SELECT
+        l.id_lead::text,
+        l.numero,
+        l.dni,
+        l.nombre,
+        l.apellido,
+        l."Base"               AS base,
+        l.fecha_creacion,
+        a.nombre_asesor        AS asesor,
+        p.estado_documento     AS estado,
+        p.fecha_registro       AS fecha_registro_prosp
+      FROM comercial.bd_leads l
+      LEFT JOIN comercial.bd_asesores a
+        ON a.id_asesor = l.ultimo_asesor_asignado
+      JOIN LATERAL (
+        SELECT np.estado_documento, np.fecha_registro
+        FROM comercial.nsv_prospectos np
+        WHERE np.telefono_norm = RIGHT(
+                REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+          AND np.fecha_registro > l.fecha_creacion
+        ORDER BY np.fecha_registro DESC
+        LIMIT 1
+      ) p ON true
+      WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
+        AND l.fecha_creacion <= NOW()
+        AND EXISTS (
+          SELECT 1 FROM comercial.crm_acciones_comerciales ac
+          WHERE ac.id_lead = l.id_lead
+        )
+    `,
+
+    // Total de leads CRM en el rango (para el denominador del front)
+    prisma.$queryRaw<[{ total: bigint }]>`
+      SELECT COUNT(*)::bigint AS total
+      FROM comercial.bd_leads l
+      WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
+        AND l.fecha_creacion <= NOW()
+        AND EXISTS (
+          SELECT 1 FROM comercial.crm_acciones_comerciales ac
+          WHERE ac.id_lead = l.id_lead
+        )
+    `,
   ])
 
-  const idxProsp = new Map<string, ProspExcel[]>()
-  for (const p of prospectos) {
-    const arr = idxProsp.get(p.phone)
-    if (arr) arr.push(p)
-    else idxProsp.set(p.phone, [p])
-  }
+  const totalLeadsCrm = Number(totalRow[0].total)
 
-  const matches: ProspectMatch[] = []
-  for (const l of leadsCrm) {
-    const phone = normPhone(l.numero)
-    if (!phone) continue
-    const candidatos = idxProsp.get(phone)
-    if (!candidatos) continue
-
-    const tCrm = new Date(l.fecha_creacion).getTime()
-    let mejor: ProspExcel | null = null
-    for (const c of candidatos) {
-      if (!(c.fechaRegistro instanceof Date)) continue
-      if (c.fechaRegistro.getTime() <= tCrm) continue
-      if (!mejor || c.fechaRegistro.getTime() > (mejor.fechaRegistro as Date).getTime()) {
-        mejor = c
-      }
-    }
-    if (!mejor) continue
-
-    matches.push({
-      id_lead: l.id_lead,
-      dni: l.dni,
-      numero: l.numero,
-      nombre: l.nombre,
-      apellido: l.apellido,
-      base: l.base,
-      fecha_creacion: l.fecha_creacion.toISOString(),
-      fecha_registro_prosp: mejor.fechaRegistro ? mejor.fechaRegistro.toISOString() : null,
-      asesor: l.asesor,
-      estado: mejor.estado || '(sin estado)',
-      mes: leadMonthLima(l.fecha_creacion),
-    })
-  }
+  const matches: ProspectMatch[] = rawMatches.map((r) => ({
+    id_lead: r.id_lead,
+    dni: r.dni,
+    numero: r.numero,
+    nombre: r.nombre,
+    apellido: r.apellido,
+    base: r.base,
+    fecha_creacion: r.fecha_creacion.toISOString(),
+    fecha_registro_prosp: r.fecha_registro_prosp ? r.fecha_registro_prosp.toISOString() : null,
+    asesor: r.asesor,
+    estado: r.estado?.trim() || '(sin estado)',
+    mes: leadMonthLima(r.fecha_creacion),
+  }))
 
   const mesesDisponibles = Array.from(
-    new Set(leadsCrm.map(l => leadMonthLima(l.fecha_creacion))),
+    new Set(
+      rawMatches.map((r) => leadMonthLima(r.fecha_creacion)),
+    ),
   ).sort()
 
-  return { matches, totalLeadsCrm: leadsCrm.length, mesesDisponibles }
+  return { matches, totalLeadsCrm, mesesDisponibles }
 }
