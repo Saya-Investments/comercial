@@ -246,7 +246,7 @@ export function LeadsTable({
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Producto</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Prioridad</th>
-                {user?.role === 'admin' && <th className="px-6 py-3 text-left font-semibold text-foreground">Base</th>}
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Base</th>
                 <th className="px-6 py-3 text-center font-semibold text-foreground">Reasignacion</th>
                 <th className="px-6 py-3 text-center font-semibold text-foreground">Acciones</th>
               </tr>
@@ -273,11 +273,9 @@ export function LeadsTable({
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
                   </td>
-                  {user?.role === 'admin' && (
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(lead.base || 'Caliente')}`}>{lead.base || 'Caliente'}</span>
-                    </td>
-                  )}
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getBaseColor(lead.base || 'Caliente')}`}>{lead.base || 'Caliente'}</span>
+                  </td>
                   <td className="px-6 py-4 text-center">
                     {lead.gestionado ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
