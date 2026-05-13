@@ -64,23 +64,47 @@ export async function GET(req: NextRequest) {
   }
   const totalLeads = Object.values(estadoMap).reduce((a, b) => a + b, 0)
   const enGestion = estadoMap['en_gestion'] || 0
-  const asignados = estadoMap['asignado'] || 0
   const descartados = estadoMap['descartado'] || 0
 
-  // ─── Funnel de Gestion (solo asesores activos) ───
-  let leadsEnrutados = 0, leadsGestionados = 0, ventasCerradas = 0
+  // "Asignados" (funnel del bot) y "Enrutados" (funnel de gestion) miden el mismo
+  // hito conceptual: leads que pasaron por un evento de asignacion inicial. Antes
+  // daban numeros distintos porque cada uno usaba una definicion incompleta:
+  // Asignados leia estado_de_lead='asignado' (estado actual, pierde los que despues
+  // pasaron a 'descartado' tras seguir conversando con el bot) y Enrutados leia
+  // matching filtrado por asesor activo (pierde los asignados a asesores que ya
+  // no estan disponibles, como Karol/Vela/Reategui). Ahora ambos cuentan el HITO
+  // HISTORICO: hist_asignaciones.reasignado=false dentro del universo del bot.
+  // Incluye los descartados-post-enrutamiento (10 al 13-may) y los asignados a
+  // inactivos. Asignados puede solapar con Descartados en algunos leads (los que
+  // pasaron por las dos cosas) — eso refleja la realidad y no es un bug.
+  const asignadosHistResult: Array<{ count: bigint }> = await prisma.$queryRaw`
+    SELECT COUNT(DISTINCT l.id_lead) AS count
+    FROM comercial.bd_leads l
+    WHERE (
+      l."Base" = 'Caliente'
+      OR (
+        l."Base" = 'Stock'
+        AND EXISTS (
+          SELECT 1 FROM comercial.hist_conversaciones hc
+          WHERE hc.id_lead = l.id_lead AND hc.direccion = 'inbound'
+        )
+      )
+    )
+    ${supervisorFilter}
+    AND EXISTS (
+      SELECT 1 FROM comercial.hist_asignaciones ha
+      WHERE ha.id_lead = l.id_lead AND ha.reasignado = false
+    )
+  `
+  const asignados = Number(asignadosHistResult[0]?.count || 0)
+
+  // ─── Funnel de Gestion ───
+  let leadsGestionados = 0, ventasCerradas = 0
+  // Enrutados usa el mismo SQL que Asignados (hito historico). Antes filtraba por
+  // asesor activo y por eso daba un numero menor.
+  const leadsEnrutados = asignados
 
   if (activeIds.length > 0) {
-    // Enrutados cuenta leads que ALGUNA VEZ fueron asignados a un asesor activo.
-    // Sin el filtro `asignado = true` el conteo no se cae cuando el lead se
-    // descarta o se reasigna (donde matching.asignado pasa a false). Asi el
-    // embudo queda monotonico: enrutados >= gestionados >= ventas.
-    const enrutadosResult: Array<{ count: bigint }> = await prisma.$queryRaw`
-      SELECT COUNT(DISTINCT id_lead) as count
-      FROM comercial.matching
-      WHERE id_asesor = ANY(${activeIds}::uuid[])
-    `
-    leadsEnrutados = Number(enrutadosResult[0]?.count || 0)
 
     // Gestionados incluye acciones de asesores activos del piloto Y de cualquier
     // usuario del call center. El CC es otro actor legitimo que gestiona leads

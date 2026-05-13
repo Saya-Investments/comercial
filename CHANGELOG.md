@@ -3,6 +3,10 @@
 Cambios relevantes del CRM publicados en cada deploy.
 La entrada mas reciente va arriba.
 
+## 2026-05-13
+
+- Vista **Asesores** → ahora **Asignados** (funnel del bot) y **Enrutados** (funnel de gestion) usan exactamente el mismo SQL y devuelven el mismo numero. Antes daban cifras distintas (821 vs 770) porque cada una usaba una definicion incompleta del mismo hito: Asignados leia `estado_de_lead='asignado'` (pierde a los que despues fueron descartados por el bot tras seguir conversando post-enrutamiento) y Enrutados filtraba por asesor activo (pierde a los asignados a Karol/Vela/Reategui). Ahora ambos cuentan el hito historico — `hist_asignaciones.reasignado=false` dentro del universo del bot — y dan 832. Nota visual: un lead que fue enrutado y despues descartado por el bot puede aparecer en Asignados y Descartados a la vez; refleja la realidad (paso por las dos etapas).
+
 ## 2026-05-05
 
 - Vista **Asesores** → embudo de gestion: la metrica **Ventas cerradas** ahora usa el cruce con los Excels del back-office (mismo dato que la pestaña "Funnel de prospectos"). Antes contaba leads con estado `Venta_cerrada` o `Prospecto` en `crm_acciones_comerciales` — esa metrica refleja lo que el asesor marca en el CRM, pero no garantiza que el lead haya llegado al sistema oficial. El cruce con back-office es el dato mas fiel al cierre real.
