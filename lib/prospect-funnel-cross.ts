@@ -15,6 +15,7 @@ export type ProspectMatch = {
   fecha_creacion: string
   fecha_registro_prosp: string | null
   asesor: string | null
+  vendedor_nsv: string | null
   estado: string
   mes: string
 }
@@ -40,60 +41,112 @@ type RawMatch = {
   base: string | null
   fecha_creacion: Date
   asesor: string | null
+  vendedor_nsv: string | null
   estado: string
   fecha_registro_prosp: Date | null
 }
 
-export async function crossProspectsWithLeads(): Promise<{
+export async function crossProspectsWithLeads(options?: {
+  idAsesor?: string
+}): Promise<{
   matches: ProspectMatch[]
   totalLeadsCrm: number
   mesesDisponibles: string[]
 }> {
+  const idAsesor = options?.idAsesor ?? null
+
   const [rawMatches, totalRow] = await Promise.all([
     // Cruce: LATERAL JOIN toma el prospecto más reciente posterior a la creación del lead
-    prisma.$queryRaw<RawMatch[]>`
-      SELECT
-        l.id_lead::text,
-        l.numero,
-        l.dni,
-        l.nombre,
-        l.apellido,
-        l."Base"               AS base,
-        l.fecha_creacion,
-        a.nombre_asesor        AS asesor,
-        p.estado_documento     AS estado,
-        p.fecha_registro       AS fecha_registro_prosp
-      FROM comercial.bd_leads l
-      LEFT JOIN comercial.bd_asesores a
-        ON a.id_asesor = l.ultimo_asesor_asignado
-      JOIN LATERAL (
-        SELECT np.estado_documento, np.fecha_registro
-        FROM comercial.nsv_prospectos np
-        WHERE np.telefono_norm = RIGHT(
-                REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
-          AND np.fecha_registro > l.fecha_creacion
-        ORDER BY np.fecha_registro DESC
-        LIMIT 1
-      ) p ON true
-      WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
-        AND l.fecha_creacion <= NOW()
-        AND EXISTS (
-          SELECT 1 FROM comercial.crm_acciones_comerciales ac
-          WHERE ac.id_lead = l.id_lead
-        )
-    `,
+    idAsesor
+      ? prisma.$queryRaw<RawMatch[]>`
+          SELECT
+            l.id_lead::text,
+            l.numero,
+            l.dni,
+            l.nombre,
+            l.apellido,
+            l."Base"               AS base,
+            l.fecha_creacion,
+            a.nombre_asesor        AS asesor,
+            p.estado_documento     AS estado,
+            p.fecha_registro       AS fecha_registro_prosp,
+            p.vendedor             AS vendedor_nsv
+          FROM comercial.bd_leads l
+          LEFT JOIN comercial.bd_asesores a
+            ON a.id_asesor = l.ultimo_asesor_asignado
+          JOIN LATERAL (
+            SELECT np.estado_documento, np.fecha_registro, np.vendedor
+            FROM comercial.nsv_prospectos np
+            WHERE np.telefono_norm = RIGHT(
+                    REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+              AND np.fecha_registro > l.fecha_creacion
+            ORDER BY np.fecha_registro DESC
+            LIMIT 1
+          ) p ON true
+          WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
+            AND l.fecha_creacion <= NOW()
+            AND l.ultimo_asesor_asignado = ${idAsesor}::uuid
+            AND EXISTS (
+              SELECT 1 FROM comercial.crm_acciones_comerciales ac
+              WHERE ac.id_lead = l.id_lead
+            )
+        `
+      : prisma.$queryRaw<RawMatch[]>`
+          SELECT
+            l.id_lead::text,
+            l.numero,
+            l.dni,
+            l.nombre,
+            l.apellido,
+            l."Base"               AS base,
+            l.fecha_creacion,
+            a.nombre_asesor        AS asesor,
+            p.estado_documento     AS estado,
+            p.fecha_registro       AS fecha_registro_prosp,
+            p.vendedor             AS vendedor_nsv
+          FROM comercial.bd_leads l
+          LEFT JOIN comercial.bd_asesores a
+            ON a.id_asesor = l.ultimo_asesor_asignado
+          JOIN LATERAL (
+            SELECT np.estado_documento, np.fecha_registro, np.vendedor
+            FROM comercial.nsv_prospectos np
+            WHERE np.telefono_norm = RIGHT(
+                    REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+              AND np.fecha_registro > l.fecha_creacion
+            ORDER BY np.fecha_registro DESC
+            LIMIT 1
+          ) p ON true
+          WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
+            AND l.fecha_creacion <= NOW()
+            AND EXISTS (
+              SELECT 1 FROM comercial.crm_acciones_comerciales ac
+              WHERE ac.id_lead = l.id_lead
+            )
+        `,
 
     // Total de leads CRM en el rango (para el denominador del front)
-    prisma.$queryRaw<[{ total: bigint }]>`
-      SELECT COUNT(*)::bigint AS total
-      FROM comercial.bd_leads l
-      WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
-        AND l.fecha_creacion <= NOW()
-        AND EXISTS (
-          SELECT 1 FROM comercial.crm_acciones_comerciales ac
-          WHERE ac.id_lead = l.id_lead
-        )
-    `,
+    idAsesor
+      ? prisma.$queryRaw<[{ total: bigint }]>`
+          SELECT COUNT(*)::bigint AS total
+          FROM comercial.bd_leads l
+          WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
+            AND l.fecha_creacion <= NOW()
+            AND l.ultimo_asesor_asignado = ${idAsesor}::uuid
+            AND EXISTS (
+              SELECT 1 FROM comercial.crm_acciones_comerciales ac
+              WHERE ac.id_lead = l.id_lead
+            )
+        `
+      : prisma.$queryRaw<[{ total: bigint }]>`
+          SELECT COUNT(*)::bigint AS total
+          FROM comercial.bd_leads l
+          WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
+            AND l.fecha_creacion <= NOW()
+            AND EXISTS (
+              SELECT 1 FROM comercial.crm_acciones_comerciales ac
+              WHERE ac.id_lead = l.id_lead
+            )
+        `,
   ])
 
   const totalLeadsCrm = Number(totalRow[0].total)
@@ -108,6 +161,7 @@ export async function crossProspectsWithLeads(): Promise<{
     fecha_creacion: r.fecha_creacion.toISOString(),
     fecha_registro_prosp: r.fecha_registro_prosp ? r.fecha_registro_prosp.toISOString() : null,
     asesor: r.asesor,
+    vendedor_nsv: r.vendedor_nsv,
     estado: r.estado?.trim() || '(sin estado)',
     mes: leadMonthLima(r.fecha_creacion),
   }))
