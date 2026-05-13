@@ -7,20 +7,31 @@ export const dynamic = 'force-dynamic'
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  // Obtener el numero (celular) del lead desde PostgreSQL
   const lead = await prisma.bd_leads.findUnique({
     where: { id_lead: id },
-    select: { numero: true },
+    select: { numero: true, bot_pausado: true, bot_pausado_hasta: true },
   })
 
   if (!lead?.numero) {
-    return NextResponse.json([])
+    return NextResponse.json({ messages: [], botPausado: false, botPausadoHasta: null })
   }
 
-  // Normalizar: quitar el + del numero para que coincida con Firestore
+  // Evaluación lazy: el bot solo está pausado si el timestamp aún no venció
+  const now = new Date()
+  const botPausado =
+    lead.bot_pausado &&
+    lead.bot_pausado_hasta != null &&
+    lead.bot_pausado_hasta > now
+
+  // Limpieza lazy: si venció, resetear el flag sin bloquear la respuesta
+  if (lead.bot_pausado && lead.bot_pausado_hasta != null && lead.bot_pausado_hasta <= now) {
+    prisma.bd_leads
+      .update({ where: { id_lead: id }, data: { bot_pausado: false, bot_pausado_hasta: null } })
+      .catch(() => {})
+  }
+
   const celular = lead.numero.replace(/^\+/, '')
 
-  // Buscar mensajes en Firestore coleccion "comercial" por celular
   const snapshot = await firestore
     .collection('comercial')
     .where('celular', '==', celular)
@@ -30,11 +41,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .map((doc) => {
       const data = doc.data()
       const fecha = data.fecha?.toDate?.() ? data.fecha.toDate() : new Date(data.fecha || 0)
-      // Ajustar a UTC-5 (Peru)
       const fechaPeru = new Date(fecha.getTime() - 5 * 60 * 60 * 1000)
       return {
         text: data.mensaje || '',
-        sender: data.sender === true ? 'lead' as const : 'user' as const,
+        sender: data.sender === true ? ('lead' as const) : ('user' as const),
         timestamp: fechaPeru.toISOString().replace('T', ' ').slice(0, 16),
         imagen_url: data.imagen_url || null,
         _sort: fecha.getTime(),
@@ -43,5 +53,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .sort((a, b) => a._sort - b._sort)
     .map(({ _sort, ...msg }, i) => ({ id: i + 1, ...msg }))
 
-  return NextResponse.json(messages)
+  return NextResponse.json({
+    messages,
+    botPausado,
+    botPausadoHasta: botPausado ? lead.bot_pausado_hasta!.toISOString() : null,
+  })
 }

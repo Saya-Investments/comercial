@@ -112,6 +112,8 @@ model bd_leads {
   titular_correo                    String?                    @db.VarChar(100)
   titular_direccion                 String?                    @db.VarChar(500)
   motivo_descarte                   String?                    @db.VarChar(50)
+  bot_pausado                       Boolean                    @default(false)
+  bot_pausado_hasta                 DateTime?                  @db.Timestamptz(6)
   bd_call_center                    bd_call_center?            @relation(fields: [asignado_call_center], references: [id_call_center], onUpdate: NoAction)
   bd_asesores                       bd_asesores?               @relation(fields: [ultimo_asesor_asignado], references: [id_asesor], onUpdate: NoAction, map: "fk_leads_asesor")
   crm_acciones_comerciales          crm_acciones_comerciales[]
