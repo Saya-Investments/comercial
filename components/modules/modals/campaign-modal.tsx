@@ -23,6 +23,8 @@ interface CampaignModalProps {
   onCreated?: () => void
 }
 
+type CampaignSource = 'bigquery' | 'recordatorio'
+
 const PREVIEW_COLUMN_SPECS = [
   { label: 'Nombres', candidates: ['Nombres', 'nombres'] },
   { label: 'Apellidos', candidates: ['Apellidos', 'apellidos'] },
@@ -31,6 +33,21 @@ const PREVIEW_COLUMN_SPECS = [
   { label: 'Linea', candidates: ['Linea', 'linea'] },
   { label: 'Bucket', candidates: ['Bucket', 'bucket'] },
 ] as const
+
+const RECORDATORIO_PREVIEW_COLUMNS = [
+  { label: 'Nombre', key: 'nombre' },
+  { label: 'Apellido', key: 'apellido' },
+  { label: 'Telefono', key: 'numero' },
+  { label: 'Correo', key: 'correo' },
+  { label: 'Estado Prospecto', key: 'estado_documento' },
+]
+
+const RECORDATORIO_COLUMNS: BQColumn[] = [
+  { name: 'nombre', type: 'STRING' },
+  { name: 'apellido', type: 'STRING' },
+  { name: 'numero', type: 'STRING' },
+  { name: 'correo', type: 'STRING' },
+]
 
 function extractVariables(content: string): string[] {
   const matches = content.match(/\{\{\d+\}\}/g)
@@ -52,15 +69,18 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     skippedNoPhone?: number
     skippedDuplicate?: number
     errors?: number
+    source?: string
   } | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    source: 'bigquery' as CampaignSource,
     table: '',
     buckets: [] as string[],
     lineas: [] as string[],
     estadosAsociadosFondos: [] as string[],
+    estadosProspecto: [] as string[],
     templateId: '',
   })
 
@@ -70,6 +90,8 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
   const [estadoAsociadoFondosOptions, setEstadoAsociadoFondosOptions] = useState<string[]>([])
   const [hasNullEstadoAsociadoFondos, setHasNullEstadoAsociadoFondos] = useState(false)
   const [loadingFilters, setLoadingFilters] = useState(false)
+  const [estadoProspectoOptions, setEstadoProspectoOptions] = useState<string[]>([])
+  const [loadingProspectoFilters, setLoadingProspectoFilters] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [columns, setColumns] = useState<BQColumn[]>([])
   const [leadCount, setLeadCount] = useState<number | null>(null)
@@ -102,16 +124,16 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
   }, [])
 
   useEffect(() => {
-    if (!formData.table) return
+    if (!formData.table || formData.source !== 'bigquery') return
 
     fetch(`/api/bigquery?action=columns&table=${formData.table}`)
       .then(res => res.json())
       .then(data => setColumns(data.columns || []))
       .catch(console.error)
-  }, [formData.table])
+  }, [formData.table, formData.source])
 
   useEffect(() => {
-    if (step !== 'config' || !formData.table) return
+    if (step !== 'config' || formData.source !== 'bigquery' || !formData.table) return
 
     setLoadingFilters(true)
     setBucketOptions([])
@@ -130,7 +152,18 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       })
       .catch(console.error)
       .finally(() => setLoadingFilters(false))
-  }, [formData.table, step])
+  }, [formData.table, formData.source, step])
+
+  useEffect(() => {
+    if (step !== 'config' || formData.source !== 'recordatorio') return
+
+    setLoadingProspectoFilters(true)
+    fetch('/api/prospects-campaign?action=filters')
+      .then(res => res.json())
+      .then(data => setEstadoProspectoOptions(data.estados || []))
+      .catch(console.error)
+      .finally(() => setLoadingProspectoFilters(false))
+  }, [formData.source, step])
 
   const buildFilterParams = useCallback(() => {
     const params = new URLSearchParams()
@@ -141,35 +174,76 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     return params
   }, [formData.table, formData.buckets, formData.lineas, formData.estadosAsociadosFondos])
 
-  useEffect(() => {
-    if ((step !== 'config' && step !== 'preview') || !formData.table) return
+  const buildRecordatorioParams = useCallback(() => {
+    const params = new URLSearchParams()
+    formData.estadosProspecto.forEach(e => params.append('estados', e))
+    return params
+  }, [formData.estadosProspecto])
 
+  useEffect(() => {
+    if (step !== 'config' && step !== 'preview') return
+
+    if (formData.source === 'recordatorio') {
+      if (formData.estadosProspecto.length === 0) {
+        setLeadCount(0)
+        return
+      }
+      setLoadingCount(true)
+      const params = buildRecordatorioParams()
+      params.set('action', 'count')
+      fetch(`/api/prospects-campaign?${params}`)
+        .then(res => res.json())
+        .then(data => setLeadCount(data.total ?? null))
+        .catch(() => setLeadCount(null))
+        .finally(() => setLoadingCount(false))
+      return
+    }
+
+    if (!formData.table) return
     setLoadingCount(true)
     const params = buildFilterParams()
     params.set('action', 'count')
-
     fetch(`/api/bigquery?${params}`)
       .then(res => res.json())
       .then(data => setLeadCount(data.total ?? null))
       .catch(() => setLeadCount(null))
       .finally(() => setLoadingCount(false))
-  }, [buildFilterParams, step, formData.table])
+  }, [formData.source, formData.table, buildFilterParams, buildRecordatorioParams, step])
 
   useEffect(() => {
-    if (step !== 'preview' || !formData.table) return
+    if (step !== 'preview') return
 
     setLoadingPreview(true)
     setPreviewPage(0)
 
+    if (formData.source === 'recordatorio') {
+      if (formData.estadosProspecto.length === 0) {
+        setPreviewLeads([])
+        setLoadingPreview(false)
+        return
+      }
+      const params = buildRecordatorioParams()
+      params.set('action', 'leads')
+      fetch(`/api/prospects-campaign?${params}`)
+        .then(res => res.json())
+        .then(data => setPreviewLeads(data.leads || []))
+        .catch(console.error)
+        .finally(() => setLoadingPreview(false))
+      return
+    }
+
+    if (!formData.table) {
+      setLoadingPreview(false)
+      return
+    }
     const params = buildFilterParams()
     params.set('action', 'leads')
-
     fetch(`/api/bigquery?${params}`)
       .then(res => res.json())
       .then(data => setPreviewLeads(data.leads || []))
       .catch(console.error)
       .finally(() => setLoadingPreview(false))
-  }, [buildFilterParams, step, formData.table])
+  }, [formData.source, buildFilterParams, buildRecordatorioParams, step, formData.table])
 
   const selectedTemplate = templates.find(t => t.id === formData.templateId)
   const templateVars = selectedTemplate ? extractVariables(selectedTemplate.content) : []
@@ -180,6 +254,19 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSourceChange = (source: CampaignSource) => {
+    setFormData(prev => ({
+      ...prev,
+      source,
+      buckets: [],
+      lineas: [],
+      estadosAsociadosFondos: [],
+      estadosProspecto: [],
+    }))
+    setLeadCount(null)
+    setPreviewLeads([])
   }
 
   const handleBucketChange = (bucket: string, checked: boolean) => {
@@ -209,6 +296,15 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     })
   }
 
+  const handleEstadoProspectoChange = (estado: string, checked: boolean) => {
+    setFormData({
+      ...formData,
+      estadosProspecto: checked
+        ? [...formData.estadosProspecto, estado]
+        : formData.estadosProspecto.filter(e => e !== estado),
+    })
+  }
+
   const formatEstadoAsociadoFondos = (estado: string) =>
     estado === BQ_NULL_SENTINEL ? '(Sin estado)' : estado
 
@@ -216,8 +312,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     setVariableMapping(prev => ({ ...prev, [variable]: column }))
   }
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault()
+  const activeColumns = formData.source === 'recordatorio' ? RECORDATORIO_COLUMNS : columns
+
+  const handleSubmit = async () => {
 
     if (step === 'basic') {
       if (!formData.name.trim()) return
@@ -232,25 +329,33 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
 
     setSaving(true)
     try {
-      const filters = {
-        buckets: formData.buckets,
-        lineas: formData.lineas,
+      let body: Record<string, unknown>
+
+      if (formData.source === 'recordatorio') {
+        body = {
+          name: formData.name,
+          source: 'recordatorio',
+          estadosProspecto: formData.estadosProspecto,
+          templateId: formData.templateId || null,
+          variables: templateVars.length > 0 ? variableMapping : {},
+        }
+      } else {
+        body = {
+          name: formData.name,
+          source: 'bigquery',
+          database: formData.table,
+          filters: { buckets: formData.buckets, lineas: formData.lineas },
+          ephemeralFilters: { estadosAsociadosFondos: formData.estadosAsociadosFondos },
+          templateId: formData.templateId || null,
+          totalLeads: leadCount || 0,
+          variables: templateVars.length > 0 ? variableMapping : {},
+        }
       }
 
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          database: formData.table,
-          filters,
-          ephemeralFilters: {
-            estadosAsociadosFondos: formData.estadosAsociadosFondos,
-          },
-          templateId: formData.templateId || null,
-          totalLeads: leadCount || 0,
-          variables: templateVars.length > 0 ? variableMapping : {},
-        }),
+        body: JSON.stringify(body),
       })
 
       if (!res.ok) throw new Error('Error creating campaign')
@@ -344,114 +449,182 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
 
           {step === 'config' && (
             <>
+              {/* Selector de fuente */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">
-                  Tabla BigQuery (Dataset: Leads)
-                </label>
-                <select
-                  name="table"
-                  value={formData.table}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
-                >
-                  {tables.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                <label className="mb-2 block text-sm font-semibold text-foreground">Fuente de leads</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSourceChange('bigquery')}
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      formData.source === 'bigquery'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    BigQuery
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSourceChange('recordatorio')}
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      formData.source === 'recordatorio'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    Recordatorio
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Filtro por Bucket</label>
-                {loadingFilters ? (
-                  <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando buckets...
+              {/* Filtros BigQuery */}
+              {formData.source === 'bigquery' && (
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">
+                      Tabla BigQuery (Dataset: Leads)
+                    </label>
+                    <select
+                      name="table"
+                      value={formData.table}
+                      onChange={handleChange}
+                      className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:border-primary focus:outline-none"
+                    >
+                      {tables.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
                   </div>
-                ) : bucketOptions.length > 0 ? (
-                  <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
-                    {bucketOptions.map((bucket) => (
-                      <label key={bucket} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.buckets.includes(bucket)}
-                          onChange={(e) => handleBucketChange(bucket, e.target.checked)}
-                          className="rounded border-border"
-                        />
-                        <span className="ml-2 text-sm text-foreground">{bucket}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No hay buckets disponibles</p>
-                )}
-              </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Filtro por Linea</label>
-                {loadingFilters ? (
-                  <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando lineas...
-                  </div>
-                ) : lineaOptions.length > 0 ? (
-                  <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
-                    {lineaOptions.map((linea) => (
-                      <label key={linea} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.lineas.includes(linea)}
-                          onChange={(e) => handleLineaChange(linea, e.target.checked)}
-                          className="rounded border-border"
-                        />
-                        <span className="ml-2 text-sm text-foreground">{linea}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No hay lineas disponibles</p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">
-                  Filtro por Estado Asociado Fondos
-                </label>
-                {loadingFilters ? (
-                  <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Cargando estados...
-                  </div>
-                ) : estadoAsociadoFondosOptions.length > 0 || hasNullEstadoAsociadoFondos ? (
-                  <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
-                    {estadoAsociadoFondosOptions.map((estado) => (
-                      <label key={estado} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.estadosAsociadosFondos.includes(estado)}
-                          onChange={(e) => handleEstadoAsociadoFondosChange(estado, e.target.checked)}
-                          className="rounded border-border"
-                        />
-                        <span className="ml-2 text-sm text-foreground">{estado}</span>
-                      </label>
-                    ))}
-                    {hasNullEstadoAsociadoFondos && (
-                      <label key={BQ_NULL_SENTINEL} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.estadosAsociadosFondos.includes(BQ_NULL_SENTINEL)}
-                          onChange={(e) =>
-                            handleEstadoAsociadoFondosChange(BQ_NULL_SENTINEL, e.target.checked)
-                          }
-                          className="rounded border-border"
-                        />
-                        <span className="ml-2 text-sm italic text-muted-foreground">(Sin estado)</span>
-                      </label>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">Filtro por Bucket</label>
+                    {loadingFilters ? (
+                      <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Cargando buckets...
+                      </div>
+                    ) : bucketOptions.length > 0 ? (
+                      <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
+                        {bucketOptions.map((bucket) => (
+                          <label key={bucket} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.buckets.includes(bucket)}
+                              onChange={(e) => handleBucketChange(bucket, e.target.checked)}
+                              className="rounded border-border"
+                            />
+                            <span className="ml-2 text-sm text-foreground">{bucket}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No hay buckets disponibles</p>
                     )}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Esta tabla no tiene la columna estado_asociado_fondos
-                  </p>
-                )}
-              </div>
 
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">Filtro por Linea</label>
+                    {loadingFilters ? (
+                      <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Cargando lineas...
+                      </div>
+                    ) : lineaOptions.length > 0 ? (
+                      <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
+                        {lineaOptions.map((linea) => (
+                          <label key={linea} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.lineas.includes(linea)}
+                              onChange={(e) => handleLineaChange(linea, e.target.checked)}
+                              className="rounded border-border"
+                            />
+                            <span className="ml-2 text-sm text-foreground">{linea}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No hay lineas disponibles</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-foreground">
+                      Filtro por Estado Asociado Fondos
+                    </label>
+                    {loadingFilters ? (
+                      <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Cargando estados...
+                      </div>
+                    ) : estadoAsociadoFondosOptions.length > 0 || hasNullEstadoAsociadoFondos ? (
+                      <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
+                        {estadoAsociadoFondosOptions.map((estado) => (
+                          <label key={estado} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.estadosAsociadosFondos.includes(estado)}
+                              onChange={(e) => handleEstadoAsociadoFondosChange(estado, e.target.checked)}
+                              className="rounded border-border"
+                            />
+                            <span className="ml-2 text-sm text-foreground">{estado}</span>
+                          </label>
+                        ))}
+                        {hasNullEstadoAsociadoFondos && (
+                          <label key={BQ_NULL_SENTINEL} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.estadosAsociadosFondos.includes(BQ_NULL_SENTINEL)}
+                              onChange={(e) =>
+                                handleEstadoAsociadoFondosChange(BQ_NULL_SENTINEL, e.target.checked)
+                              }
+                              className="rounded border-border"
+                            />
+                            <span className="ml-2 text-sm italic text-muted-foreground">(Sin estado)</span>
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Esta tabla no tiene la columna estado_asociado_fondos
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* Filtros Recordatorio */}
+              {formData.source === 'recordatorio' && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Filtro por estado del prospecto
+                  </label>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Selecciona los estados del funnel para enviar recordatorios a esos prospectos.
+                  </p>
+                  {loadingProspectoFilters ? (
+                    <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Cargando estados...
+                    </div>
+                  ) : estadoProspectoOptions.length > 0 ? (
+                    <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto">
+                      {estadoProspectoOptions.map((estado) => (
+                        <label key={estado} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={formData.estadosProspecto.includes(estado)}
+                            onChange={(e) => handleEstadoProspectoChange(estado, e.target.checked)}
+                            className="rounded border-border"
+                          />
+                          <span className="ml-2 text-sm text-foreground">{estado}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No hay estados disponibles</p>
+                  )}
+                </div>
+              )}
+
+              {/* Plantilla y variables (comun a ambas fuentes) */}
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Plantilla de Mensaje</label>
                 <select
@@ -492,7 +665,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                           className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                         >
                           <option value="">-- Seleccionar columna --</option>
-                          {columns.map((col) => (
+                          {activeColumns.map((col) => (
                             <option key={col.name} value={col.name}>{col.name}</option>
                           ))}
                         </select>
@@ -507,18 +680,31 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                 </div>
               )}
 
+              {/* Resumen de configuracion */}
               <div className="rounded-lg border border-border bg-secondary/50 p-4">
                 <p className="mb-2 text-sm font-semibold text-foreground">Resumen de Configuracion</p>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>Tabla: {formData.table}</p>
-                  <p>Buckets: {formData.buckets.length > 0 ? formData.buckets.join(', ') : 'Todos'}</p>
-                  <p>Lineas: {formData.lineas.length > 0 ? formData.lineas.join(', ') : 'Todas'}</p>
-                  <p>
-                    Estado Asociado Fondos:{' '}
-                    {formData.estadosAsociadosFondos.length > 0
-                      ? formData.estadosAsociadosFondos.map(formatEstadoAsociadoFondos).join(', ')
-                      : 'Todos'}
-                  </p>
+                  <p>Fuente: {formData.source === 'recordatorio' ? 'Recordatorio (funnel de prospectos)' : `BigQuery — ${formData.table}`}</p>
+                  {formData.source === 'bigquery' && (
+                    <>
+                      <p>Buckets: {formData.buckets.length > 0 ? formData.buckets.join(', ') : 'Todos'}</p>
+                      <p>Lineas: {formData.lineas.length > 0 ? formData.lineas.join(', ') : 'Todas'}</p>
+                      <p>
+                        Estado Asociado Fondos:{' '}
+                        {formData.estadosAsociadosFondos.length > 0
+                          ? formData.estadosAsociadosFondos.map(formatEstadoAsociadoFondos).join(', ')
+                          : 'Todos'}
+                      </p>
+                    </>
+                  )}
+                  {formData.source === 'recordatorio' && (
+                    <p>
+                      Estados prospecto:{' '}
+                      {formData.estadosProspecto.length > 0
+                        ? formData.estadosProspecto.join(', ')
+                        : 'Ninguno seleccionado'}
+                    </p>
+                  )}
                   <p>Plantilla: {selectedTemplate?.name || 'Sin seleccionar'}</p>
                   <p className="font-semibold text-foreground">
                     Leads encontrados:{' '}
@@ -544,7 +730,8 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     <p className="text-sm font-semibold text-green-800">Campana creada exitosamente</p>
                     <p className="mt-1 text-sm text-green-700">
                       Se vincularon <span className="font-bold">{importResult.leadsImported.toLocaleString()}</span> leads
-                      a la campana (de {importResult.totalBQ?.toLocaleString() ?? '?'} registros en BigQuery).
+                      a la campana (de {importResult.totalBQ?.toLocaleString() ?? '?'}{' '}
+                      {importResult.source === 'recordatorio' ? 'prospectos seleccionados' : 'registros en BigQuery'}).
                     </p>
                     {((importResult.skippedNoPhone ?? 0) > 0 || (importResult.skippedDuplicate ?? 0) > 0 || (importResult.errors ?? 0) > 0) && (
                       <p className="mt-1 text-xs text-green-600">
@@ -565,7 +752,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                   <div className="text-center">
                     <p className="text-sm font-semibold text-foreground">Creando campana e importando leads...</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Importando {leadCount?.toLocaleString() ?? ''} leads desde BigQuery. Esto puede tomar un momento.
+                      {formData.source === 'recordatorio'
+                        ? `Vinculando ${leadCount?.toLocaleString() ?? ''} prospectos. Esto puede tomar un momento.`
+                        : `Importando ${leadCount?.toLocaleString() ?? ''} leads desde BigQuery. Esto puede tomar un momento.`}
                     </p>
                   </div>
                 </div>
@@ -583,18 +772,29 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                       )}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Tabla: <span className="font-medium text-foreground">{formData.table}</span>
-                      {formData.buckets.length > 0 && (
-                        <> | Buckets: <span className="font-medium text-foreground">{formData.buckets.join(', ')}</span></>
-                      )}
-                      {formData.lineas.length > 0 && (
-                        <> | Lineas: <span className="font-medium text-foreground">{formData.lineas.join(', ')}</span></>
-                      )}
-                      {formData.estadosAsociadosFondos.length > 0 && (
-                        <> | Estado Asociado Fondos:{' '}
-                          <span className="font-medium text-foreground">
-                            {formData.estadosAsociadosFondos.map(formatEstadoAsociadoFondos).join(', ')}
-                          </span>
+                      {formData.source === 'recordatorio' ? (
+                        <>
+                          Fuente: <span className="font-medium text-foreground">Recordatorio</span>
+                          {formData.estadosProspecto.length > 0 && (
+                            <> | Estados: <span className="font-medium text-foreground">{formData.estadosProspecto.join(', ')}</span></>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          Tabla: <span className="font-medium text-foreground">{formData.table}</span>
+                          {formData.buckets.length > 0 && (
+                            <> | Buckets: <span className="font-medium text-foreground">{formData.buckets.join(', ')}</span></>
+                          )}
+                          {formData.lineas.length > 0 && (
+                            <> | Lineas: <span className="font-medium text-foreground">{formData.lineas.join(', ')}</span></>
+                          )}
+                          {formData.estadosAsociadosFondos.length > 0 && (
+                            <> | Estado Asociado Fondos:{' '}
+                              <span className="font-medium text-foreground">
+                                {formData.estadosAsociadosFondos.map(formatEstadoAsociadoFondos).join(', ')}
+                              </span>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
@@ -612,21 +812,33 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border bg-secondary">
-                                {previewColumns.map((col) => (
-                                  <th key={col.label} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">
-                                    {col.label}
-                                  </th>
-                                ))}
+                                {formData.source === 'recordatorio'
+                                  ? RECORDATORIO_PREVIEW_COLUMNS.map((col) => (
+                                      <th key={col.label} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">
+                                        {col.label}
+                                      </th>
+                                    ))
+                                  : previewColumns.map((col) => (
+                                      <th key={col.label} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">
+                                        {col.label}
+                                      </th>
+                                    ))}
                               </tr>
                             </thead>
                             <tbody>
                               {pagedLeads.map((lead, i) => (
                                 <tr key={i} className="border-b border-border hover:bg-secondary/30">
-                                  {previewColumns.map((col) => (
-                                    <td key={col.label} className="max-w-[200px] truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
-                                      {col.key ? String(lead[col.key] ?? '') : ''}
-                                    </td>
-                                  ))}
+                                  {formData.source === 'recordatorio'
+                                    ? RECORDATORIO_PREVIEW_COLUMNS.map((col) => (
+                                        <td key={col.label} className="max-w-[200px] truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
+                                          {String(lead[col.key] ?? '')}
+                                        </td>
+                                      ))
+                                    : previewColumns.map((col) => (
+                                        <td key={col.label} className="max-w-[200px] truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
+                                          {col.key ? String(lead[col.key] ?? '') : ''}
+                                        </td>
+                                      ))}
                                 </tr>
                               ))}
                             </tbody>
@@ -706,7 +918,11 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={saving || (step === 'basic' && !formData.name.trim())}
+                disabled={
+                  saving ||
+                  (step === 'basic' && !formData.name.trim()) ||
+                  (step === 'config' && formData.source === 'recordatorio' && formData.estadosProspecto.length === 0)
+                }
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 {saving ? (

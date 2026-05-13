@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchBQLeads, fetchBQTables } from '@/lib/bigquery'
+import { RANGO_DESDE } from '@/lib/prospect-funnel-cross'
 
 export const dynamic = 'force-dynamic'
 
@@ -236,6 +237,132 @@ async function applyBucketToExistingLeadsIfMissing(
   }
 }
 
+type RecordatorioCampaignBody = {
+  name: string
+  source: 'recordatorio'
+  estadosProspecto: string[]
+  templateId?: string
+  variables?: Record<string, string>
+}
+
+type ProspectLeadRow = { id_lead: string; numero: string }
+
+async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promise<Response> {
+  const estadosProspecto: string[] = body.estadosProspecto || []
+
+  if (estadosProspecto.length === 0) {
+    return NextResponse.json(
+      { error: 'Al menos un estado de prospecto es requerido' },
+      { status: 400 }
+    )
+  }
+
+  const placeholders = estadosProspecto.map((_, i) => `$${i + 1}`).join(', ')
+  let prospectLeads: ProspectLeadRow[]
+
+  try {
+    prospectLeads = await prisma.$queryRawUnsafe<ProspectLeadRow[]>(
+      `SELECT DISTINCT l.id_lead::text, l.numero
+       FROM comercial.bd_leads l
+       JOIN LATERAL (
+         SELECT np.estado_documento
+         FROM comercial.nsv_prospectos np
+         WHERE np.telefono_norm = RIGHT(
+                 REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+           AND np.fecha_registro > l.fecha_creacion
+         ORDER BY np.fecha_registro DESC
+         LIMIT 1
+       ) p ON true
+       WHERE l.fecha_creacion >= '${RANGO_DESDE}'::timestamptz
+         AND l.fecha_creacion <= NOW()
+         AND l.numero IS NOT NULL
+         AND TRIM(p.estado_documento) IN (${placeholders})
+         AND EXISTS (
+           SELECT 1 FROM comercial.crm_acciones_comerciales ac
+           WHERE ac.id_lead = l.id_lead
+         )`,
+      ...estadosProspecto
+    )
+  } catch (err) {
+    console.error('Error fetching prospect leads:', err)
+    return NextResponse.json(
+      { error: 'Failed to fetch leads from prospect funnel. No campaign was created.' },
+      { status: 500 }
+    )
+  }
+
+  if (prospectLeads.length === 0) {
+    return NextResponse.json(
+      { error: 'No se encontraron leads con los estados seleccionados' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const campana = await tx.crm_campanas.create({
+          data: {
+            nombre: body.name,
+            base_datos: 'recordatorio',
+            filtros: JSON.stringify({ estadosProspecto }),
+            total_leads: 0,
+            id_plantilla: body.templateId || null,
+            variables: body.variables ? normalizeVariables(body.variables) : {},
+          },
+        })
+
+        const campaignLinks = prospectLeads.map((lead) => ({
+          id_campana: campana.id_campana,
+          id_lead: lead.id_lead,
+          estado_envio: 'pendiente',
+        }))
+
+        let leadsImported = 0
+        for (const linkChunk of chunkArray(campaignLinks, LINK_BATCH_SIZE)) {
+          const linkResult = await tx.crm_campana_leads.createMany({
+            data: linkChunk,
+            skipDuplicates: true,
+          })
+          leadsImported += linkResult.count
+        }
+
+        await tx.crm_campanas.update({
+          where: { id_campana: campana.id_campana },
+          data: { total_leads: leadsImported },
+        })
+
+        return { id: campana.id_campana, leadsImported }
+      },
+      { maxWait: 10000, timeout: 120000 }
+    )
+
+    console.log(
+      `Recordatorio campaign ${result.id}: ${result.leadsImported} linked from ${prospectLeads.length} prospect leads`
+    )
+
+    return NextResponse.json(
+      {
+        id: result.id,
+        leadsImported: result.leadsImported,
+        totalBQ: prospectLeads.length,
+        leadsCreated: 0,
+        updatedExisting: 0,
+        skippedNoPhone: 0,
+        skippedDuplicate: prospectLeads.length - result.leadsImported,
+        source: 'recordatorio',
+      },
+      { status: 201 }
+    )
+  } catch (err) {
+    console.error('Error creating recordatorio campaign:', err)
+    return NextResponse.json(
+      { error: 'Failed to create campaign. No campaign or relations were saved.' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function GET() {
   const campanas = await prisma.crm_campanas.findMany({
     include: {
@@ -262,6 +389,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+
+  if (body.source === 'recordatorio') {
+    return handleRecordatorioCampaign(body)
+  }
 
   const table = body.database as string
   if (!table) {
