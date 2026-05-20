@@ -86,10 +86,6 @@ export async function crossProspectsWithLeads(options?: {
           WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
             AND l.fecha_creacion <= NOW()
             AND l.ultimo_asesor_asignado = ${idAsesor}::uuid
-            AND EXISTS (
-              SELECT 1 FROM comercial.crm_acciones_comerciales ac
-              WHERE ac.id_lead = l.id_lead
-            )
         `
       : prisma.$queryRaw<RawMatch[]>`
           SELECT
@@ -118,10 +114,6 @@ export async function crossProspectsWithLeads(options?: {
           ) p ON true
           WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
             AND l.fecha_creacion <= NOW()
-            AND EXISTS (
-              SELECT 1 FROM comercial.crm_acciones_comerciales ac
-              WHERE ac.id_lead = l.id_lead
-            )
         `,
 
     // Total de leads CRM en el rango (para el denominador del front)
@@ -132,20 +124,12 @@ export async function crossProspectsWithLeads(options?: {
           WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
             AND l.fecha_creacion <= NOW()
             AND l.ultimo_asesor_asignado = ${idAsesor}::uuid
-            AND EXISTS (
-              SELECT 1 FROM comercial.crm_acciones_comerciales ac
-              WHERE ac.id_lead = l.id_lead
-            )
         `
       : prisma.$queryRaw<[{ total: bigint }]>`
           SELECT COUNT(*)::bigint AS total
           FROM comercial.bd_leads l
           WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
             AND l.fecha_creacion <= NOW()
-            AND EXISTS (
-              SELECT 1 FROM comercial.crm_acciones_comerciales ac
-              WHERE ac.id_lead = l.id_lead
-            )
         `,
   ])
 
