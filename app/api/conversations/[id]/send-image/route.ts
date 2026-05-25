@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { firestore } from '@/lib/firebase'
 import { FieldValue } from 'firebase-admin/firestore'
+import { registrarMensajeWspComoAccion } from '@/lib/registrar-mensaje-wsp-accion'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const metaData = await metaRes.json()
 
-  // Guardar en Firestore y pausar bot
+  // Guardar en Firestore, pausar bot y registrar accion Mensaje_WSP (si aplica) en paralelo
   await Promise.all([
     firestore.collection('comercial').add({
       celular,
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       where: { id_lead: id },
       data: { bot_pausado: true, bot_pausado_hasta: new Date(Date.now() + BOT_PAUSE_MS) },
     }),
+    registrarMensajeWspComoAccion(id),
   ])
 
   return NextResponse.json({ ok: true, message_id: metaData.messages?.[0]?.id })
