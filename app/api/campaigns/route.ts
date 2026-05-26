@@ -265,7 +265,7 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
       `SELECT DISTINCT l.id_lead::text, l.numero
        FROM comercial.bd_leads l
        JOIN LATERAL (
-         SELECT np.estado_documento
+         SELECT np.estado_documento, np.fecha_estado
          FROM comercial.nsv_prospectos np
          WHERE np.telefono_norm = RIGHT(
                  REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
@@ -277,10 +277,7 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
          AND l.fecha_creacion <= NOW()
          AND l.numero IS NOT NULL
          AND TRIM(p.estado_documento) IN (${placeholders})
-         AND EXISTS (
-           SELECT 1 FROM comercial.crm_acciones_comerciales ac
-           WHERE ac.id_lead = l.id_lead
-         )`,
+         AND NOW() - p.fecha_estado > INTERVAL '4 days'`,
       ...estadosProspecto
     )
   } catch (err) {

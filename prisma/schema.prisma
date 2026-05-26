@@ -24,6 +24,7 @@ model bd_asesores {
   fecha_creacion                                                      DateTime               @default(now()) @db.Timestamptz(6)
   fecha_actualizacion                                                 DateTime               @default(now()) @db.Timestamptz(6)
   dni                                                                 String?                @db.VarChar(10)
+  celular                                                             String?                @db.VarChar(20)
   bd_leads                                                            bd_leads[]
   crm_usuarios                                                        crm_usuarios[]
   cuotas_semanales                                                    cuotas_semanales[]

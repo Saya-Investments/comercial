@@ -14,11 +14,11 @@ type RawProspectLead = {
   estado_documento: string | null
 }
 
-// Misma lógica que el funnel: leads gestionados (con acciones comerciales) desde el inicio del piloto.
+// Misma lógica que el funnel: todos los leads del rango con match en nsv_prospectos.
 const BASE_JOIN = `
   FROM comercial.bd_leads l
   JOIN LATERAL (
-    SELECT np.estado_documento
+    SELECT np.estado_documento, np.fecha_estado
     FROM comercial.nsv_prospectos np
     WHERE np.telefono_norm = RIGHT(
             REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
@@ -29,10 +29,7 @@ const BASE_JOIN = `
   WHERE l.fecha_creacion >= '${RANGO_DESDE}'::timestamptz
     AND l.fecha_creacion <= NOW()
     AND l.numero IS NOT NULL
-    AND EXISTS (
-      SELECT 1 FROM comercial.crm_acciones_comerciales ac
-      WHERE ac.id_lead = l.id_lead
-    )
+    AND NOW() - p.fecha_estado > INTERVAL '4 days'
 `
 
 export async function GET(req: NextRequest) {
