@@ -222,7 +222,9 @@ type FunnelResponse = {
   totalLeadsCrm: number
   leads: LeadMatch[]
   mesesDisponibles: string[]
+  mesesCierre: string[]
   mes: string | null
+  mesCierre: string | null
   rango: { desde: string; hastaIso: string }
 }
 
@@ -253,8 +255,10 @@ export function ProspectsFunnelModule() {
   const [leads, setLeads] = useState<LeadMatch[]>([])
   const [meta, setMeta] = useState<Pick<FunnelResponse, 'totalCruzados' | 'totalLeadsCrm' | 'rango'> | null>(null)
   const [mesesDisponibles, setMesesDisponibles] = useState<string[]>([])
+  const [mesesCierre, setMesesCierre] = useState<string[]>([])
   // null = "Todos los meses" (default al abrir, segun acuerdo con negocio).
   const [mesActual, setMesActual] = useState<string | null>(null)
+  const [mesCierreActual, setMesCierreActual] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [leadDetalle, setLeadDetalle] = useState<LeadModalData | null>(null)
@@ -263,7 +267,10 @@ export function ProspectsFunnelModule() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    const url = mesActual ? `/api/prospects-funnel?mes=${mesActual}` : '/api/prospects-funnel'
+    const params = new URLSearchParams()
+    if (mesActual) params.set('mes', mesActual)
+    if (mesCierreActual) params.set('mes_cierre', mesCierreActual)
+    const url = `/api/prospects-funnel${params.size ? `?${params}` : ''}`
     fetch(url)
       .then(async r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -275,6 +282,7 @@ export function ProspectsFunnelModule() {
         setLeads(data.leads ?? [])
         setMeta({ totalCruzados: data.totalCruzados, totalLeadsCrm: data.totalLeadsCrm, rango: data.rango })
         setMesesDisponibles(data.mesesDisponibles ?? [])
+        setMesesCierre(data.mesesCierre ?? [])
       })
       .catch(e => {
         if (cancelled) return
@@ -284,7 +292,7 @@ export function ProspectsFunnelModule() {
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [mesActual])
+  }, [mesActual, mesCierreActual])
 
   const leadsDelEstado = useMemo(
     () => (estadoSeleccionado ? leads.filter(l => l.estado === estadoSeleccionado) : []),
@@ -323,11 +331,20 @@ export function ProspectsFunnelModule() {
             </div>
           </div>
 
-          <SelectorMes
-            mesActual={mesActual}
-            mesesDisponibles={mesesDisponibles}
-            onChange={setMesActual}
-          />
+          <div className="flex flex-col gap-2 items-end">
+            <SelectorMes
+              label="Nació"
+              mesActual={mesActual}
+              mesesDisponibles={mesesDisponibles}
+              onChange={setMesActual}
+            />
+            <SelectorMes
+              label="Cerró"
+              mesActual={mesCierreActual}
+              mesesDisponibles={mesesCierre}
+              onChange={setMesCierreActual}
+            />
+          </div>
         </div>
       </div>
 
@@ -475,10 +492,12 @@ export function ProspectsFunnelModule() {
 // ====================== Subcomponentes ======================
 
 function SelectorMes({
+  label = 'Mes',
   mesActual,
   mesesDisponibles,
   onChange,
 }: {
+  label?: string
   mesActual: string | null
   mesesDisponibles: string[]
   onChange: (mes: string | null) => void
@@ -494,7 +513,7 @@ function SelectorMes({
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-xs text-muted-foreground uppercase tracking-wide">Mes</span>
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       <div className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 p-0.5">
         {opciones.map((op) => {
           const activo = op.value === mesActual

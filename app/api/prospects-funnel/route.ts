@@ -5,18 +5,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  // ?mes=YYYY-MM filtra leads por su fecha_creacion (hora Lima). Sin parametro
-  // o vacio = devuelve todo el rango.
   const mesParam = url.searchParams.get('mes')?.trim() || null
+  const mesCierreParam = url.searchParams.get('mes_cierre')?.trim() || null
 
-  const { matches, totalLeadsCrm, mesesDisponibles } = await crossProspectsWithLeads()
+  const { matches, totalLeadsCrm, mesesDisponibles, mesesCierre } = await crossProspectsWithLeads()
 
-  const filtered = mesParam ? matches.filter(m => m.mes === mesParam) : matches
+  let filtered = mesParam ? matches.filter(m => m.mes === mesParam) : matches
+  if (mesCierreParam) filtered = filtered.filter(m => m.mes_cierre === mesCierreParam)
 
   const counts: Record<string, number> = {}
   const leadsMatched = filtered.map((m) => {
     counts[m.estado] = (counts[m.estado] || 0) + 1
-    const { mes: _mes, ...rest } = m
+    const { mes: _mes, mes_cierre: _mc, ...rest } = m
     return rest
   })
 
@@ -26,7 +26,9 @@ export async function GET(request: Request) {
     totalLeadsCrm,
     leads: leadsMatched,
     mesesDisponibles,
+    mesesCierre,
     mes: mesParam,
+    mesCierre: mesCierreParam,
     rango: { desde: RANGO_DESDE, hastaIso: new Date().toISOString() },
   })
 }

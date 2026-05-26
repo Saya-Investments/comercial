@@ -14,10 +14,12 @@ export type ProspectMatch = {
   base: string | null
   fecha_creacion: string
   fecha_registro_prosp: string | null
+  fecha_inscrito: string | null
   asesor: string | null
   vendedor_nsv: string | null
   estado: string
   mes: string
+  mes_cierre: string | null
 }
 
 export function leadMonthLima(d: Date): string {
@@ -44,6 +46,7 @@ type RawMatch = {
   vendedor_nsv: string | null
   estado: string
   fecha_registro_prosp: Date | null
+  fecha_inscrito: Date | null
 }
 
 export async function crossProspectsWithLeads(options?: {
@@ -52,6 +55,7 @@ export async function crossProspectsWithLeads(options?: {
   matches: ProspectMatch[]
   totalLeadsCrm: number
   mesesDisponibles: string[]
+  mesesCierre: string[]
 }> {
   const idAsesor = options?.idAsesor ?? null
 
@@ -70,12 +74,13 @@ export async function crossProspectsWithLeads(options?: {
             a.nombre_asesor        AS asesor,
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
+            p.fecha_inscrito       AS fecha_inscrito,
             p.vendedor             AS vendedor_nsv
           FROM comercial.bd_leads l
           LEFT JOIN comercial.bd_asesores a
             ON a.id_asesor = l.ultimo_asesor_asignado
           JOIN LATERAL (
-            SELECT np.estado_documento, np.fecha_registro, np.vendedor
+            SELECT np.estado_documento, np.fecha_registro, np.fecha_inscrito, np.vendedor
             FROM comercial.nsv_prospectos np
             WHERE np.telefono_norm = RIGHT(
                     REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
@@ -99,12 +104,13 @@ export async function crossProspectsWithLeads(options?: {
             a.nombre_asesor        AS asesor,
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
+            p.fecha_inscrito       AS fecha_inscrito,
             p.vendedor             AS vendedor_nsv
           FROM comercial.bd_leads l
           LEFT JOIN comercial.bd_asesores a
             ON a.id_asesor = l.ultimo_asesor_asignado
           JOIN LATERAL (
-            SELECT np.estado_documento, np.fecha_registro, np.vendedor
+            SELECT np.estado_documento, np.fecha_registro, np.fecha_inscrito, np.vendedor
             FROM comercial.nsv_prospectos np
             WHERE np.telefono_norm = RIGHT(
                     REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
@@ -144,17 +150,21 @@ export async function crossProspectsWithLeads(options?: {
     base: r.base,
     fecha_creacion: r.fecha_creacion.toISOString(),
     fecha_registro_prosp: r.fecha_registro_prosp ? r.fecha_registro_prosp.toISOString() : null,
+    fecha_inscrito: r.fecha_inscrito ? r.fecha_inscrito.toISOString() : null,
     asesor: r.asesor,
     vendedor_nsv: r.vendedor_nsv,
     estado: r.estado?.trim() || '(sin estado)',
     mes: leadMonthLima(r.fecha_creacion),
+    mes_cierre: r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null,
   }))
 
   const mesesDisponibles = Array.from(
-    new Set(
-      rawMatches.map((r) => leadMonthLima(r.fecha_creacion)),
-    ),
+    new Set(rawMatches.map((r) => leadMonthLima(r.fecha_creacion))),
   ).sort()
 
-  return { matches, totalLeadsCrm, mesesDisponibles }
+  const mesesCierre = Array.from(
+    new Set(rawMatches.map((r) => r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null).filter((m): m is string => m !== null)),
+  ).sort()
+
+  return { matches, totalLeadsCrm, mesesDisponibles, mesesCierre }
 }
