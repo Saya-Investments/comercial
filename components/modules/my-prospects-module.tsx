@@ -19,6 +19,7 @@ import {
   Briefcase,
   MessageSquare,
   Eye,
+  Sparkles,
 } from 'lucide-react'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -35,6 +36,9 @@ interface ProspectRow {
   asesor: string | null
   vendedor_nsv: string | null
   estado: string
+  bot_intervino: boolean
+  bot_intervino_fecha: string | null
+  bot_razon: string | null
 }
 
 interface ApiResponse {
@@ -310,6 +314,7 @@ export function MyProspectsModule() {
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Estado NSV</th>
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Ingresó a NSV</th>
                       <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Días en etapa</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Bot intervino</th>
                       <th className="text-center px-4 py-3 font-semibold text-muted-foreground">Acciones</th>
                     </tr>
                   </thead>
@@ -344,6 +349,29 @@ export function MyProspectsModule() {
                                 {dias}d
                               </span>
                             ) : '—'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {lead.bot_intervino ? (
+                              <div
+                                className="inline-flex items-start gap-1.5 max-w-[280px]"
+                                title={
+                                  (lead.bot_intervino_fecha ? `Hace ${diasDesde(lead.bot_intervino_fecha) ?? '?'}d\n` : '') +
+                                  (lead.bot_razon ? `Razón: ${lead.bot_razon}` : 'Sin razón capturada')
+                                }
+                              >
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800 border border-violet-200 shrink-0">
+                                  <Sparkles className="w-3 h-3" />
+                                  Bot reactivó
+                                </span>
+                                {lead.bot_razon && (
+                                  <span className="text-xs text-muted-foreground line-clamp-2 italic">
+                                    "{lead.bot_razon}"
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex justify-center gap-1">
