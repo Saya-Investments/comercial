@@ -20,6 +20,10 @@ export type ProspectMatch = {
   estado: string
   mes: string
   mes_cierre: string | null
+  // Reactivacion por bot: ultima accion Mensaje_WSP con [REACTIVACION] en obs.
+  bot_intervino: boolean
+  bot_intervino_fecha: string | null
+  bot_razon: string | null
 }
 
 export function leadMonthLima(d: Date): string {
@@ -47,6 +51,8 @@ type RawMatch = {
   estado: string
   fecha_registro_prosp: Date | null
   fecha_inscrito: Date | null
+  bot_intervino_fecha: Date | null
+  bot_observaciones: string | null
 }
 
 export async function crossProspectsWithLeads(options?: {
@@ -75,7 +81,9 @@ export async function crossProspectsWithLeads(options?: {
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
             p.fecha_inscrito       AS fecha_inscrito,
-            p.vendedor             AS vendedor_nsv
+            p.vendedor             AS vendedor_nsv,
+            b.fecha_creacion       AS bot_intervino_fecha,
+            b.observaciones        AS bot_observaciones
           FROM comercial.bd_leads l
           LEFT JOIN comercial.bd_asesores a
             ON a.id_asesor = l.ultimo_asesor_asignado
@@ -88,6 +96,15 @@ export async function crossProspectsWithLeads(options?: {
             ORDER BY np.fecha_registro DESC
             LIMIT 1
           ) p ON true
+          LEFT JOIN LATERAL (
+            SELECT ac.fecha_creacion, ac.observaciones
+            FROM comercial.crm_acciones_comerciales ac
+            WHERE ac.id_lead = l.id_lead
+              AND ac.tipo_accion = 'Mensaje_WSP'
+              AND ac.observaciones LIKE '[REACTIVACION]%'
+            ORDER BY ac.fecha_creacion DESC
+            LIMIT 1
+          ) b ON true
           WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
             AND l.fecha_creacion <= NOW()
             AND l.ultimo_asesor_asignado = ${idAsesor}::uuid
@@ -105,7 +122,9 @@ export async function crossProspectsWithLeads(options?: {
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
             p.fecha_inscrito       AS fecha_inscrito,
-            p.vendedor             AS vendedor_nsv
+            p.vendedor             AS vendedor_nsv,
+            b.fecha_creacion       AS bot_intervino_fecha,
+            b.observaciones        AS bot_observaciones
           FROM comercial.bd_leads l
           LEFT JOIN comercial.bd_asesores a
             ON a.id_asesor = l.ultimo_asesor_asignado
@@ -118,6 +137,15 @@ export async function crossProspectsWithLeads(options?: {
             ORDER BY np.fecha_registro DESC
             LIMIT 1
           ) p ON true
+          LEFT JOIN LATERAL (
+            SELECT ac.fecha_creacion, ac.observaciones
+            FROM comercial.crm_acciones_comerciales ac
+            WHERE ac.id_lead = l.id_lead
+              AND ac.tipo_accion = 'Mensaje_WSP'
+              AND ac.observaciones LIKE '[REACTIVACION]%'
+            ORDER BY ac.fecha_creacion DESC
+            LIMIT 1
+          ) b ON true
           WHERE l.fecha_creacion >= ${RANGO_DESDE}::timestamptz
             AND l.fecha_creacion <= NOW()
         `,
@@ -141,22 +169,33 @@ export async function crossProspectsWithLeads(options?: {
 
   const totalLeadsCrm = Number(totalRow[0].total)
 
-  const matches: ProspectMatch[] = rawMatches.map((r) => ({
-    id_lead: r.id_lead,
-    dni: r.dni,
-    numero: r.numero,
-    nombre: r.nombre,
-    apellido: r.apellido,
-    base: r.base,
-    fecha_creacion: r.fecha_creacion.toISOString(),
-    fecha_registro_prosp: r.fecha_registro_prosp ? r.fecha_registro_prosp.toISOString() : null,
-    fecha_inscrito: r.fecha_inscrito ? r.fecha_inscrito.toISOString() : null,
-    asesor: r.asesor,
-    vendedor_nsv: r.vendedor_nsv,
-    estado: r.estado?.trim() || '(sin estado)',
-    mes: leadMonthLima(r.fecha_creacion),
-    mes_cierre: r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null,
-  }))
+  const matches: ProspectMatch[] = rawMatches.map((r) => {
+    // Extraer la razon del observaciones: viene como "[REACTIVACION] <razon real>"
+    let bot_razon: string | null = null
+    if (r.bot_observaciones) {
+      const cleaned = r.bot_observaciones.replace(/^\s*\[REACTIVACION\]\s*/i, '').trim()
+      bot_razon = cleaned || null
+    }
+    return {
+      id_lead: r.id_lead,
+      dni: r.dni,
+      numero: r.numero,
+      nombre: r.nombre,
+      apellido: r.apellido,
+      base: r.base,
+      fecha_creacion: r.fecha_creacion.toISOString(),
+      fecha_registro_prosp: r.fecha_registro_prosp ? r.fecha_registro_prosp.toISOString() : null,
+      fecha_inscrito: r.fecha_inscrito ? r.fecha_inscrito.toISOString() : null,
+      asesor: r.asesor,
+      vendedor_nsv: r.vendedor_nsv,
+      estado: r.estado?.trim() || '(sin estado)',
+      mes: leadMonthLima(r.fecha_creacion),
+      mes_cierre: r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null,
+      bot_intervino: r.bot_intervino_fecha !== null,
+      bot_intervino_fecha: r.bot_intervino_fecha ? r.bot_intervino_fecha.toISOString() : null,
+      bot_razon,
+    }
+  })
 
   const mesesDisponibles = Array.from(
     new Set(rawMatches.map((r) => leadMonthLima(r.fecha_creacion))),
