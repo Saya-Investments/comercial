@@ -16,6 +16,9 @@ export type ProspectMatch = {
   fecha_registro_prosp: string | null
   fecha_inscrito: string | null
   asesor: string | null
+  call_center: string | null
+  origen_gestion: 'asesor' | 'call_center'
+  responsable_gestion: string | null
   vendedor_nsv: string | null
   estado: string
   mes: string
@@ -47,6 +50,9 @@ type RawMatch = {
   base: string | null
   fecha_creacion: Date
   asesor: string | null
+  call_center: string | null
+  asignado_call_center: string | null
+  via_call_center: boolean | null
   vendedor_nsv: string | null
   estado: string
   fecha_registro_prosp: Date | null
@@ -78,6 +84,14 @@ export async function crossProspectsWithLeads(options?: {
             l."Base"               AS base,
             l.fecha_creacion,
             a.nombre_asesor        AS asesor,
+            COALESCE(cc_actual.nombre, cc_hist.nombre, cc_accion.nombre) AS call_center,
+            l.asignado_call_center::text AS asignado_call_center,
+            EXISTS (
+              SELECT 1
+              FROM comercial.hist_asignaciones ha
+              WHERE ha.id_lead = l.id_lead
+                AND ha.via_call_center = true
+            ) AS via_call_center,
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
             p.fecha_inscrito       AS fecha_inscrito,
@@ -87,6 +101,29 @@ export async function crossProspectsWithLeads(options?: {
           FROM comercial.bd_leads l
           LEFT JOIN comercial.bd_asesores a
             ON a.id_asesor = l.ultimo_asesor_asignado
+          LEFT JOIN comercial.bd_call_center cc_actual
+            ON cc_actual.id_call_center = l.asignado_call_center
+          LEFT JOIN LATERAL (
+            SELECT cc.nombre
+            FROM comercial.hist_cc_derivaciones hcc
+            JOIN comercial.bd_call_center cc
+              ON cc.id_call_center = hcc.id_call_center
+            WHERE hcc.id_lead = l.id_lead
+            ORDER BY hcc.fecha_asignacion_cc DESC
+            LIMIT 1
+          ) cc_hist ON true
+          LEFT JOIN LATERAL (
+            SELECT cc.nombre
+            FROM comercial.crm_acciones_comerciales ac
+            JOIN comercial.crm_usuarios u
+              ON u.id_usuario = ac.id_usuario
+            JOIN comercial.bd_call_center cc
+              ON cc.id_call_center = u.id_call_center
+            WHERE ac.id_lead = l.id_lead
+              AND u.id_call_center IS NOT NULL
+            ORDER BY ac.fecha_creacion DESC
+            LIMIT 1
+          ) cc_accion ON true
           JOIN LATERAL (
             SELECT np.estado_documento, np.fecha_registro, np.fecha_inscrito, np.vendedor
             FROM comercial.nsv_prospectos np
@@ -119,6 +156,14 @@ export async function crossProspectsWithLeads(options?: {
             l."Base"               AS base,
             l.fecha_creacion,
             a.nombre_asesor        AS asesor,
+            COALESCE(cc_actual.nombre, cc_hist.nombre, cc_accion.nombre) AS call_center,
+            l.asignado_call_center::text AS asignado_call_center,
+            EXISTS (
+              SELECT 1
+              FROM comercial.hist_asignaciones ha
+              WHERE ha.id_lead = l.id_lead
+                AND ha.via_call_center = true
+            ) AS via_call_center,
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
             p.fecha_inscrito       AS fecha_inscrito,
@@ -128,6 +173,29 @@ export async function crossProspectsWithLeads(options?: {
           FROM comercial.bd_leads l
           LEFT JOIN comercial.bd_asesores a
             ON a.id_asesor = l.ultimo_asesor_asignado
+          LEFT JOIN comercial.bd_call_center cc_actual
+            ON cc_actual.id_call_center = l.asignado_call_center
+          LEFT JOIN LATERAL (
+            SELECT cc.nombre
+            FROM comercial.hist_cc_derivaciones hcc
+            JOIN comercial.bd_call_center cc
+              ON cc.id_call_center = hcc.id_call_center
+            WHERE hcc.id_lead = l.id_lead
+            ORDER BY hcc.fecha_asignacion_cc DESC
+            LIMIT 1
+          ) cc_hist ON true
+          LEFT JOIN LATERAL (
+            SELECT cc.nombre
+            FROM comercial.crm_acciones_comerciales ac
+            JOIN comercial.crm_usuarios u
+              ON u.id_usuario = ac.id_usuario
+            JOIN comercial.bd_call_center cc
+              ON cc.id_call_center = u.id_call_center
+            WHERE ac.id_lead = l.id_lead
+              AND u.id_call_center IS NOT NULL
+            ORDER BY ac.fecha_creacion DESC
+            LIMIT 1
+          ) cc_accion ON true
           JOIN LATERAL (
             SELECT np.estado_documento, np.fecha_registro, np.fecha_inscrito, np.vendedor
             FROM comercial.nsv_prospectos np
@@ -176,6 +244,9 @@ export async function crossProspectsWithLeads(options?: {
       const cleaned = r.bot_observaciones.replace(/^\s*\[REACTIVACION\]\s*/i, '').trim()
       bot_razon = cleaned || null
     }
+    const origen_gestion = r.asignado_call_center || r.via_call_center ? 'call_center' : 'asesor'
+    const responsable_gestion = origen_gestion === 'call_center' ? r.call_center : r.asesor
+
     return {
       id_lead: r.id_lead,
       dni: r.dni,
@@ -187,6 +258,9 @@ export async function crossProspectsWithLeads(options?: {
       fecha_registro_prosp: r.fecha_registro_prosp ? r.fecha_registro_prosp.toISOString() : null,
       fecha_inscrito: r.fecha_inscrito ? r.fecha_inscrito.toISOString() : null,
       asesor: r.asesor,
+      call_center: r.call_center,
+      origen_gestion,
+      responsable_gestion,
       vendedor_nsv: r.vendedor_nsv,
       estado: r.estado?.trim() || '(sin estado)',
       mes: leadMonthLima(r.fecha_creacion),

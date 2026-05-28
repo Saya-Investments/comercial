@@ -213,8 +213,13 @@ type LeadMatch = {
   fecha_creacion: string
   fecha_registro_prosp: string | null
   asesor: string | null
+  call_center: string | null
+  origen_gestion: 'asesor' | 'call_center'
+  responsable_gestion: string | null
   estado: string
 }
+
+type OrigenFiltro = 'todos' | 'asesor' | 'call_center'
 
 type FunnelResponse = {
   counts: Record<string, number>
@@ -225,6 +230,7 @@ type FunnelResponse = {
   mesesCierre: string[]
   mes: string | null
   mesCierre: string | null
+  origen: string | null
   rango: { desde: string; hastaIso: string }
 }
 
@@ -259,6 +265,7 @@ export function ProspectsFunnelModule() {
   // null = "Todos los meses" (default al abrir, segun acuerdo con negocio).
   const [mesActual, setMesActual] = useState<string | null>(null)
   const [mesCierreActual, setMesCierreActual] = useState<string | null>(null)
+  const [origenActual, setOrigenActual] = useState<OrigenFiltro>('todos')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [leadDetalle, setLeadDetalle] = useState<LeadModalData | null>(null)
@@ -270,6 +277,7 @@ export function ProspectsFunnelModule() {
     const params = new URLSearchParams()
     if (mesActual) params.set('mes', mesActual)
     if (mesCierreActual) params.set('mes_cierre', mesCierreActual)
+    if (origenActual !== 'todos') params.set('origen', origenActual)
     const url = `/api/prospects-funnel${params.size ? `?${params}` : ''}`
     fetch(url)
       .then(async r => {
@@ -292,7 +300,7 @@ export function ProspectsFunnelModule() {
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [mesActual, mesCierreActual])
+  }, [mesActual, mesCierreActual, origenActual])
 
   const leadsDelEstado = useMemo(
     () => (estadoSeleccionado ? leads.filter(l => l.estado === estadoSeleccionado) : []),
@@ -332,6 +340,7 @@ export function ProspectsFunnelModule() {
           </div>
 
           <div className="flex flex-col gap-2 items-end">
+            <SelectorOrigen origenActual={origenActual} onChange={setOrigenActual} />
             <SelectorMes
               label="Nació"
               mesActual={mesActual}
@@ -490,6 +499,44 @@ export function ProspectsFunnelModule() {
 }
 
 // ====================== Subcomponentes ======================
+
+function SelectorOrigen({
+  origenActual,
+  onChange,
+}: {
+  origenActual: OrigenFiltro
+  onChange: (origen: OrigenFiltro) => void
+}) {
+  const opciones: { value: OrigenFiltro; label: string }[] = [
+    { value: 'todos', label: 'Todos' },
+    { value: 'asesor', label: 'Asesor' },
+    { value: 'call_center', label: 'Call Center' },
+  ]
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap justify-end">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">Origen</span>
+      <div className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 p-0.5">
+        {opciones.map((op) => {
+          const activo = op.value === origenActual
+          return (
+            <button
+              key={op.value}
+              onClick={() => onChange(op.value)}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                activo
+                  ? 'bg-background text-foreground shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {op.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function SelectorMes({
   label = 'Mes',
@@ -718,6 +765,9 @@ function LeadsEnEstadoCard({
   const nombreCompleto = (l: LeadMatch) =>
     [l.nombre, l.apellido].filter(Boolean).join(' ').trim() || '—'
 
+  const responsableGestion = (l: LeadMatch) =>
+    l.responsable_gestion ?? (l.origen_gestion === 'call_center' ? 'Call Center' : '—')
+
   const formatoFecha = (iso: string | null) => {
     if (!iso) return '—'
     const d = new Date(iso)
@@ -758,7 +808,8 @@ function LeadsEnEstadoCard({
                 <th className="text-left font-medium px-3 py-2">DNI</th>
                 <th className="text-left font-medium px-3 py-2">Teléfono</th>
                 <th className="text-left font-medium px-3 py-2">Base</th>
-                <th className="text-left font-medium px-3 py-2">Asesor</th>
+                <th className="text-left font-medium px-3 py-2">Origen</th>
+                <th className="text-left font-medium px-3 py-2">Responsable</th>
                 <th className="text-left font-medium px-3 py-2 whitespace-nowrap">Fecha creación</th>
                 <th className="text-left font-medium px-3 py-2 whitespace-nowrap">Fecha registro Prospecto</th>
                 <th className="text-right font-medium px-3 py-2">Acciones</th>
@@ -771,7 +822,10 @@ function LeadsEnEstadoCard({
                   <td className="px-3 py-2 tabular-nums text-muted-foreground">{l.dni ?? '—'}</td>
                   <td className="px-3 py-2 tabular-nums text-muted-foreground">{l.numero ?? '—'}</td>
                   <td className="px-3 py-2 text-muted-foreground">{l.base ?? '—'}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{l.asesor ?? '—'}</td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {l.origen_gestion === 'call_center' ? 'Call Center' : 'Asesor'}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">{responsableGestion(l)}</td>
                   <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">{formatoFecha(l.fecha_creacion)}</td>
                   <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">{formatoFecha(l.fecha_registro_prosp)}</td>
                   <td className="px-3 py-2 text-right">
