@@ -27,6 +27,7 @@ interface Lead {
   score?: number
   estadoAsesor?: string
   fechaAsignacion?: string | null
+  ultimoMensajeLead?: string | null
   gestionado?: boolean
 }
 
@@ -36,6 +37,8 @@ interface LeadsTableProps {
   filterStatus?: string
   filterDate?: string
   filterDateTo?: string
+  filterMsgDate?: string
+  filterMsgDateTo?: string
   filterAsesor?: string
   filterCallCenter?: string
   filterBase?: string
@@ -49,6 +52,8 @@ export function LeadsTable({
   filterStatus = '',
   filterDate = '',
   filterDateTo = '',
+  filterMsgDate = '',
+  filterMsgDateTo = '',
   filterAsesor = '',
   filterCallCenter = '',
   filterBase = '',
@@ -110,12 +115,15 @@ export function LeadsTable({
     const matchesDateTo = !filterDateTo || lead.assignedDate <= filterDateTo
     const matchesBase = !filterBase || (lead.base || 'Caliente') === filterBase
     const matchesEstadoAsesor = !filterEstadoAsesor || lead.estadoAsesor === filterEstadoAsesor
-    return matchesPriority && matchesStatus && matchesDate && matchesDateTo && matchesBase && matchesEstadoAsesor
+    const msgDay = lead.ultimoMensajeLead ? lead.ultimoMensajeLead.slice(0, 10) : ''
+    const matchesMsgDate = !filterMsgDate || (msgDay && msgDay >= filterMsgDate)
+    const matchesMsgDateTo = !filterMsgDateTo || (msgDay && msgDay <= filterMsgDateTo)
+    return matchesPriority && matchesStatus && matchesDate && matchesDateTo && matchesBase && matchesEstadoAsesor && matchesMsgDate && matchesMsgDateTo
   })
 
   useEffect(() => {
     setCurrentPage(0)
-  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor])
+  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterMsgDate, filterMsgDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor])
 
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE))
   const safePage = Math.min(currentPage, totalPages - 1)

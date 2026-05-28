@@ -197,6 +197,21 @@ export async function GET(req: NextRequest) {
     leadMetadata.map((row) => [row.id_lead, row])
   )
 
+  // Última fecha en la que el LEAD escribió (inbound).
+  type UltimoMsgRow = { id_lead: string; max_ts: Date | null }
+  const ultimoMsgAgg: UltimoMsgRow[] = leadIds.length > 0
+    ? await prisma.$queryRaw<UltimoMsgRow[]>`
+        SELECT id_lead, MAX("timestamp") AS max_ts
+        FROM comercial.hist_conversaciones
+        WHERE id_lead = ANY(${leadIds}::uuid[])
+          AND direccion = 'inbound'
+        GROUP BY id_lead
+      `
+    : []
+  const ultimoMsgByLead = new Map(
+    ultimoMsgAgg.map((r) => [r.id_lead, r.max_ts])
+  )
+
   const mapped = leads.map((l) => {
     const fechaAsignacion = l.matching[0]?.fecha_asignacion ?? null
     const maxAccion = maxAccionByLead.get(l.id_lead) ?? null
@@ -224,6 +239,7 @@ export async function GET(req: NextRequest) {
       segmento: l.segmento_de_scoring || '',
       estadoAsesor: l.ultimo_estado_asesor || '',
       fechaAsignacion: fechaAsignacion?.toISOString() || null,
+      ultimoMensajeLead: ultimoMsgByLead.get(l.id_lead)?.toISOString() || null,
       gestionado,
     }
   })
