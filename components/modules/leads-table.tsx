@@ -187,6 +187,19 @@ export function LeadsTable({
     )
   }
 
+  const formatUltimoMensaje = (iso?: string | null) => {
+    if (!iso) return <span className="text-xs text-muted-foreground">--</span>
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return <span className="text-xs text-muted-foreground">--</span>
+    const fecha = d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const hora = d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+    return (
+      <span className="text-foreground">
+        {fecha} <span className="text-muted-foreground">{hora}</span>
+      </span>
+    )
+  }
+
   const getScoreBadge = (score?: number) => {
     if (score === undefined) return <span className="text-sm text-muted-foreground">--</span>
     if (score >= 70) return <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">{score}</span>
@@ -252,6 +265,7 @@ export function LeadsTable({
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Scoring</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Estado</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha</th>
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Último mensaje lead</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Producto</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Prioridad</th>
                 {user?.role === 'admin' && <th className="px-6 py-3 text-left font-semibold text-foreground">Base</th>}
@@ -277,6 +291,7 @@ export function LeadsTable({
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>{lead.status}</span>
                   </td>
                   <td className="px-6 py-4 text-foreground">{lead.assignedDate}</td>
+                  <td className="px-6 py-4">{formatUltimoMensaje(lead.ultimoMensajeLead)}</td>
                   <td className="px-6 py-4 text-foreground">{lead.product}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
@@ -341,7 +356,7 @@ export function LeadsTable({
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">No se encontraron leads con los filtros aplicados</td>
+                  <td colSpan={12} className="px-6 py-12 text-center text-muted-foreground">No se encontraron leads con los filtros aplicados</td>
                 </tr>
               )}
             </tbody>
