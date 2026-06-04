@@ -220,6 +220,7 @@ type LeadMatch = {
 }
 
 type OrigenFiltro = 'todos' | 'asesor' | 'call_center'
+type BaseFiltro = 'todas' | 'Caliente' | 'Stock'
 
 type FunnelResponse = {
   counts: Record<string, number>
@@ -266,6 +267,7 @@ export function ProspectsFunnelModule() {
   const [mesActual, setMesActual] = useState<string | null>(null)
   const [mesCierreActual, setMesCierreActual] = useState<string | null>(null)
   const [origenActual, setOrigenActual] = useState<OrigenFiltro>('todos')
+  const [baseActual, setBaseActual] = useState<BaseFiltro>('todas')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [leadDetalle, setLeadDetalle] = useState<LeadModalData | null>(null)
@@ -278,6 +280,7 @@ export function ProspectsFunnelModule() {
     if (mesActual) params.set('mes', mesActual)
     if (mesCierreActual) params.set('mes_cierre', mesCierreActual)
     if (origenActual !== 'todos') params.set('origen', origenActual)
+    if (baseActual !== 'todas') params.set('base', baseActual)
     const url = `/api/prospects-funnel${params.size ? `?${params}` : ''}`
     fetch(url)
       .then(async r => {
@@ -300,7 +303,7 @@ export function ProspectsFunnelModule() {
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [mesActual, mesCierreActual, origenActual])
+  }, [mesActual, mesCierreActual, origenActual, baseActual])
 
   const leadsDelEstado = useMemo(
     () => (estadoSeleccionado ? leads.filter(l => l.estado === estadoSeleccionado) : []),
@@ -341,6 +344,7 @@ export function ProspectsFunnelModule() {
 
           <div className="flex flex-col gap-2 items-end">
             <SelectorOrigen origenActual={origenActual} onChange={setOrigenActual} />
+            <SelectorBase baseActual={baseActual} onChange={setBaseActual} />
             <SelectorMes
               label="Nació"
               mesActual={mesActual}
@@ -519,6 +523,44 @@ function SelectorOrigen({
       <div className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 p-0.5">
         {opciones.map((op) => {
           const activo = op.value === origenActual
+          return (
+            <button
+              key={op.value}
+              onClick={() => onChange(op.value)}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                activo
+                  ? 'bg-background text-foreground shadow-sm font-medium'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {op.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function SelectorBase({
+  baseActual,
+  onChange,
+}: {
+  baseActual: BaseFiltro
+  onChange: (base: BaseFiltro) => void
+}) {
+  const opciones: { value: BaseFiltro; label: string }[] = [
+    { value: 'todas', label: 'Todas' },
+    { value: 'Caliente', label: 'Caliente' },
+    { value: 'Stock', label: 'Stock' },
+  ]
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap justify-end">
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">Base</span>
+      <div className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 p-0.5">
+        {opciones.map((op) => {
+          const activo = op.value === baseActual
           return (
             <button
               key={op.value}

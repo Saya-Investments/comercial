@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const mesParam = url.searchParams.get('mes')?.trim() || null
   const mesCierreParam = url.searchParams.get('mes_cierre')?.trim() || null
   const origenParam = url.searchParams.get('origen')?.trim() || null
+  const baseParam = url.searchParams.get('base')?.trim() || null
 
   const { matches, totalLeadsCrm, mesesDisponibles, mesesCierre } = await crossProspectsWithLeads()
 
@@ -15,6 +16,9 @@ export async function GET(request: Request) {
   if (mesCierreParam) filtered = filtered.filter(m => m.mes_cierre === mesCierreParam)
   if (origenParam === 'asesor' || origenParam === 'call_center') {
     filtered = filtered.filter(m => m.origen_gestion === origenParam)
+  }
+  if (baseParam === 'Caliente' || baseParam === 'Stock') {
+    filtered = filtered.filter(m => m.base === baseParam)
   }
 
   const counts: Record<string, number> = {}
