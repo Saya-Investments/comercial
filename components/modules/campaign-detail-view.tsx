@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   ArrowLeft,
-  ArrowRight,
   Send,
   Loader2,
   CheckCircle2,
@@ -75,6 +74,7 @@ interface CampaignLead {
   errorCode: string | null
   errorDescripcion: string | null
   estadoFunnel?: string | null
+  tieneAccion?: boolean
 }
 
 interface CampaignStats {
@@ -470,6 +470,7 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
                   <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Correo</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Zona</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Origen</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Estado Funnel</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Estado Envío</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-foreground">Fecha Envío</th>
                 </tr>
@@ -491,6 +492,14 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{lead.zona || '-'}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{lead.origen || '-'}</td>
+                    <td className="px-4 py-3">
+                      {lead.estadoFunnel
+                        ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">{lead.estadoFunnel}</span>
+                        : lead.tieneAccion
+                          ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">Gestionado</span>
+                          : <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">Asignado</span>
+                      }
+                    </td>
                     <td className="px-4 py-3">{getEnvioStatusBadge(lead)}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {lead.fechaEnvio
@@ -507,7 +516,7 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
                 ))}
                 {paginatedLeads.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                       {searchTerm || statusFilter !== 'todos'
                         ? 'No se encontraron leads con los filtros aplicados'
                         : 'No hay leads en esta campaña'}
@@ -559,35 +568,7 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
   )
 }
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-
-function FunnelCircle({
-  value,
-  label,
-  pct,
-  color,
-}: {
-  value: number
-  label: string
-  pct?: string
-  color: string
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
-      <div className={`w-20 h-20 rounded-full ${color} flex items-center justify-center shadow-sm`}>
-        <span className="text-white text-xl font-bold tabular-nums">{value.toLocaleString('es-PE')}</span>
-      </div>
-      <p className="text-sm font-semibold text-foreground text-center leading-tight">{label}</p>
-      {pct !== undefined && <p className="text-xs text-muted-foreground">{pct}%</p>}
-    </div>
-  )
-}
-
-function FunnelArrow() {
-  return <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-8" />
-}
-
-// ─── Funnel combinado Bot + NSV ─────────────────────────────────────────────
+// ─── Funnel NSV ──────────────────────────────────────────────────────────────
 
 const NSV_ETAPAS: { titulo: string; color: string; estados: string[] }[] = [
   { titulo: 'Contacto',       color: 'sky',     estados: ['No contactado', 'Contactado'] },

@@ -75,17 +75,18 @@ export async function GET(
 
   // Bot funnel stats: En Gestión → Asignados → Gestionados → Prospectos
   const leadIdsList = leads.map((cl) => cl.bd_leads.id_lead)
-  let gestionadosCount = 0
+  let gestionadosSet = new Set<string>()
   if (leadIdsList.length > 0) {
     try {
-      const gRes = await prisma.$queryRaw<[{ count: bigint }]>`
-        SELECT COUNT(DISTINCT id_lead) AS count
+      const gRes = await prisma.$queryRaw<{ id_lead: string }[]>`
+        SELECT DISTINCT id_lead::text AS id_lead
         FROM comercial.crm_acciones_comerciales
         WHERE id_lead = ANY(${leadIdsList}::uuid[])
       `
-      gestionadosCount = Number(gRes[0]?.count || 0)
+      gestionadosSet = new Set(gRes.map((r) => r.id_lead))
     } catch { /* skip */ }
   }
+  const gestionadosCount = gestionadosSet.size
   const estadoCounts = leads.reduce((acc, cl) => {
     const e = cl.bd_leads.estado_de_lead || 'lead'
     acc[e] = (acc[e] || 0) + 1
@@ -136,6 +137,7 @@ export async function GET(
       errorCode: cl.error_code || null,
       errorDescripcion: cl.error_descripcion || null,
       estadoFunnel: nsvByPhone.get((cl.bd_leads.numero || '').replace(/\D/g, '').slice(-9)) ?? null,
+      tieneAccion: gestionadosSet.has(cl.bd_leads.id_lead),
     })),
   })
 }
