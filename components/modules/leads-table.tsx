@@ -29,6 +29,7 @@ interface Lead {
   fechaAsignacion?: string | null
   ultimoMensajeLead?: string | null
   gestionado?: boolean
+  estadoFunnel?: string | null
 }
 
 interface LeadsTableProps {
@@ -43,6 +44,7 @@ interface LeadsTableProps {
   filterCallCenter?: string
   filterBase?: string
   filterEstadoAsesor?: string
+  filterFunnelEstado?: string
   onEstadoAsesorOptionsChange?: (options: string[]) => void
 }
 
@@ -58,6 +60,7 @@ export function LeadsTable({
   filterCallCenter = '',
   filterBase = '',
   filterEstadoAsesor = '',
+  filterFunnelEstado = '',
   onEstadoAsesorOptionsChange,
 }: LeadsTableProps) {
   const { user } = useAuth()
@@ -115,15 +118,16 @@ export function LeadsTable({
     const matchesDateTo = !filterDateTo || lead.assignedDate <= filterDateTo
     const matchesBase = !filterBase || (lead.base || 'Caliente') === filterBase
     const matchesEstadoAsesor = !filterEstadoAsesor || lead.estadoAsesor === filterEstadoAsesor
+    const matchesFunnelEstado = !filterFunnelEstado || lead.estadoFunnel === filterFunnelEstado
     const msgDay = lead.ultimoMensajeLead ? lead.ultimoMensajeLead.slice(0, 10) : ''
     const matchesMsgDate = !filterMsgDate || (msgDay && msgDay >= filterMsgDate)
     const matchesMsgDateTo = !filterMsgDateTo || (msgDay && msgDay <= filterMsgDateTo)
-    return matchesPriority && matchesStatus && matchesDate && matchesDateTo && matchesBase && matchesEstadoAsesor && matchesMsgDate && matchesMsgDateTo
+    return matchesPriority && matchesStatus && matchesDate && matchesDateTo && matchesBase && matchesEstadoAsesor && matchesFunnelEstado && matchesMsgDate && matchesMsgDateTo
   })
 
   useEffect(() => {
     setCurrentPage(0)
-  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterMsgDate, filterMsgDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor])
+  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterMsgDate, filterMsgDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor, filterFunnelEstado])
 
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE))
   const safePage = Math.min(currentPage, totalPages - 1)
@@ -266,7 +270,7 @@ export function LeadsTable({
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Estado</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Fecha</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Último mensaje lead</th>
-                <th className="px-6 py-3 text-left font-semibold text-foreground">Producto</th>
+                <th className="px-6 py-3 text-left font-semibold text-foreground">Estado Funnel</th>
                 <th className="px-6 py-3 text-left font-semibold text-foreground">Prioridad</th>
                 {user?.role === 'admin' && <th className="px-6 py-3 text-left font-semibold text-foreground">Base</th>}
                 <th className="px-6 py-3 text-center font-semibold text-foreground">Reasignacion</th>
@@ -292,7 +296,12 @@ export function LeadsTable({
                   </td>
                   <td className="px-6 py-4 text-foreground">{lead.assignedDate}</td>
                   <td className="px-6 py-4">{formatUltimoMensaje(lead.ultimoMensajeLead)}</td>
-                  <td className="px-6 py-4 text-foreground">{lead.product}</td>
+                  <td className="px-6 py-4">
+                    {lead.estadoFunnel
+                      ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">{lead.estadoFunnel}</span>
+                      : <span className="text-xs text-muted-foreground">—</span>
+                    }
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
                   </td>

@@ -329,7 +329,7 @@ export function ProspectsFunnelModule() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="bg-background border-b border-border p-4 md:p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
               <Filter className="w-5 h-5 text-primary" />
@@ -341,23 +341,23 @@ export function ProspectsFunnelModule() {
               </p>
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2 items-end">
-            <SelectorOrigen origenActual={origenActual} onChange={setOrigenActual} />
-            <SelectorBase baseActual={baseActual} onChange={setBaseActual} />
-            <SelectorMes
-              label="Nació"
-              mesActual={mesActual}
-              mesesDisponibles={mesesDisponibles}
-              onChange={setMesActual}
-            />
-            <SelectorMes
-              label="Cerró"
-              mesActual={mesCierreActual}
-              mesesDisponibles={mesesCierre}
-              onChange={setMesCierreActual}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <SelectorOrigen origenActual={origenActual} onChange={setOrigenActual} />
+          <SelectorBase baseActual={baseActual} onChange={setBaseActual} />
+          <SelectorMes
+            label="Nació"
+            mesActual={mesActual}
+            mesesDisponibles={mesesDisponibles}
+            onChange={setMesActual}
+          />
+          <SelectorMes
+            label="Cerró"
+            mesActual={mesCierreActual}
+            mesesDisponibles={mesesCierre}
+            onChange={setMesCierreActual}
+          />
         </div>
       </div>
 

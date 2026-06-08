@@ -36,6 +36,7 @@ export function LeadsModule() {
   const [filterCallCenter, setFilterCallCenter] = useState<string>('')
   const [filterBase, setFilterBase] = useState<string>('')
   const [filterEstadoAsesor, setFilterEstadoAsesor] = useState<string>('')
+  const [filterFunnelEstado, setFilterFunnelEstado] = useState<string>('')
   const [estadoAsesorOptions, setEstadoAsesorOptions] = useState<string[]>([])
   const [asesores, setAsesores] = useState<AsesorOption[]>([])
   const [callCenters, setCallCenters] = useState<CallCenterOption[]>([])
@@ -74,6 +75,7 @@ export function LeadsModule() {
     filterStatus && { key: 'status', label: `Estado: ${filterStatus}`, onRemove: () => setFilterStatus('') },
     filterBase && { key: 'base', label: `Base: ${filterBase}`, onRemove: () => setFilterBase('') },
     filterEstadoAsesor && { key: 'estadoAsesor', label: `Estado asesor: ${filterEstadoAsesor}`, onRemove: () => setFilterEstadoAsesor('') },
+    filterFunnelEstado && { key: 'funnelEstado', label: `Funnel: ${filterFunnelEstado}`, onRemove: () => setFilterFunnelEstado('') },
     filterAsesor && { key: 'asesor', label: `Asesor: ${asesorName}`, onRemove: () => setFilterAsesor('') },
     filterCallCenter && { key: 'cc', label: `Call center: ${callCenterName}`, onRemove: () => setFilterCallCenter('') },
     filterDate && { key: 'dateFrom', label: `Asignado desde: ${filterDate}`, onRemove: () => setFilterDate('') },
@@ -93,6 +95,7 @@ export function LeadsModule() {
     setFilterCallCenter('')
     setFilterBase('')
     setFilterEstadoAsesor('')
+    setFilterFunnelEstado('')
   }
 
   const selectClass = 'h-9 px-3 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm'
@@ -183,6 +186,58 @@ export function LeadsModule() {
                   {estadoAsesorOptions.map((estado) => (
                     <option key={estado} value={estado}>{estado}</option>
                   ))}
+                </select>
+
+                <select value={filterFunnelEstado} onChange={(e) => setFilterFunnelEstado(e.target.value)} className={selectClass}>
+                  <option value="">Estado funnel</option>
+                  <optgroup label="Contacto">
+                    <option>No contactado</option>
+                    <option>Contactado</option>
+                  </optgroup>
+                  <optgroup label="Proforma">
+                    <option>Con proforma</option>
+                    <option>Proforma aprobada</option>
+                  </optgroup>
+                  <optgroup label="Pago">
+                    <option>Pago parcial</option>
+                    <option>Pago completo</option>
+                  </optgroup>
+                  <optgroup label="Documentación">
+                    <option>Documentación EDB</option>
+                    <option>Subsanado</option>
+                  </optgroup>
+                  <optgroup label="Evaluación">
+                    <option>Enviado a EDB</option>
+                    <option>En evaluación EDB</option>
+                    <option>Aprobado EDB</option>
+                    <option>Enviado a Supervisor</option>
+                    <option>En Oficial de Cumplimiento</option>
+                    <option>Enviado a ADV</option>
+                    <option>En evaluación ADV</option>
+                    <option>En evaluación Riesgo</option>
+                    <option>Aprobado</option>
+                    <option>Aprobado con observación</option>
+                  </optgroup>
+                  <optgroup label="Firma">
+                    <option>En coordinación</option>
+                    <option>Firmas en Revisión</option>
+                    <option>Firmando</option>
+                    <option>Firmado Parcialmente</option>
+                    <option>Firmado</option>
+                  </optgroup>
+                  <optgroup label="Inscripción">
+                    <option>Inscrito Parcialmente</option>
+                    <option>Inscrito</option>
+                  </optgroup>
+                  <optgroup label="Salidas">
+                    <option>Rechazado</option>
+                    <option>Devuelto</option>
+                    <option>Firma Rechazada</option>
+                    <option>Firma Cancelada</option>
+                    <option>Firma Expirada</option>
+                    <option>Descartado</option>
+                    <option>Anulado</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -291,6 +346,7 @@ export function LeadsModule() {
           filterCallCenter={filterCallCenter}
           filterBase={filterBase}
           filterEstadoAsesor={filterEstadoAsesor}
+          filterFunnelEstado={filterFunnelEstado}
           onEstadoAsesorOptionsChange={setEstadoAsesorOptions}
         />
       </div>

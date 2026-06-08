@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   ArrowLeft,
+  ArrowRight,
   Send,
   Loader2,
   CheckCircle2,
@@ -73,6 +74,7 @@ interface CampaignLead {
   respondio: boolean
   errorCode: string | null
   errorDescripcion: string | null
+  estadoFunnel?: string | null
 }
 
 interface CampaignStats {
@@ -99,6 +101,15 @@ interface CampaignDetail {
   startDate: string | null
   endDate: string | null
   stats: CampaignStats
+  funnelCounts?: Record<string, number>
+  botFunnel?: {
+    total: number
+    enGestion: number
+    asignados: number
+    descartados: number
+    gestionados: number
+    prospectos: number
+  }
   leads: CampaignLead[]
 }
 
@@ -407,6 +418,9 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
           )}
         </Card>
 
+        {/* Funnel combinado: estados bot → estados NSV */}
+        <CampaignFunnelView campaign={campaign} />
+
         {/* Leads Table */}
         <Card className="overflow-hidden">
           <div className="p-4 border-b border-border">
@@ -537,10 +551,177 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
           )}
         </Card>
 
-        {/* Contactabilidad */}
-        <ContactabilidadSection campaign={campaign} />
       </div>
     </div>
+  )
+}
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+function FunnelCircle({
+  value,
+  label,
+  pct,
+  color,
+}: {
+  value: number
+  label: string
+  pct?: string
+  color: string
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
+      <div className={`w-20 h-20 rounded-full ${color} flex items-center justify-center shadow-sm`}>
+        <span className="text-white text-xl font-bold tabular-nums">{value.toLocaleString('es-PE')}</span>
+      </div>
+      <p className="text-sm font-semibold text-foreground text-center leading-tight">{label}</p>
+      {pct !== undefined && <p className="text-xs text-muted-foreground">{pct}%</p>}
+    </div>
+  )
+}
+
+function FunnelArrow() {
+  return <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-8" />
+}
+
+// ─── Funnel combinado Bot + NSV ─────────────────────────────────────────────
+
+const NSV_ETAPAS: { titulo: string; color: string; estados: string[] }[] = [
+  { titulo: 'Contacto',       color: 'sky',     estados: ['No contactado', 'Contactado'] },
+  { titulo: 'Proforma',       color: 'indigo',  estados: ['Con proforma', 'Proforma aprobada'] },
+  { titulo: 'Pago',           color: 'emerald', estados: ['Pago parcial', 'Pago completo'] },
+  { titulo: 'Documentación',  color: 'violet',  estados: ['Documentación EDB', 'Subsanado'] },
+  { titulo: 'Evaluación',     color: 'fuchsia', estados: ['Enviado a EDB', 'En evaluación EDB', 'Aprobado EDB', 'Enviado a Supervisor', 'En Oficial de Cumplimiento', 'Enviado a ADV', 'En evaluación ADV', 'En evaluación Riesgo', 'Aprobado', 'Aprobado con observación'] },
+  { titulo: 'Firma',          color: 'amber',   estados: ['En coordinación', 'Firmas en Revisión', 'Firmando', 'Firmado Parcialmente', 'Firmado'] },
+  { titulo: 'Inscripción',    color: 'lime',    estados: ['Inscrito Parcialmente', 'Inscrito'] },
+]
+
+const NSV_SALIDAS = ['Rechazado', 'Devuelto', 'Firma Rechazada', 'Firma Cancelada', 'Firma Expirada', 'Descartado', 'Anulado']
+
+const NSV_COLOR_MAP: Record<string, { bg: string; text: string; chip: string; border: string }> = {
+  sky:     { bg: 'bg-sky-500',     text: 'text-sky-700',     chip: 'bg-sky-100 text-sky-800 border-sky-200',         border: 'border-sky-200' },
+  indigo:  { bg: 'bg-indigo-500',  text: 'text-indigo-700',  chip: 'bg-indigo-100 text-indigo-800 border-indigo-200', border: 'border-indigo-200' },
+  emerald: { bg: 'bg-emerald-500', text: 'text-emerald-700', chip: 'bg-emerald-100 text-emerald-800 border-emerald-200', border: 'border-emerald-200' },
+  violet:  { bg: 'bg-violet-500',  text: 'text-violet-700',  chip: 'bg-violet-100 text-violet-800 border-violet-200', border: 'border-violet-200' },
+  fuchsia: { bg: 'bg-fuchsia-500', text: 'text-fuchsia-700', chip: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200', border: 'border-fuchsia-200' },
+  amber:   { bg: 'bg-amber-500',   text: 'text-amber-700',   chip: 'bg-amber-100 text-amber-800 border-amber-200',   border: 'border-amber-200' },
+  lime:    { bg: 'bg-lime-500',    text: 'text-lime-700',    chip: 'bg-lime-100 text-lime-800 border-lime-200',     border: 'border-lime-200' },
+}
+
+function CampaignFunnelView({ campaign }: { campaign: CampaignDetail }) {
+  const bf = campaign.botFunnel
+  const funnelCounts = campaign.funnelCounts ?? {}
+  const totalNsv = Object.values(funnelCounts).reduce((s, n) => s + n, 0)
+  const nsvSalidas = NSV_SALIDAS.reduce((s, e) => s + (funnelCounts[e] ?? 0), 0)
+  const hasNsv = totalNsv > 0
+
+  return (
+    <Card className="p-6 space-y-6">
+      <h3 className="text-lg font-bold text-foreground">Funnel de Campaña</h3>
+
+      {/* ── Sección 1: Embudo del bot (estilo módulo asesores) */}
+      {bf && (
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estados del bot</p>
+
+          {/* Una sola fila: En Gestión → Asignados → Gestionados → Prospectos */}
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <FunnelCircle
+              value={bf.enGestion}
+              label="En Gestión"
+              pct="100"
+              color="bg-red-400"
+            />
+            <FunnelArrow />
+            <FunnelCircle
+              value={bf.asignados}
+              label="Asignados"
+              pct={bf.enGestion > 0 ? ((bf.asignados / bf.enGestion) * 100).toFixed(1) : '0'}
+              color="bg-blue-500"
+            />
+            <FunnelArrow />
+            <FunnelCircle
+              value={bf.gestionados}
+              label="Gestionados"
+              pct={bf.asignados > 0 ? ((bf.gestionados / bf.asignados) * 100).toFixed(1) : '0'}
+              color="bg-purple-500"
+            />
+            <FunnelArrow />
+            <FunnelCircle
+              value={bf.prospectos}
+              label="Prospectos"
+              pct={bf.asignados > 0 ? ((bf.prospectos / bf.asignados) * 100).toFixed(1) : '0'}
+              color="bg-green-500"
+            />
+            {bf.descartados > 0 && (
+              <span className="ml-2 text-xs text-muted-foreground italic self-end mb-6">
+                {bf.descartados} descartados
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Sección 2: Funnel NSV (continúa desde Prospectos) */}
+      <div className="border-t border-dashed border-border pt-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estados del funnel NSV</p>
+          {hasNsv
+            ? <span className="text-xs text-muted-foreground">({totalNsv} leads con prospecto registrado)</span>
+            : <span className="text-xs text-muted-foreground italic">Sin datos NSV aún</span>
+          }
+          {nsvSalidas > 0 && (
+            <span className="ml-auto text-xs text-slate-500">{nsvSalidas} salidas</span>
+          )}
+        </div>
+
+        {hasNsv ? (
+          <div className="overflow-x-auto pb-1">
+            <div className="flex gap-2 min-w-max">
+              {NSV_ETAPAS.map((etapa, i) => {
+                const c = NSV_COLOR_MAP[etapa.color]
+                const etapaTotal = etapa.estados.reduce((s, e) => s + (funnelCounts[e] ?? 0), 0)
+                return (
+                  <div key={etapa.titulo} className="flex items-stretch gap-2">
+                    {i > 0 && (
+                      <div className="flex items-center">
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/40 flex-shrink-0" />
+                      </div>
+                    )}
+                    <div className={`w-36 rounded-lg border ${c.border} bg-secondary/30 flex flex-col`}>
+                      <div className={`px-2.5 py-1.5 border-b ${c.border} flex items-center gap-1.5`}>
+                        <div className={`w-2 h-2 rounded-full ${c.bg} flex-shrink-0`} />
+                        <p className={`text-xs font-semibold ${c.text} truncate`}>{etapa.titulo}</p>
+                        <span className={`ml-auto text-sm font-bold ${c.text}`}>{etapaTotal}</span>
+                      </div>
+                      <div className="p-1.5 space-y-1 flex-1">
+                        {etapa.estados.map((est) => {
+                          const cnt = funnelCounts[est] ?? 0
+                          if (cnt === 0) return null
+                          return (
+                            <div key={est} className={`flex items-center justify-between rounded px-1.5 py-0.5 ${c.chip} border text-[10px]`}>
+                              <span className="truncate">{est}</span>
+                              <span className="font-bold ml-1 flex-shrink-0">{cnt}</span>
+                            </div>
+                          )
+                        })}
+                        {etapaTotal === 0 && (
+                          <p className="text-[10px] text-muted-foreground italic text-center py-1">—</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">
+            Ningún lead de esta campaña tiene prospecto registrado en NSV todavía.
+          </p>
+        )}
+      </div>
+    </Card>
   )
 }
 

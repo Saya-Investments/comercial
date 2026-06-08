@@ -212,11 +212,40 @@ export async function GET(req: NextRequest) {
     ultimoMsgAgg.map((r) => [r.id_lead, r.max_ts])
   )
 
+  // Estado funnel NSV: cruce por telefono_norm. Si falla o tarda, los leads
+  // cargan igual con estadoFunnel = null (no bloquea la tabla).
+  const phones9 = leads
+    .map((l) => (l.numero || '').replace(/\D/g, '').slice(-9))
+    .filter((p) => p.length === 9)
+
+  type FunnelEstadoRow = { phone9: string; estado_documento: string | null }
+  let funnelByPhone = new Map<string, string | null>()
+  if (phones9.length > 0) {
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 3000)
+      )
+      const funnelRows = await Promise.race([
+        prisma.$queryRaw<FunnelEstadoRow[]>`
+          SELECT telefono_norm AS phone9,
+                 estado_documento
+          FROM comercial.nsv_prospectos
+          WHERE telefono_norm = ANY(${phones9}::text[])
+        `,
+        timeout,
+      ])
+      funnelByPhone = new Map(funnelRows.map((r) => [r.phone9, r.estado_documento]))
+    } catch {
+      // si falla o supera 3s, los leads cargan sin estado funnel
+    }
+  }
+
   const mapped = leads.map((l) => {
     const fechaAsignacion = l.matching[0]?.fecha_asignacion ?? null
     const maxAccion = maxAccionByLead.get(l.id_lead) ?? null
     const gestionado = !!(fechaAsignacion && maxAccion && maxAccion >= fechaAsignacion)
     const metadata = leadMetadataById.get(l.id_lead)
+    const phone9 = (l.numero || '').replace(/\D/g, '').slice(-9)
     return {
       id: l.id_lead,
       dni: l.dni || '',
@@ -241,6 +270,7 @@ export async function GET(req: NextRequest) {
       fechaAsignacion: fechaAsignacion?.toISOString() || null,
       ultimoMensajeLead: ultimoMsgByLead.get(l.id_lead)?.toISOString() || null,
       gestionado,
+      estadoFunnel: funnelByPhone.get(phone9) ?? null,
     }
   })
 
