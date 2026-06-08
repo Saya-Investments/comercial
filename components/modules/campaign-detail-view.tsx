@@ -551,6 +551,9 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
           )}
         </Card>
 
+        {/* Contactabilidad */}
+        <ContactabilidadSection campaign={campaign} />
+
       </div>
     </div>
   )
@@ -609,7 +612,6 @@ const NSV_COLOR_MAP: Record<string, { bg: string; text: string; chip: string; bo
 }
 
 function CampaignFunnelView({ campaign }: { campaign: CampaignDetail }) {
-  const bf = campaign.botFunnel
   const funnelCounts = campaign.funnelCounts ?? {}
   const totalNsv = Object.values(funnelCounts).reduce((s, n) => s + n, 0)
   const nsvSalidas = NSV_SALIDAS.reduce((s, e) => s + (funnelCounts[e] ?? 0), 0)
@@ -619,53 +621,10 @@ function CampaignFunnelView({ campaign }: { campaign: CampaignDetail }) {
     <Card className="p-6 space-y-6">
       <h3 className="text-lg font-bold text-foreground">Funnel de Campaña</h3>
 
-      {/* ── Sección 1: Embudo del bot (estilo módulo asesores) */}
-      {bf && (
-        <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estados del bot</p>
-
-          {/* Una sola fila: En Gestión → Asignados → Gestionados → Prospectos */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <FunnelCircle
-              value={bf.enGestion}
-              label="En Gestión"
-              pct="100"
-              color="bg-red-400"
-            />
-            <FunnelArrow />
-            <FunnelCircle
-              value={bf.asignados}
-              label="Asignados"
-              pct={bf.enGestion > 0 ? ((bf.asignados / bf.enGestion) * 100).toFixed(1) : '0'}
-              color="bg-blue-500"
-            />
-            <FunnelArrow />
-            <FunnelCircle
-              value={bf.gestionados}
-              label="Gestionados"
-              pct={bf.asignados > 0 ? ((bf.gestionados / bf.asignados) * 100).toFixed(1) : '0'}
-              color="bg-purple-500"
-            />
-            <FunnelArrow />
-            <FunnelCircle
-              value={bf.prospectos}
-              label="Prospectos"
-              pct={bf.asignados > 0 ? ((bf.prospectos / bf.asignados) * 100).toFixed(1) : '0'}
-              color="bg-green-500"
-            />
-            {bf.descartados > 0 && (
-              <span className="ml-2 text-xs text-muted-foreground italic self-end mb-6">
-                {bf.descartados} descartados
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Sección 2: Funnel NSV (continúa desde Prospectos) */}
-      <div className="border-t border-dashed border-border pt-4 space-y-3">
+      {/* Funnel NSV */}
+      <div className="space-y-3">
         <div className="flex items-center gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estados del funnel NSV</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estados NSV</p>
           {hasNsv
             ? <span className="text-xs text-muted-foreground">({totalNsv} leads con prospecto registrado)</span>
             : <span className="text-xs text-muted-foreground italic">Sin datos NSV aún</span>
@@ -875,6 +834,241 @@ function ContactabilidadSection({ campaign }: { campaign: CampaignDetail }) {
           <div className="text-sm font-semibold text-foreground mb-3">
             Distribución de Estados
           </div>
+          {distribucion.length === 0 ? (
+            <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
+              Sin datos
+            </div>
+          ) : (
+            <div style={{ height: 220 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={distribucion}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={80}
+                    label={(e: { name: string; value: number }) => `${e.name}: ${e.value}`}
+                  >
+                    {distribucion.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ReTooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <div className="text-sm font-semibold text-foreground mb-3">Funnel de Conversión</div>
+          <div className="space-y-3">
+            {funnel.map((row) => {
+              const pct = row.base > 0 ? (row.value / row.base) * 100 : 0
+              return (
+                <div key={row.label}>
+                  <div className="text-xs text-foreground mb-1">
+                    {row.label} {row.value} ({pct.toFixed(1)}%)
+                  </div>
+                  <div className="w-full h-6 bg-secondary rounded-md overflow-hidden">
+                    <div
+                      className={`h-full ${row.color} text-white text-xs flex items-center justify-center font-medium`}
+                      style={{ width: `${Math.max(pct, 4)}%` }}
+                    >
+                      {pct.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-5">
+        <div className="text-sm font-semibold text-foreground mb-3">Errores Detectados</div>
+        {errorBars.length === 0 ? (
+          <div className="h-[160px] flex items-center justify-center text-sm text-muted-foreground">
+            No se detectaron errores en esta campaña
+          </div>
+        ) : (
+          <>
+            <div style={{ height: Math.max(160, errorBars.length * 36) }}>
+              <ResponsiveContainer>
+                <BarChart data={errorBars} layout="vertical" margin={{ left: 12, right: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} />
+                  <YAxis dataKey="code" type="category" width={80} />
+                  <ReTooltip />
+                  <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                Significado de los códigos
+              </div>
+              <div className="space-y-1">
+                {errorLegend.map((e) => (
+                  <div key={e.code} className="flex gap-3 text-sm">
+                    <span className="font-mono font-semibold text-foreground w-16">{e.code}</span>
+                    <span className="text-muted-foreground">{e.label}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground italic mt-3">
+                Los códigos de error más frecuentes pueden indicar problemas sistemáticos
+              </p>
+            </div>
+          </>
+        )}
+      </Card>
+    </Card>
+  )
+}
+
+// ─── Contactabilidad ─────────────────────────────────────────────────────────
+
+function ContactabilidadSection({ campaign }: { campaign: CampaignDetail }) {
+  const { leads } = campaign
+
+  const buckets = leads.reduce(
+    (acc, l) => {
+      const isFailed = ['failed', 'error'].includes(l.estadoEnvio)
+      const isSent = ['accepted', 'enviado'].includes(l.estadoEnvio)
+      if (isFailed) acc.fallido++
+      else if (l.respondio) acc.respondido++
+      else if (l.leido) acc.leido++
+      else if (l.entregado) acc.entregado++
+      else if (isSent) acc.enviado++
+      else acc.pendiente++
+      return acc
+    },
+    { pendiente: 0, enviado: 0, entregado: 0, leido: 0, respondido: 0, fallido: 0 }
+  )
+
+  const total = leads.length
+  const enviadosTotal = total - buckets.pendiente
+  const entregadosTotal = buckets.entregado + buckets.leido + buckets.respondido
+  const leidosTotal = buckets.leido + buckets.respondido
+  const fallidosTotal = buckets.fallido
+
+  const tasaEntrega = enviadosTotal > 0 ? entregadosTotal / enviadosTotal : 0
+  const tasaLectura = enviadosTotal > 0 ? leidosTotal / enviadosTotal : 0
+  const tasaFallo = enviadosTotal > 0 ? fallidosTotal / enviadosTotal : 0
+
+  const distribucion = [
+    { name: 'Enviados', value: buckets.enviado, color: '#2b6cb0' },
+    { name: 'Entregados', value: buckets.entregado, color: '#16a34a' },
+    { name: 'Leídos', value: buckets.leido + buckets.respondido, color: '#7c3aed' },
+    { name: 'Fallidos', value: buckets.fallido, color: '#ef4444' },
+  ].filter((d) => d.value > 0)
+
+  const funnel = [
+    { label: 'Enviados', value: enviadosTotal, base: enviadosTotal, color: 'bg-blue-500' },
+    { label: 'Entregados', value: entregadosTotal, base: enviadosTotal, color: 'bg-green-500' },
+    { label: 'Leídos', value: leidosTotal, base: enviadosTotal, color: 'bg-purple-600' },
+  ]
+
+  const errorCounts = leads.reduce<Record<string, number>>((acc, l) => {
+    if (!l.errorCode) return acc
+    acc[l.errorCode] = (acc[l.errorCode] || 0) + 1
+    return acc
+  }, {})
+  const errorBars = Object.entries(errorCounts)
+    .map(([code, count]) => ({ code, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+  const errorLegend = errorBars.map(({ code }) => ({
+    code,
+    label:
+      ERROR_CODE_LABELS[code] ||
+      leads.find((l) => l.errorCode === code)?.errorDescripcion ||
+      'Código no documentado',
+  }))
+
+  const handleExport = () => {
+    const rows = [
+      ['Métrica', 'Valor'],
+      ['Total', String(total)],
+      ['Enviados', String(enviadosTotal)],
+      ['Entregados', String(entregadosTotal)],
+      ['Leídos', String(leidosTotal)],
+      ['Fallidos', String(fallidosTotal)],
+      ['Tasa de Entrega', `${(tasaEntrega * 100).toFixed(1)}%`],
+      ['Tasa de Lectura', `${(tasaLectura * 100).toFixed(1)}%`],
+      ['Tasa de Fallo', `${(tasaFallo * 100).toFixed(1)}%`],
+    ]
+    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `contactabilidad-${campaign.id}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <Card className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-foreground">Contactabilidad</h3>
+        <Button onClick={handleExport} variant="outline" size="sm" className="gap-2">
+          <RefreshCw className="w-4 h-4" />
+          Exportar CSV
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Card className="p-4 text-center">
+          <div className="text-sm text-muted-foreground">Total</div>
+          <div className="text-2xl font-bold text-foreground">{total}</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-sm text-muted-foreground">Enviados</div>
+          <div className="text-2xl font-bold text-blue-600">{enviadosTotal}</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-sm text-muted-foreground">Entregados</div>
+          <div className="text-2xl font-bold text-green-600">{entregadosTotal}</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-sm text-muted-foreground">Leídos</div>
+          <div className="text-2xl font-bold text-purple-600">{leidosTotal}</div>
+        </Card>
+        <Card className="p-4 text-center">
+          <div className="text-sm text-muted-foreground">Fallidos</div>
+          <div className="text-2xl font-bold text-red-600">{fallidosTotal}</div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-5">
+          <div className="text-sm text-muted-foreground">Tasa de Entrega</div>
+          <div className="text-3xl font-bold text-green-600 mt-1">
+            {(tasaEntrega * 100).toFixed(1)}%
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Mensajes entregados exitosamente</p>
+        </Card>
+        <Card className="p-5">
+          <div className="text-sm text-muted-foreground">Tasa de Lectura</div>
+          <div className="text-3xl font-bold text-purple-600 mt-1">
+            {(tasaLectura * 100).toFixed(1)}%
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Mensajes leídos por los destinatarios</p>
+        </Card>
+        <Card className="p-5">
+          <div className="text-sm text-muted-foreground">Tasa de Fallo</div>
+          <div className="text-3xl font-bold text-red-600 mt-1">
+            {(tasaFallo * 100).toFixed(1)}%
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Mensajes que fallaron al enviarse</p>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-5">
+          <div className="text-sm font-semibold text-foreground mb-3">Distribución de Estados</div>
           {distribucion.length === 0 ? (
             <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">
               Sin datos
