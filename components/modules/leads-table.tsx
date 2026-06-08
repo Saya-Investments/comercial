@@ -299,7 +299,13 @@ export function LeadsTable({
                   <td className="px-6 py-4">
                     {lead.estadoFunnel
                       ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">{lead.estadoFunnel}</span>
-                      : <span className="text-xs text-muted-foreground">—</span>
+                      : lead.status === 'en_gestion'
+                        ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">Gestión Bot</span>
+                        : lead.status === 'asignado'
+                          ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">Asignado</span>
+                          : lead.status === 'descartado'
+                            ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">Descartado</span>
+                            : <span className="text-xs text-muted-foreground">—</span>
                     }
                   </td>
                   <td className="px-6 py-4">
