@@ -493,12 +493,7 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
                     <td className="px-4 py-3 text-sm text-muted-foreground">{lead.zona || '-'}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{lead.origen || '-'}</td>
                     <td className="px-4 py-3">
-                      {lead.estadoFunnel
-                        ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">{lead.estadoFunnel}</span>
-                        : lead.tieneAccion
-                          ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">Gestionado</span>
-                          : <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">Asignado</span>
-                      }
+                      <EstadoFunnelBadge estadoFunnel={lead.estadoFunnel} estadoLead={lead.estadoLead} />
                     </td>
                     <td className="px-4 py-3">{getEnvioStatusBadge(lead)}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
@@ -566,6 +561,22 @@ export function CampaignDetailView({ campaignId, onBack }: CampaignDetailViewPro
       </div>
     </div>
   )
+}
+
+function EstadoFunnelBadge({ estadoFunnel, estadoLead }: { estadoFunnel?: string | null; estadoLead?: string }) {
+  if (estadoFunnel) {
+    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">{estadoFunnel}</span>
+  }
+  if (estadoLead === 'en_gestion') {
+    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">Gestión Bot</span>
+  }
+  if (estadoLead === 'asignado') {
+    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">Asignado</span>
+  }
+  if (estadoLead === 'descartado') {
+    return <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">Descartado</span>
+  }
+  return <span className="text-xs text-muted-foreground">-</span>
 }
 
 // ─── Funnel NSV ──────────────────────────────────────────────────────────────
