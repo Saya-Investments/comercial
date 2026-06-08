@@ -301,12 +301,12 @@ export function LeadsTable({
                       ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">{lead.estadoFunnel}</span>
                       : lead.status === 'en_gestion'
                         ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap">Gestión Bot</span>
-                        : lead.status === 'asignado'
-                          ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">Asignado</span>
-                          : lead.status === 'descartado'
-                            ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">Descartado</span>
-                            : lead.gestionado
-                              ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">Gestionado Asesor</span>
+                        : lead.status === 'asignado' && lead.gestionado
+                          ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">Gestionado Asesor</span>
+                          : lead.status === 'asignado'
+                            ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">Asignado</span>
+                            : lead.status === 'descartado'
+                              ? <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">Descartado</span>
                               : <span className="text-xs text-muted-foreground">—</span>
                     }
                   </td>
