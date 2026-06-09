@@ -18,19 +18,20 @@ import { CallCenterDashboardModule } from '@/components/modules/call-center-dash
 import { ReassignmentModule } from '@/components/modules/reassignment-module'
 import { ProspectsFunnelModule } from '@/components/modules/prospects-funnel-module'
 import { MyProspectsModule } from '@/components/modules/my-prospects-module'
+import { FunnelCampanasModule } from '@/components/modules/funnel-campanas-module'
 import { VersionModule } from '@/components/modules/version-module'
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel' | 'my-prospects' | 'version'
+type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel' | 'funnel-campanas' | 'my-prospects' | 'version'
 
-const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'version']
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'funnel-campanas', 'version']
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel', 'my-prospects', 'version']
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel', 'funnel-campanas', 'my-prospects', 'version']
 
   const defaultModule: ModuleType = user?.role === 'asesor'
     ? 'advisor-dashboard'
@@ -135,6 +136,7 @@ export default function Home() {
           {activeModule === 'advisors-activity' && <AdvisorsActivityModule />}
           {activeModule === 'reassignment' && <ReassignmentModule />}
           {activeModule === 'prospects-funnel' && <ProspectsFunnelModule />}
+          {activeModule === 'funnel-campanas' && <FunnelCampanasModule />}
           {activeModule === 'my-prospects' && <MyProspectsModule />}
           {activeModule === 'bot-cost' && <BotCostModule initialLeads={150} />}
           {activeModule === 'routing-rules' && <RoutingRulesModule />}
