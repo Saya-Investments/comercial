@@ -58,6 +58,7 @@ type Campaign = {
   plantillaContenido: string | null
   stageDistribution: Record<string, number>
   primaryStage: Stage
+  startStage: Stage
 }
 
 type Lead = {
@@ -291,11 +292,9 @@ function ProgressionBubbles({
               className={`
                 inline-flex items-center justify-center rounded-full text-xs font-bold
                 min-w-[26px] h-[26px] px-1.5
-                ${isCurrent
+                ${count > 0
                   ? `${meta.color} text-white shadow-sm`
-                  : count > 0
-                    ? `bg-slate-100 text-slate-700 border border-slate-200`
-                    : `bg-slate-50 text-slate-300 border border-slate-100`
+                  : `bg-slate-100 text-slate-300 border border-slate-200`
                 }
               `}
               title={`${meta.label}: ${count}`}
@@ -311,12 +310,10 @@ function ProgressionBubbles({
 
 function CampaignCard({
   campaign,
-  selectedStage,
   isExpanded,
   onToggle,
 }: {
   campaign: Campaign
-  selectedStage: Stage
   isExpanded: boolean
   onToggle: () => void
 }) {
@@ -344,7 +341,7 @@ function CampaignCard({
           </div>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <ProgressionBubbles campaign={campaign} fromStage={selectedStage} />
+          <ProgressionBubbles campaign={campaign} fromStage={campaign.startStage} />
           {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </div>
       </div>
@@ -563,13 +560,11 @@ export function FunnelCampanasModule() {
   }
 
   const campaignsForStage = selectedStage
-    ? (data?.campaigns ?? []).filter(c => {
-        const dist = c.stageDistribution
-        const stageCount = dist[selectedStage] ?? 0
-        // Show campaign if it has at least 1 lead at this stage
-        return stageCount > 0
-      }).sort((a, b) => (b.stageDistribution[selectedStage] ?? 0) - (a.stageDistribution[selectedStage] ?? 0))
+    ? (data?.campaigns ?? [])
+        .filter(c => c.startStage === selectedStage && c.totalLeads > 0)
+        .sort((a, b) => (b.stageDistribution[selectedStage] ?? 0) - (a.stageDistribution[selectedStage] ?? 0))
     : []
+
 
   return (
     <div className="p-4 md:p-6 h-full overflow-auto">
@@ -665,7 +660,6 @@ export function FunnelCampanasModule() {
                   <div key={camp.id}>
                     <CampaignCard
                       campaign={camp}
-                      selectedStage={selectedStage}
                       isExpanded={expandedCampaign === camp.id}
                       onToggle={() => handleCampaignToggle(camp.id)}
                     />

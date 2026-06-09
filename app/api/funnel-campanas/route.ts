@@ -50,6 +50,8 @@ const STAGE_CASE = `
     ) THEN 'proforma_aprobada'
     WHEN nsv.estado_documento = 'Con proforma'
       THEN 'con_proforma'
+    WHEN nsv.estado_documento = 'Contactado'
+      THEN 'contactado'
     WHEN last_ac.estado_asesor = 'Contactado'
       THEN 'contactado'
     WHEN ac_cnt.cnt > 0
@@ -60,6 +62,15 @@ const STAGE_CASE = `
   END
 `
 
+// For stock campaigns (named after colors) we require NSV registration to be AFTER
+// the lead entered CRM, to avoid counting pre-existing inscriptions as campaign results.
+// Stagnation campaigns (contactado / proforma / etc.) have leads that were already in NSV
+// before CRM creation, so no date constraint is applied for those.
+const IS_STOCK_CAMPAIGN = `(
+  c.nombre ILIKE '%verde%' OR c.nombre ILIKE '%amarillo%' OR
+  c.nombre ILIKE '%rojo%'  OR c.nombre ILIKE '%stock%'
+)`
+
 // Shared LATERAL JOINs for NSV + CRM actions
 const LATERAL_JOINS = `
   LEFT JOIN LATERAL (
@@ -67,7 +78,7 @@ const LATERAL_JOINS = `
     FROM comercial.nsv_prospectos np
     WHERE np.telefono_norm = RIGHT(
             REGEXP_REPLACE(COALESCE(l.numero,''), '[^0-9]','','g'), 9)
-      AND np.fecha_registro > l.fecha_creacion
+      AND (NOT ${IS_STOCK_CAMPAIGN} OR np.fecha_registro > l.fecha_creacion)
     ORDER BY np.fecha_registro DESC
     LIMIT 1
   ) nsv ON true
@@ -178,12 +189,30 @@ export async function GET(request: Request) {
     stageMap[row.id_campana][row.stage] = Number(row.total)
   }
 
-  // ── 4. Overall cumulative funnel (sum across all campaigns) ───────────────
+  // ── 4. Overall funnel: DISTINCT leads per stage (no double-counting) ────────
+  // A lead in multiple campaigns must only be counted once at their current stage.
+  type UniqueStagRow = { stage: string; total: number }
+  const uniqueStageDist = await prisma.$queryRawUnsafe<UniqueStagRow[]>(`
+    WITH unique_lead_stages AS (
+      SELECT DISTINCT ON (l.id_lead)
+        l.id_lead,
+        ${STAGE_CASE} AS stage
+      FROM comercial.crm_campana_leads cl
+      JOIN comercial.crm_campanas c ON c.id_campana = cl.id_campana
+      JOIN comercial.bd_leads l ON l.id_lead = cl.id_lead
+      ${LATERAL_JOINS}
+      WHERE c.estado = 'Enviada'
+        ${baseWhere}
+      ORDER BY l.id_lead
+    )
+    SELECT stage, COUNT(*)::int AS total
+    FROM unique_lead_stages
+    GROUP BY stage
+  `)
+
   const overallPerStage: Record<string, number> = {}
-  for (const dist of Object.values(stageMap)) {
-    for (const [stage, cnt] of Object.entries(dist)) {
-      overallPerStage[stage] = (overallPerStage[stage] ?? 0) + cnt
-    }
+  for (const row of uniqueStageDist) {
+    overallPerStage[row.stage] = Number(row.total)
   }
 
   // Cumulative: stage N includes all leads at stage N and above
@@ -199,12 +228,21 @@ export async function GET(request: Request) {
   })
 
   // ── 5. Enrich campaigns ───────────────────────────────────────────────────
-  const stageIdx: Record<string, number> = {}
-  STAGE_ORDER.forEach((s, i) => { stageIdx[s] = i })
+
+  // Infer the natural start stage of a campaign from its name.
+  // Funnel-stagnation campaigns target leads already deep in the NSV funnel,
+  // so their bubbles should begin at that stage, not at "Gestión Bot".
+  function inferStartStage(nombre: string): Stage {
+    const n = nombre.toLowerCase()
+    if (n.includes('proforma_aprobada') || n.includes('proforma aprobada')) return 'proforma_aprobada'
+    if (n.includes('con_proforma')      || n.includes('con proforma'))       return 'con_proforma'
+    if (n.includes('contactado'))                                             return 'contactado'
+    return 'gestion_bot'
+  }
 
   const enrichedCampaigns = campaigns.map(c => {
     const dist = stageMap[c.id_campana] ?? {}
-    // Primary stage = stage with most leads (excluding gestion_bot as fallback)
+    // Primary stage = stage with most leads
     let primary: Stage = 'gestion_bot'
     let maxCnt = -1
     for (const [stage, cnt] of Object.entries(dist)) {
@@ -223,6 +261,7 @@ export async function GET(request: Request) {
       plantillaContenido: c.plantilla_contenido,
       stageDistribution: dist,
       primaryStage: primary,
+      startStage: inferStartStage(c.nombre),
     }
   })
 
@@ -245,6 +284,7 @@ export async function GET(request: Request) {
         cl.respondio
       FROM comercial.crm_campana_leads cl
       JOIN comercial.bd_leads l ON l.id_lead = cl.id_lead
+      JOIN comercial.crm_campanas c ON c.id_campana = cl.id_campana
       ${LATERAL_JOINS}
       WHERE cl.id_campana = '${campanaId}'
         ${baseWhere}
