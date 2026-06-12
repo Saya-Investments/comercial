@@ -822,60 +822,56 @@ function LeadsEnEstadoCard({
   const exportarAExcel = async () => {
     try {
       setExportando(true)
-      const { default: ExcelJS } = await import('exceljs')
-      const workbook = new ExcelJS.Workbook()
-      const worksheet = workbook.addWorksheet('Leads')
+      const XLSX = await import('xlsx')
 
-      // Configurar columnas
-      worksheet.columns = [
-        { header: 'Nombre', key: 'nombre', width: 25 },
-        { header: 'DNI', key: 'dni', width: 12 },
-        { header: 'Teléfono', key: 'telefono', width: 15 },
-        { header: 'Base', key: 'base', width: 12 },
-        { header: 'Origen', key: 'origen', width: 12 },
-        { header: 'Responsable', key: 'responsable', width: 20 },
-        { header: 'Fecha Creación', key: 'fecha_creacion', width: 18 },
-        { header: 'Fecha Prospecto', key: 'fecha_prospecto', width: 18 },
+      // Preparar datos
+      const datos = leads.map((lead) => ({
+        'Nombre': nombreCompleto(lead),
+        'DNI': lead.dni ?? '—',
+        'Teléfono': lead.numero ?? '—',
+        'Base': lead.base ?? '—',
+        'Origen': lead.origen_gestion === 'call_center' ? 'Call Center' : 'Asesor',
+        'Responsable': responsableGestion(lead),
+        'Fecha Creación': formatoFecha(lead.fecha_creacion),
+        'Fecha Prospecto': formatoFecha(lead.fecha_registro_prosp),
+      }))
+
+      // Crear workbook
+      const workbook = XLSX.utils.book_new()
+      const worksheet = XLSX.utils.json_to_sheet(datos)
+
+      // Configurar ancho de columnas
+      const colWidths = [
+        { wch: 25 }, // Nombre
+        { wch: 12 }, // DNI
+        { wch: 15 }, // Teléfono
+        { wch: 12 }, // Base
+        { wch: 12 }, // Origen
+        { wch: 20 }, // Responsable
+        { wch: 18 }, // Fecha Creación
+        { wch: 18 }, // Fecha Prospecto
       ]
+      worksheet['!cols'] = colWidths
 
-      // Aplicar estilos al header
-      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
-      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } }
-      worksheet.getRow(1).alignment = { horizontal: 'center', vertical: 'center' }
-
-      // Agregar datos
-      leads.forEach((lead, index) => {
-        const row = worksheet.addRow({
-          nombre: nombreCompleto(lead),
-          dni: lead.dni ?? '—',
-          telefono: lead.numero ?? '—',
-          base: lead.base ?? '—',
-          origen: lead.origen_gestion === 'call_center' ? 'Call Center' : 'Asesor',
-          responsable: responsableGestion(lead),
-          fecha_creacion: formatoFecha(lead.fecha_creacion),
-          fecha_prospecto: formatoFecha(lead.fecha_registro_prosp),
-        })
-
-        // Alternar colores de fila
-        if (index % 2 === 0) {
-          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
+      // Agregar estilos al header (con opciones de XLSX)
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1')
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cell = XLSX.utils.encode_cell({ r: 0, c: col })
+        if (worksheet[cell]) {
+          worksheet[cell].s = {
+            fill: { patternType: 'solid', fgColor: { rgb: '4472C4' } },
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+          }
         }
-      })
+      }
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Leads')
 
       // Guardar archivo
       const timestamp = new Date().toISOString().split('T')[0]
       const filename = `Leads_${estado}_${timestamp}.xlsx`
-      await workbook.xlsx.writeBuffer().then((buffer) => {
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = filename
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-      })
+      XLSX.writeFile(workbook, filename)
     } catch (error) {
       console.error('Error exportando a Excel:', error)
       alert('Error al exportar a Excel')
