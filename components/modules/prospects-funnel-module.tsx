@@ -24,6 +24,7 @@ import {
   X,
   Eye,
   MessageSquare,
+  Download,
 } from 'lucide-react'
 import { LeadDetailModal } from './modals/lead-detail-modal'
 import { ConversationModal } from './modals/conversation-modal'
@@ -803,6 +804,7 @@ function LeadsEnEstadoCard({
   onVerDetalle: (l: LeadMatch) => void
 }) {
   const [convLead, setConvLead] = useState<{ id: string; name: string; phone: string } | null>(null)
+  const [exportando, setExportando] = useState(false)
 
   const nombreCompleto = (l: LeadMatch) =>
     [l.nombre, l.apellido].filter(Boolean).join(' ').trim() || '—'
@@ -817,6 +819,71 @@ function LeadsEnEstadoCard({
     return d.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })
   }
 
+  const exportarAExcel = async () => {
+    try {
+      setExportando(true)
+      const { default: ExcelJS } = await import('exceljs')
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Leads')
+
+      // Configurar columnas
+      worksheet.columns = [
+        { header: 'Nombre', key: 'nombre', width: 25 },
+        { header: 'DNI', key: 'dni', width: 12 },
+        { header: 'Teléfono', key: 'telefono', width: 15 },
+        { header: 'Base', key: 'base', width: 12 },
+        { header: 'Origen', key: 'origen', width: 12 },
+        { header: 'Responsable', key: 'responsable', width: 20 },
+        { header: 'Fecha Creación', key: 'fecha_creacion', width: 18 },
+        { header: 'Fecha Prospecto', key: 'fecha_prospecto', width: 18 },
+      ]
+
+      // Aplicar estilos al header
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } }
+      worksheet.getRow(1).alignment = { horizontal: 'center', vertical: 'center' }
+
+      // Agregar datos
+      leads.forEach((lead, index) => {
+        const row = worksheet.addRow({
+          nombre: nombreCompleto(lead),
+          dni: lead.dni ?? '—',
+          telefono: lead.numero ?? '—',
+          base: lead.base ?? '—',
+          origen: lead.origen_gestion === 'call_center' ? 'Call Center' : 'Asesor',
+          responsable: responsableGestion(lead),
+          fecha_creacion: formatoFecha(lead.fecha_creacion),
+          fecha_prospecto: formatoFecha(lead.fecha_registro_prosp),
+        })
+
+        // Alternar colores de fila
+        if (index % 2 === 0) {
+          row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } }
+        }
+      })
+
+      // Guardar archivo
+      const timestamp = new Date().toISOString().split('T')[0]
+      const filename = `Leads_${estado}_${timestamp}.xlsx`
+      await workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      })
+    } catch (error) {
+      console.error('Error exportando a Excel:', error)
+      alert('Error al exportar a Excel')
+    } finally {
+      setExportando(false)
+    }
+  }
+
   return (
     <Card className="p-4 md:p-6 border-primary/30">
       <div className="flex items-start justify-between gap-3 mb-4">
@@ -829,12 +896,32 @@ function LeadsEnEstadoCard({
             Leads del CRM cuyo prospecto (cruce por teléfono) cayó en este estado.
           </p>
         </div>
-        <button
-          onClick={onCerrar}
-          className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          <X className="w-3.5 h-3.5" /> Cerrar
-        </button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={exportarAExcel}
+            disabled={exportando || leads.length === 0}
+            size="sm"
+            variant="outline"
+            className="inline-flex items-center gap-1"
+            title="Exportar a Excel"
+          >
+            {exportando ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Exportando...
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5" /> Excel
+              </>
+            )}
+          </Button>
+          <button
+            onClick={onCerrar}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <X className="w-3.5 h-3.5" /> Cerrar
+          </button>
+        </div>
       </div>
 
       {leads.length === 0 ? (
