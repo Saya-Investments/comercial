@@ -245,7 +245,24 @@ type RecordatorioCampaignBody = {
   variables?: Record<string, string>
 }
 
-type ProspectLeadRow = { id_lead: string; numero: string }
+type ProspectLeadRow = {
+  id_lead: string
+  numero: string
+  nombre: string | null
+  cliente: string | null
+}
+
+// Parte el campo "cliente" de nsv_prospectos en nombre / apellido.
+function splitNombre(cliente: string | null): { nombre: string | null; apellido: string | null } {
+  if (!cliente) return { nombre: null, apellido: null }
+  const partes = cliente.trim().split(/\s+/)
+  if (partes.length === 0 || partes[0] === '') return { nombre: null, apellido: null }
+  if (partes.length === 1) return { nombre: partes[0], apellido: null }
+  if (partes.length === 2) return { nombre: partes[0], apellido: partes[1] }
+  if (partes.length === 3) return { nombre: partes[0], apellido: partes.slice(1).join(' ') }
+  // 4+ palabras: primeras 2 = nombre, el resto = apellido
+  return { nombre: partes.slice(0, 2).join(' '), apellido: partes.slice(2).join(' ') }
+}
 
 async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promise<Response> {
   const estadosProspecto: string[] = body.estadosProspecto || []
@@ -262,10 +279,10 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
 
   try {
     prospectLeads = await prisma.$queryRawUnsafe<ProspectLeadRow[]>(
-      `SELECT DISTINCT l.id_lead::text, l.numero
+      `SELECT DISTINCT l.id_lead::text, l.numero, l.nombre, p.cliente
        FROM comercial.bd_leads l
        JOIN LATERAL (
-         SELECT np.estado_documento, np.fecha_estado
+         SELECT np.estado_documento, np.fecha_estado, np.cliente
          FROM comercial.nsv_prospectos np
          WHERE np.telefono_norm = RIGHT(
                  REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
@@ -324,18 +341,35 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
           leadsImported += linkResult.count
         }
 
+        // Enriquece el nombre de los leads sin nombre con el "cliente" de
+        // nsv_prospectos, para que la plantilla pueda usar la variable {nombre}.
+        // No pisa nombres ni apellidos ya existentes.
+        let nombresEnriquecidos = 0
+        for (const lead of prospectLeads) {
+          if (lead.nombre) continue
+          const { nombre, apellido } = splitNombre(lead.cliente)
+          if (!nombre) continue
+          await tx.$executeRaw`
+            UPDATE comercial.bd_leads
+            SET nombre = ${nombre}, apellido = COALESCE(apellido, ${apellido})
+            WHERE id_lead = ${lead.id_lead}::uuid
+              AND nombre IS NULL
+          `
+          nombresEnriquecidos++
+        }
+
         await tx.crm_campanas.update({
           where: { id_campana: campana.id_campana },
           data: { total_leads: leadsImported },
         })
 
-        return { id: campana.id_campana, leadsImported }
+        return { id: campana.id_campana, leadsImported, nombresEnriquecidos }
       },
       { maxWait: 10000, timeout: 120000 }
     )
 
     console.log(
-      `Recordatorio campaign ${result.id}: ${result.leadsImported} linked from ${prospectLeads.length} prospect leads`
+      `Recordatorio campaign ${result.id}: ${result.leadsImported} linked from ${prospectLeads.length} prospect leads, ${result.nombresEnriquecidos} nombres enriquecidos`
     )
 
     return NextResponse.json(
