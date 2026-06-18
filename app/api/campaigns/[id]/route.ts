@@ -60,9 +60,10 @@ export async function GET(
   if (phones9.length > 0) {
     try {
       const nsvRows = await prisma.$queryRaw<NsvRow[]>`
-        SELECT telefono_norm AS phone9, estado_documento
+        SELECT DISTINCT ON (telefono_norm) telefono_norm AS phone9, estado_documento
         FROM comercial.nsv_prospectos
         WHERE telefono_norm = ANY(${phones9}::text[])
+        ORDER BY telefono_norm, fecha_registro DESC
       `
       nsvByPhone = new Map(nsvRows.map((r) => [r.phone9, r.estado_documento]))
     } catch { /* si falla, leads cargan sin estado funnel */ }
