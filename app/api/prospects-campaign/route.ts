@@ -44,7 +44,18 @@ export async function GET(req: NextRequest) {
        ORDER BY 1`
     )
     const estados = rows.map((r) => r.estado_documento!).filter(Boolean)
-    return NextResponse.json({ estados })
+
+    const baseRows = await prisma.$queryRawUnsafe<{ base: string | null }[]>(
+      `SELECT DISTINCT TRIM(l.base) AS base
+       FROM comercial.bd_leads l
+       WHERE l.fecha_creacion >= '${RANGO_DESDE}'::timestamptz
+         AND l.base IS NOT NULL
+         AND TRIM(l.base) <> ''
+       ORDER BY 1`
+    )
+    const bases = baseRows.map((r) => r.base!).filter(Boolean)
+
+    return NextResponse.json({ estados, bases })
   }
 
   const estadosParam = searchParams.getAll('estados')
@@ -55,12 +66,24 @@ export async function GET(req: NextRequest) {
 
   const placeholders = estadosParam.map((_, i) => `$${i + 1}`).join(', ')
 
+  // Filtro opcional por base (columna "Base" de bd_leads: Caliente, Stock, ...).
+  const basesParam = searchParams.getAll('bases')
+  const queryParams: string[] = [...estadosParam]
+  let baseClause = ''
+  if (basesParam.length > 0) {
+    const basePlaceholders = basesParam
+      .map((_, i) => `$${estadosParam.length + i + 1}`)
+      .join(', ')
+    baseClause = ` AND TRIM(l.base) IN (${basePlaceholders})`
+    queryParams.push(...basesParam)
+  }
+
   if (action === 'count') {
     const rows = await prisma.$queryRawUnsafe<[{ total: bigint }]>(
       `SELECT COUNT(DISTINCT l.id_lead)::bigint AS total
        ${BASE_JOIN}
-         AND TRIM(p.estado_documento) IN (${placeholders})`,
-      ...estadosParam
+         AND TRIM(p.estado_documento) IN (${placeholders})${baseClause}`,
+      ...queryParams
     )
     return NextResponse.json({ total: Number(rows[0].total) })
   }
@@ -75,9 +98,9 @@ export async function GET(req: NextRequest) {
          l.correo,
          TRIM(p.estado_documento) AS estado_documento
        ${BASE_JOIN}
-         AND TRIM(p.estado_documento) IN (${placeholders})
+         AND TRIM(p.estado_documento) IN (${placeholders})${baseClause}
        LIMIT 1000`,
-      ...estadosParam
+      ...queryParams
     )
     return NextResponse.json({ leads: rows, total: rows.length })
   }

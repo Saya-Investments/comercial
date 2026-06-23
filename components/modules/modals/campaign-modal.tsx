@@ -81,6 +81,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     lineas: [] as string[],
     estadosAsociadosFondos: [] as string[],
     estadosProspecto: [] as string[],
+    bases: [] as string[],
     templateId: '',
   })
 
@@ -91,6 +92,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
   const [hasNullEstadoAsociadoFondos, setHasNullEstadoAsociadoFondos] = useState(false)
   const [loadingFilters, setLoadingFilters] = useState(false)
   const [estadoProspectoOptions, setEstadoProspectoOptions] = useState<string[]>([])
+  const [baseOptions, setBaseOptions] = useState<string[]>([])
   const [loadingProspectoFilters, setLoadingProspectoFilters] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [columns, setColumns] = useState<BQColumn[]>([])
@@ -160,7 +162,10 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     setLoadingProspectoFilters(true)
     fetch('/api/prospects-campaign?action=filters')
       .then(res => res.json())
-      .then(data => setEstadoProspectoOptions(data.estados || []))
+      .then(data => {
+        setEstadoProspectoOptions(data.estados || [])
+        setBaseOptions(data.bases || [])
+      })
       .catch(console.error)
       .finally(() => setLoadingProspectoFilters(false))
   }, [formData.source, step])
@@ -177,8 +182,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
   const buildRecordatorioParams = useCallback(() => {
     const params = new URLSearchParams()
     formData.estadosProspecto.forEach(e => params.append('estados', e))
+    formData.bases.forEach(b => params.append('bases', b))
     return params
-  }, [formData.estadosProspecto])
+  }, [formData.estadosProspecto, formData.bases])
 
   useEffect(() => {
     if (step !== 'config' && step !== 'preview') return
@@ -264,6 +270,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       lineas: [],
       estadosAsociadosFondos: [],
       estadosProspecto: [],
+      bases: [],
     }))
     setLeadCount(null)
     setPreviewLeads([])
@@ -305,6 +312,15 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     })
   }
 
+  const handleBaseChange = (base: string, checked: boolean) => {
+    setFormData({
+      ...formData,
+      bases: checked
+        ? [...formData.bases, base]
+        : formData.bases.filter(b => b !== base),
+    })
+  }
+
   const formatEstadoAsociadoFondos = (estado: string) =>
     estado === BQ_NULL_SENTINEL ? '(Sin estado)' : estado
 
@@ -336,6 +352,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
           name: formData.name,
           source: 'recordatorio',
           estadosProspecto: formData.estadosProspecto,
+          bases: formData.bases,
           templateId: formData.templateId || null,
           variables: templateVars.length > 0 ? variableMapping : {},
         }
@@ -593,6 +610,36 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
 
               {/* Filtros Recordatorio */}
               {formData.source === 'recordatorio' && (
+                <>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Filtro por base
+                  </label>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Elige a qué base enviar la campana. Si no seleccionas ninguna, se incluyen todas.
+                  </p>
+                  {loadingProspectoFilters ? (
+                    <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Cargando bases...
+                    </div>
+                  ) : baseOptions.length > 0 ? (
+                    <div className="grid max-h-32 grid-cols-2 gap-2 overflow-y-auto">
+                      {baseOptions.map((base) => (
+                        <label key={base} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={formData.bases.includes(base)}
+                            onChange={(e) => handleBaseChange(base, e.target.checked)}
+                            className="rounded border-border"
+                          />
+                          <span className="ml-2 text-sm text-foreground">{base}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No hay bases disponibles</p>
+                  )}
+                </div>
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-foreground">
                     Filtro por estado del prospecto
@@ -622,6 +669,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     <p className="text-sm text-muted-foreground">No hay estados disponibles</p>
                   )}
                 </div>
+                </>
               )}
 
               {/* Plantilla y variables (comun a ambas fuentes) */}
@@ -698,12 +746,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     </>
                   )}
                   {formData.source === 'recordatorio' && (
-                    <p>
-                      Estados prospecto:{' '}
-                      {formData.estadosProspecto.length > 0
-                        ? formData.estadosProspecto.join(', ')
-                        : 'Ninguno seleccionado'}
-                    </p>
+                    <>
+                      <p>
+                        Base: {formData.bases.length > 0 ? formData.bases.join(', ') : 'Todas'}
+                      </p>
+                      <p>
+                        Estados prospecto:{' '}
+                        {formData.estadosProspecto.length > 0
+                          ? formData.estadosProspecto.join(', ')
+                          : 'Ninguno seleccionado'}
+                      </p>
+                    </>
                   )}
                   <p>Plantilla: {selectedTemplate?.name || 'Sin seleccionar'}</p>
                   <p className="font-semibold text-foreground">
@@ -775,6 +828,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                       {formData.source === 'recordatorio' ? (
                         <>
                           Fuente: <span className="font-medium text-foreground">Recordatorio</span>
+                          {formData.bases.length > 0 && (
+                            <> | Base: <span className="font-medium text-foreground">{formData.bases.join(', ')}</span></>
+                          )}
                           {formData.estadosProspecto.length > 0 && (
                             <> | Estados: <span className="font-medium text-foreground">{formData.estadosProspecto.join(', ')}</span></>
                           )}

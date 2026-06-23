@@ -241,6 +241,7 @@ type RecordatorioCampaignBody = {
   name: string
   source: 'recordatorio'
   estadosProspecto: string[]
+  bases?: string[]
   templateId?: string
   variables?: Record<string, string>
 }
@@ -266,6 +267,7 @@ function splitNombre(cliente: string | null): { nombre: string | null; apellido:
 
 async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promise<Response> {
   const estadosProspecto: string[] = body.estadosProspecto || []
+  const bases: string[] = body.bases || []
 
   if (estadosProspecto.length === 0) {
     return NextResponse.json(
@@ -275,6 +277,18 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
   }
 
   const placeholders = estadosProspecto.map((_, i) => `$${i + 1}`).join(', ')
+
+  // Filtro opcional por base (columna "Base" de bd_leads: Caliente, Stock, ...).
+  const queryParams: string[] = [...estadosProspecto]
+  let baseClause = ''
+  if (bases.length > 0) {
+    const basePlaceholders = bases
+      .map((_, i) => `$${estadosProspecto.length + i + 1}`)
+      .join(', ')
+    baseClause = ` AND TRIM(l.base) IN (${basePlaceholders})`
+    queryParams.push(...bases)
+  }
+
   let prospectLeads: ProspectLeadRow[]
 
   try {
@@ -293,9 +307,9 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
        WHERE l.fecha_creacion >= '${RANGO_DESDE}'::timestamptz
          AND l.fecha_creacion <= NOW()
          AND l.numero IS NOT NULL
-         AND TRIM(p.estado_documento) IN (${placeholders})
+         AND TRIM(p.estado_documento) IN (${placeholders})${baseClause}
          AND NOW() - p.fecha_estado > INTERVAL '4 days'`,
-      ...estadosProspecto
+      ...queryParams
     )
   } catch (err) {
     console.error('Error fetching prospect leads:', err)
@@ -319,7 +333,7 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
           data: {
             nombre: body.name,
             base_datos: 'recordatorio',
-            filtros: JSON.stringify({ estadosProspecto }),
+            filtros: JSON.stringify({ estadosProspecto, bases }),
             total_leads: 0,
             id_plantilla: body.templateId || null,
             variables: body.variables ? normalizeVariables(body.variables) : {},
