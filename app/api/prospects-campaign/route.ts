@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
     const estados = rows.map((r) => r.estado_documento!).filter(Boolean)
 
     const baseRows = await prisma.$queryRawUnsafe<{ base: string | null }[]>(
-      `SELECT DISTINCT TRIM(l.base) AS base
+      `SELECT DISTINCT TRIM(l."Base") AS base
        FROM comercial.bd_leads l
        WHERE l.fecha_creacion >= '${RANGO_DESDE}'::timestamptz
-         AND l.base IS NOT NULL
-         AND TRIM(l.base) <> ''
+         AND l."Base" IS NOT NULL
+         AND TRIM(l."Base") <> ''
        ORDER BY 1`
     )
     const bases = baseRows.map((r) => r.base!).filter(Boolean)
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
     const basePlaceholders = basesParam
       .map((_, i) => `$${estadosParam.length + i + 1}`)
       .join(', ')
-    baseClause = ` AND TRIM(l.base) IN (${basePlaceholders})`
+    baseClause = ` AND TRIM(l."Base") IN (${basePlaceholders})`
     queryParams.push(...basesParam)
   }
 

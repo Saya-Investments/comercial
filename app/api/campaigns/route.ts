@@ -285,7 +285,7 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
     const basePlaceholders = bases
       .map((_, i) => `$${estadosProspecto.length + i + 1}`)
       .join(', ')
-    baseClause = ` AND TRIM(l.base) IN (${basePlaceholders})`
+    baseClause = ` AND TRIM(l."Base") IN (${basePlaceholders})`
     queryParams.push(...bases)
   }
 
