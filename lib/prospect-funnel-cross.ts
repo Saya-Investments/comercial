@@ -36,6 +36,23 @@ export function leadMonthLima(d: Date): string {
   return `${y}-${m}`
 }
 
+// Lista de meses "YYYY-MM" desde `desde` hasta `hasta` inclusive (ambos en formato
+// YYYY-MM). Se usa para poblar el selector de cierre con todos los meses del piloto
+// aunque alguno todavia no tenga inscritos.
+function monthsInRange(desde: string, hasta: string): string[] {
+  const [yd, md] = desde.split('-').map(Number)
+  const [yh, mh] = hasta.split('-').map(Number)
+  const out: string[] = []
+  let y = yd
+  let m = md
+  while (y < yh || (y === yh && m <= mh)) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`)
+    m += 1
+    if (m > 12) { m = 1; y += 1 }
+  }
+  return out
+}
+
 // Un solo JOIN en SQL: más rápido que traer todo a memoria y cruzar en JS.
 // Lógica idéntica a la anterior:
 //   - prospecto.fecha_registro > lead.fecha_creacion
@@ -275,8 +292,17 @@ export async function crossProspectsWithLeads(options?: {
     new Set(rawMatches.map((r) => leadMonthLima(r.fecha_creacion))),
   ).sort()
 
+  // El selector de "Cerró" muestra todos los meses del piloto (desde RANGO_DESDE
+  // hasta el mes actual) aunque no haya inscritos en ellos todavia, ademas de
+  // cualquier mes de cierre que aparezca en los datos.
+  const mesesCierreData = rawMatches
+    .map((r) => (r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null))
+    .filter((m): m is string => m !== null)
   const mesesCierre = Array.from(
-    new Set(rawMatches.map((r) => r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null).filter((m): m is string => m !== null)),
+    new Set([
+      ...monthsInRange(leadMonthLima(new Date(RANGO_DESDE)), leadMonthLima(new Date())),
+      ...mesesCierreData,
+    ]),
   ).sort()
 
   return { matches, totalLeadsCrm, mesesDisponibles, mesesCierre }
