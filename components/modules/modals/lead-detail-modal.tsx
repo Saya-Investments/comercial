@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { X, Phone, CalendarClock, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus, MessageSquare, Clock } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface LeadDetailModalProps {
   lead: {
@@ -143,6 +143,23 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
   const totalLlamadas = acciones.filter((a) => a.tipoAccion === 'Llamada').length
   const totalHablado = acciones.reduce((acc, a) => acc + (a.duracionSeg || 0), 0)
 
+  // La API entrega desc (mas reciente primero). Para el timeline lo damos vuelta:
+  // como en un chat de WhatsApp, lo mas antiguo arriba y lo ultimo abajo.
+  const gestiones = [...acciones].reverse()
+
+  // Y al abrir la pestana arrancamos abajo del todo (en el ultimo registro),
+  // igual que un chat: subir = ver el historial.
+  const contentRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    if (tab === 'gestion' && !loadingAcciones && acciones.length > 0) {
+      el.scrollTop = el.scrollHeight
+    } else {
+      el.scrollTop = 0
+    }
+  }, [tab, loadingAcciones, acciones.length])
+
   const formatDate = (iso: string) => {
     const d = new Date(iso)
     return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -178,7 +195,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
           ))}
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        <div ref={contentRef} className="p-6 overflow-y-auto flex-1">
           {/* TAB: Info */}
           {tab === 'info' && (
             <div className="space-y-6">
@@ -248,10 +265,10 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                   <div className="relative pl-8">
                     <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
                     <div className="space-y-4">
-                      {acciones.map((a, i) => {
+                      {gestiones.map((a, i) => {
                         const Icon = TIPO_ICONS[a.tipoAccion] || Phone
-                        // orden desc: el estado anterior es el de la gestión siguiente en la lista
-                        const estadoAnterior = acciones[i + 1]?.estadoAsesor ?? null
+                        // orden ascendente (tipo chat): el estado anterior es el del registro de arriba
+                        const estadoAnterior = i > 0 ? gestiones[i - 1].estadoAsesor : null
                         const cambioEstado = estadoAnterior !== a.estadoAsesor
                         const dur = formatDuracion(a.duracionSeg)
                         return (
