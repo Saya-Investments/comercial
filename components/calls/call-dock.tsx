@@ -12,9 +12,10 @@ import { useCall, type CallKind } from '@/contexts/call-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
-  Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Minus, X, Clock, Send,
+  Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Minus, X, Clock, Send, Check, Loader2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/auth-context'
 
 function fmt(sec: number) {
   const m = String(Math.floor(sec / 60)).padStart(2, '0')
@@ -31,7 +32,52 @@ const DISPOSICIONES = [
 
 export function CallDock() {
   const { call, endCall, dismissCall, toggleMute } = useCall()
+  const { user } = useAuth()
   const [minimized, setMinimized] = useState(false)
+  const [resultado, setResultado] = useState<string | null>(null)
+  const [nota, setNota] = useState('')
+  const [guardando, setGuardando] = useState(false)
+
+  // Limpiar el formulario de cierre al empezar una llamada nueva
+  useEffect(() => {
+    if (call?.status === 'ringing') {
+      setResultado(null)
+      setNota('')
+      setMinimized(false)
+    }
+  }, [call?.status, call?.lead.id])
+
+  /**
+   * Registra la gestion en el CRM (misma tabla donde ya viven las llamadas).
+   * Solo persiste si el lead tiene id real; los leads de ejemplo de la cola
+   * simplemente cierran el dock.
+   */
+  async function guardarGestion() {
+    if (!call || !resultado) return
+    const esLeadReal = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(call.lead.id)
+    if (esLeadReal && user?.id) {
+      setGuardando(true)
+      try {
+        await fetch('/api/acciones-comerciales', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: call.lead.id,
+            userId: user.id,
+            tipoAccion: 'Llamada',
+            estadoAsesor: resultado,
+            observaciones: nota.trim() || null,
+            duracionSeg: call.seconds,
+          }),
+        })
+      } catch {
+        // No bloqueamos el cierre del dock si falla el registro
+      } finally {
+        setGuardando(false)
+      }
+    }
+    dismissCall()
+  }
 
   if (!call) return null
 
@@ -101,20 +147,51 @@ export function CallDock() {
           <p className="text-slate-300 text-xs mt-0.5 flex items-center gap-1.5">
             <Clock className="w-3 h-3" /> Duración {fmt(call.seconds)} · grabación guardada
           </p>
+
           <p className="text-[11px] font-mono tracking-wider uppercase text-sky-300 mt-4 mb-2">
             ¿Cómo terminó?
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {DISPOSICIONES.map((d) => (
-              <Button key={d.estado} size="sm" variant="secondary"
-                className="text-xs h-8 bg-white/10 text-white border-0 hover:bg-white/20"
-                onClick={dismissCall}>
-                {d.label}
-              </Button>
-            ))}
+            {DISPOSICIONES.map((d) => {
+              const activo = resultado === d.estado
+              return (
+                <button
+                  key={d.estado}
+                  onClick={() => setResultado(d.estado)}
+                  className={`text-xs h-8 rounded-md font-medium transition ${
+                    activo
+                      ? 'bg-white text-[#0B1F3A]'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              )
+            })}
           </div>
-          <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">
-            Se registrará en el resumen de la gestión del lead con su duración.
+
+          <label className="block text-[11px] font-mono tracking-wider uppercase text-sky-300 mt-4 mb-1.5">
+            Nota adicional <span className="text-slate-400 normal-case tracking-normal">(opcional)</span>
+          </label>
+          <textarea
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            rows={3}
+            placeholder="Qué se conversó, objeciones, próximo paso…"
+            className="w-full rounded-lg bg-white/10 border border-white/15 text-white text-sm placeholder:text-slate-400 px-3 py-2 outline-none focus:border-sky-400 resize-none"
+          />
+
+          <Button
+            onClick={guardarGestion}
+            disabled={!resultado || guardando}
+            className="w-full mt-3 h-9 gap-2"
+          >
+            {guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            {guardando ? 'Guardando…' : 'Guardar gestión'}
+          </Button>
+
+          <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+            Queda en el resumen de la gestión del lead, con la duración y tu nota.
           </p>
         </div>
       ) : (
