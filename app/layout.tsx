@@ -1,6 +1,8 @@
 import React from "react"
 import type { Metadata } from 'next'
 import { AuthProvider } from '@/contexts/auth-context'
+import { CallProvider } from '@/contexts/call-context'
+import { CallDock } from '@/components/calls/call-dock'
 
 import './globals.css'
 
@@ -25,7 +27,14 @@ export default function RootLayout({
     // mistraducian, p.ej. "No contesta" -> "Sin oposicion").
     <html lang="es" translate="no">
       <body className="notranslate font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {/* El dock de llamada vive fuera de los modulos: asi la llamada
+              sobrevive a la navegacion y el asesor sigue usando el CRM. */}
+          <CallProvider>
+            {children}
+            <CallDock />
+          </CallProvider>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -1,0 +1,205 @@
+'use client'
+
+/**
+ * Dock de llamada persistente.
+ *
+ * Flota sobre el CRM (abajo a la derecha) en vez de tomar la pantalla completa,
+ * para que el asesor pueda seguir navegando (abrir otro lead, revisar tareas,
+ * tomar notas) MIENTRAS habla. Al colgar pide la disposicion de la gestion.
+ */
+
+import { useCall } from '@/contexts/call-context'
+import { Button } from '@/components/ui/button'
+import {
+  Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Minus, X, Clock, Send,
+} from 'lucide-react'
+import { useState } from 'react'
+
+function fmt(sec: number) {
+  const m = String(Math.floor(sec / 60)).padStart(2, '0')
+  const s = String(sec % 60).padStart(2, '0')
+  return `${m}:${s}`
+}
+
+const DISPOSICIONES = [
+  { label: 'Contactado', estado: 'Contactado' },
+  { label: 'Interesado', estado: 'Interesado' },
+  { label: 'Agendó cita', estado: 'Cita_agendada' },
+  { label: 'No contestó', estado: 'No_contesta' },
+]
+
+export function CallDock() {
+  const { call, endCall, dismissCall, toggleMute } = useCall()
+  const [minimized, setMinimized] = useState(false)
+
+  if (!call) return null
+
+  const esVideo = call.kind === 'video'
+  const iniciales = call.lead.name
+    .split(' ')
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
+  // ---- Minimizado: solo una pastilla ----
+  if (minimized && call.status !== 'ended') {
+    return (
+      <div className="fixed bottom-4 right-4 z-[60]">
+        <button
+          onClick={() => setMinimized(false)}
+          className="flex items-center gap-3 rounded-full bg-[#0B1F3A] text-white pl-3 pr-4 py-2.5 shadow-2xl border border-white/10 hover:brightness-110 transition"
+        >
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75" />
+            <span className="relative rounded-full h-2.5 w-2.5 bg-red-500" />
+          </span>
+          <span className="text-sm font-medium">{call.lead.name.split(' ')[0]}</span>
+          <span className="font-mono text-sm tabular-nums text-sky-200">{fmt(call.seconds)}</span>
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[60] w-[330px] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+      style={{ background: '#0B1F3A' }}>
+      {/* Barra superior */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+        <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider uppercase">
+          {call.status === 'ended' ? (
+            <span className="text-slate-300">Llamada finalizada</span>
+          ) : (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              <span className="text-red-200">Grabando</span>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {call.status !== 'ended' && (
+            <button onClick={() => setMinimized(true)} title="Minimizar"
+              className="p-1.5 rounded-md text-slate-300 hover:bg-white/10 hover:text-white transition">
+              <Minus className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={dismissCall} title="Cerrar"
+            className="p-1.5 rounded-md text-slate-300 hover:bg-white/10 hover:text-white transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Cuerpo */}
+      {call.status === 'ended' ? (
+        <div className="p-4">
+          <p className="text-white font-semibold text-sm">{call.lead.name}</p>
+          <p className="text-slate-300 text-xs mt-0.5 flex items-center gap-1.5">
+            <Clock className="w-3 h-3" /> Duración {fmt(call.seconds)} · grabación guardada
+          </p>
+          <p className="text-[11px] font-mono tracking-wider uppercase text-sky-300 mt-4 mb-2">
+            ¿Cómo terminó?
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {DISPOSICIONES.map((d) => (
+              <Button key={d.estado} size="sm" variant="secondary"
+                className="text-xs h-8 bg-white/10 text-white border-0 hover:bg-white/20"
+                onClick={dismissCall}>
+                {d.label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-400 mt-3 leading-relaxed">
+            Se registrará en el resumen de la gestión del lead con su duración.
+          </p>
+        </div>
+      ) : (
+        <div className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full grid place-items-center font-bold text-white text-sm flex-none"
+              style={{ background: 'linear-gradient(135deg,#1B5E7E,#2E8BB0)' }}>
+              {iniciales}
+            </div>
+            <div className="min-w-0">
+              <p className="text-white font-semibold text-sm truncate">{call.lead.name}</p>
+              <p className="text-slate-300 text-xs font-mono">{call.lead.phone}</p>
+            </div>
+            <div className="ml-auto text-right">
+              <p className="font-mono text-lg text-white tabular-nums leading-none">{fmt(call.seconds)}</p>
+              <p className="text-[10px] text-sky-300 uppercase tracking-wider mt-1">
+                {call.status === 'ringing' ? 'Llamando…' : esVideo ? 'En video' : 'En llamada'}
+              </p>
+            </div>
+          </div>
+
+          {esVideo && (
+            <div className="mt-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-200 flex items-center gap-2">
+              <Send className="w-3 h-3 flex-none" /> Link de la sala enviado al hilo de WhatsApp
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button onClick={toggleMute} title={call.muted ? 'Activar micrófono' : 'Silenciar'}
+              className={`w-11 h-11 rounded-full grid place-items-center border transition ${
+                call.muted
+                  ? 'bg-white/20 text-white border-white/30'
+                  : 'bg-white/[.07] text-slate-200 border-white/15 hover:bg-white/15'
+              }`}>
+              {call.muted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+            <button title={esVideo ? 'Cámara' : 'Video'}
+              className="w-11 h-11 rounded-full grid place-items-center bg-white/[.07] text-slate-200 border border-white/15 hover:bg-white/15 transition">
+              {esVideo ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+            </button>
+            <button onClick={endCall} title="Colgar"
+              className="w-14 h-11 rounded-full grid place-items-center bg-[#C63A38] text-white hover:brightness-110 transition">
+              <PhoneOff className="w-5 h-5" />
+            </button>
+          </div>
+
+          <p className="text-[10px] text-slate-400 text-center mt-3">
+            Puedes seguir navegando el CRM durante la llamada.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Botones de accion reutilizables (fila del lead / header de conversacion). */
+export function CallButtons({
+  lead,
+  size = 'sm',
+  variant = 'ghost',
+}: {
+  lead: { id: string; name: string; phone: string }
+  size?: 'sm' | 'icon'
+  variant?: 'ghost' | 'outline'
+}) {
+  const { startCall } = useCall()
+  return (
+    <>
+      <Button
+        variant={variant}
+        size="sm"
+        title="Llamar"
+        onClick={(e) => { e.stopPropagation(); startCall(lead, 'voice') }}
+        className="text-foreground hover:text-emerald-600 hover:bg-secondary"
+      >
+        <Phone className="w-4 h-4" />
+      </Button>
+      <Button
+        variant={variant}
+        size="sm"
+        title="Videollamada"
+        onClick={(e) => { e.stopPropagation(); startCall(lead, 'video') }}
+        className="text-foreground hover:text-primary hover:bg-secondary"
+      >
+        <Video className="w-4 h-4" />
+      </Button>
+    </>
+  )
+}

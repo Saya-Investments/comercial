@@ -8,6 +8,7 @@ import { ActionModal } from './modals/action-modal'
 import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
+import { CallButtons } from '@/components/calls/call-dock'
 import { useAuth } from '@/contexts/auth-context'
 
 interface Lead {
@@ -346,6 +347,10 @@ export function LeadsTable({
                       <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'conversation')} className="text-foreground hover:bg-secondary" title="Ver conversacion">
                         <MessageSquare className="w-4 h-4" />
                       </Button>
+                      {/* Llamar / videollamar sin salir de la lista (abre el dock) */}
+                      {user?.role === 'asesor' && (
+                        <CallButtons lead={{ id: lead.id, name: lead.name, phone: lead.phone }} />
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'detail')} className="text-foreground hover:bg-secondary" title="Ver detalle">
                         <Eye className="w-4 h-4" />
                       </Button>

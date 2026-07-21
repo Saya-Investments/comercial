@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { X, Phone, CalendarClock, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { X, Phone, CalendarClock, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus, MessageSquare, Clock } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 interface LeadDetailModalProps {
@@ -25,18 +25,9 @@ interface AccionComercial {
   tipoAccion: string
   estadoAsesor: string
   observaciones: string | null
+  duracionSeg: number | null
   cita: { fecha: string; hora: string; estado: string; tipo?: string; ubicacion?: string | null } | null
   fecha: string
-}
-
-interface HistEstado {
-  id: string
-  estadoAnterior: string | null
-  estadoNuevo: string
-  fecha: string
-  usuario: string
-  tipoAccion: string
-  observaciones: string | null
 }
 
 interface HistScoring {
@@ -68,11 +59,13 @@ const TIPO_LABELS: Record<string, string> = {
   Llamada: 'Llamada',
   Agendar_llamada: 'Agendar llamada',
   Cita: 'Cita presencial',
+  Mensaje_WSP: 'Mensaje WhatsApp',
 }
 
 const TIPO_ICONS: Record<string, typeof Phone> = {
   Llamada: Phone,
   Agendar_llamada: CalendarClock,
+  Mensaje_WSP: MessageSquare,
   Cita: CalendarClock,
 }
 
@@ -113,28 +106,22 @@ const ESTADO_COLORS: Record<string, string> = {
 }
 
 export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
-  const [tab, setTab] = useState<'info' | 'acciones' | 'historial' | 'scoring'>('info')
+  const [tab, setTab] = useState<'info' | 'gestion' | 'scoring'>('info')
   const [acciones, setAcciones] = useState<AccionComercial[]>([])
-  const [historial, setHistorial] = useState<HistEstado[]>([])
   const [histScoring, setHistScoring] = useState<HistScoring[]>([])
   const [loadingAcciones, setLoadingAcciones] = useState(false)
-  const [loadingHistorial, setLoadingHistorial] = useState(false)
   const [loadingScoring, setLoadingScoring] = useState(false)
 
   useEffect(() => {
-    if (tab === 'acciones' && acciones.length === 0) {
+    // "Resumen de la gestión" se arma sobre las acciones comerciales: cada accion
+    // ya trae su estado, y la transicion (anterior -> nuevo) se deriva del orden
+    // cronologico, que es exactamente lo que guarda hist_estado_asesor.
+    if (tab === 'gestion' && acciones.length === 0) {
       setLoadingAcciones(true)
       fetch(`/api/acciones-comerciales?leadId=${lead.id}`)
         .then((r) => r.json())
         .then(setAcciones)
         .finally(() => setLoadingAcciones(false))
-    }
-    if (tab === 'historial' && historial.length === 0) {
-      setLoadingHistorial(true)
-      fetch(`/api/hist-estado-asesor?leadId=${lead.id}`)
-        .then((r) => r.json())
-        .then(setHistorial)
-        .finally(() => setLoadingHistorial(false))
     }
     if (tab === 'scoring' && histScoring.length === 0) {
       setLoadingScoring(true)
@@ -143,7 +130,18 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
         .then(setHistScoring)
         .finally(() => setLoadingScoring(false))
     }
-  }, [tab, lead.id, acciones.length, historial.length, histScoring.length])
+  }, [tab, lead.id, acciones.length, histScoring.length])
+
+  const formatDuracion = (seg: number | null) => {
+    if (seg === null || seg === undefined) return null
+    if (seg === 0) return 'sin contestar'
+    const m = Math.floor(seg / 60)
+    const s = seg % 60
+    return m > 0 ? `${m} min ${s.toString().padStart(2, '0')} s` : `${s} s`
+  }
+
+  const totalLlamadas = acciones.filter((a) => a.tipoAccion === 'Llamada').length
+  const totalHablado = acciones.reduce((acc, a) => acc + (a.duracionSeg || 0), 0)
 
   const formatDate = (iso: string) => {
     const d = new Date(iso)
@@ -165,7 +163,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
 
         {/* Tabs */}
         <div className="flex border-b border-border flex-shrink-0">
-          {(['info', 'acciones', 'historial', 'scoring'] as const).map((t) => (
+          {(['info', 'gestion', 'scoring'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -175,7 +173,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {t === 'info' ? 'Informacion' : t === 'acciones' ? 'Acciones Comerciales' : t === 'historial' ? 'Historial Estado' : 'Historial Scoring'}
+              {t === 'info' ? 'Informacion' : t === 'gestion' ? 'Resumen de la gestión' : 'Historial Scoring'}
             </button>
           ))}
         </div>
@@ -217,80 +215,101 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
             </div>
           )}
 
-          {/* TAB: Acciones Comerciales */}
-          {tab === 'acciones' && (
-            <div className="space-y-3">
+          {/* TAB: Resumen de la gestión (acciones + cambios de estado + llamadas, unificado) */}
+          {tab === 'gestion' && (
+            <div>
               {loadingAcciones ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
               ) : acciones.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No hay acciones comerciales registradas</p>
+                <p className="text-center text-muted-foreground py-8">Aún no hay gestión registrada para este lead</p>
               ) : (
-                acciones.map((a) => {
-                  const Icon = TIPO_ICONS[a.tipoAccion] || Phone
-                  return (
-                    <div key={a.id} className="p-4 border border-border rounded-lg space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium text-foreground text-sm">
-                            {TIPO_LABELS[a.tipoAccion] || a.tipoAccion}
-                          </span>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[a.estadoAsesor] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                          {ESTADO_LABELS[a.estadoAsesor] || a.estadoAsesor}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {a.userName} - {formatDate(a.fecha)}
-                      </div>
-                      {a.observaciones && (
-                        <p className="text-sm text-foreground bg-secondary/50 p-2 rounded">{a.observaciones}</p>
-                      )}
-                      {a.cita && (
-                        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
-                          Cita: {a.cita.fecha} a las {a.cita.hora} ({a.cita.estado})
-                          {a.cita.tipo ? ` - ${a.cita.tipo}` : ''}
-                          {a.cita.ubicacion ? ` - ${a.cita.ubicacion}` : ''}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          )}
-
-          {/* TAB: Historial Estado Asesor */}
-          {tab === 'historial' && (
-            <div className="space-y-3">
-              {loadingHistorial ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : historial.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No hay historial de estados</p>
-              ) : (
-                historial.map((h) => (
-                  <div key={h.id} className="p-4 border border-border rounded-lg space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[h.estadoAnterior || ''] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                        {h.estadoAnterior ? (ESTADO_LABELS[h.estadoAnterior] || h.estadoAnterior) : 'Sin estado'}
+                <>
+                  {/* Resumen superior */}
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-secondary text-foreground border border-border">
+                      {acciones.length} {acciones.length === 1 ? 'gestión' : 'gestiones'}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-secondary text-foreground border border-border inline-flex items-center gap-1.5">
+                      <Phone className="w-3 h-3" /> {totalLlamadas} {totalLlamadas === 1 ? 'llamada' : 'llamadas'}
+                    </span>
+                    {totalHablado > 0 && (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 inline-flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" /> {formatDuracion(totalHablado)} hablados
                       </span>
-                      <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[h.estadoNuevo] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                        {ESTADO_LABELS[h.estadoNuevo] || h.estadoNuevo}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {h.usuario} via {TIPO_LABELS[h.tipoAccion] || h.tipoAccion} - {formatDate(h.fecha)}
-                    </div>
-                    {h.observaciones && (
-                      <p className="text-sm text-foreground bg-secondary/50 p-2 rounded">{h.observaciones}</p>
                     )}
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-secondary text-muted-foreground border border-border">
+                      Último: {formatDate(acciones[0].fecha)}
+                    </span>
                   </div>
-                ))
+
+                  {/* Timeline */}
+                  <div className="relative pl-8">
+                    <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" aria-hidden="true" />
+                    <div className="space-y-4">
+                      {acciones.map((a, i) => {
+                        const Icon = TIPO_ICONS[a.tipoAccion] || Phone
+                        // orden desc: el estado anterior es el de la gestión siguiente en la lista
+                        const estadoAnterior = acciones[i + 1]?.estadoAsesor ?? null
+                        const cambioEstado = estadoAnterior !== a.estadoAsesor
+                        const dur = formatDuracion(a.duracionSeg)
+                        return (
+                          <div key={a.id} className="relative">
+                            <div className="absolute -left-8 top-1 w-8 h-8 rounded-full bg-secondary border border-border grid place-items-center">
+                              <Icon className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="p-4 border border-border rounded-lg space-y-2 bg-card">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <span className="font-semibold text-foreground text-sm">
+                                  {TIPO_LABELS[a.tipoAccion] || a.tipoAccion}
+                                </span>
+                                {cambioEstado ? (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[estadoAnterior || ''] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                      {estadoAnterior ? (ESTADO_LABELS[estadoAnterior] || estadoAnterior) : 'Sin estado'}
+                                    </span>
+                                    <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[a.estadoAsesor] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                                      {ESTADO_LABELS[a.estadoAsesor] || a.estadoAsesor}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[a.estadoAsesor] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                                    {ESTADO_LABELS[a.estadoAsesor] || a.estadoAsesor}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                                <span>{a.userName}</span>
+                                <span>·</span>
+                                <span>{formatDate(a.fecha)}</span>
+                                {dur && (
+                                  <>
+                                    <span>·</span>
+                                    <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                                      <Clock className="w-3 h-3" /> {dur}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              {a.observaciones && (
+                                <p className="text-sm text-foreground bg-secondary/50 p-2 rounded">{a.observaciones}</p>
+                              )}
+                              {a.cita && (
+                                <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
+                                  Cita: {a.cita.fecha} a las {a.cita.hora} ({a.cita.estado})
+                                  {a.cita.tipo ? ` - ${a.cita.tipo}` : ''}
+                                  {a.cita.ubicacion ? ` - ${a.cita.ubicacion}` : ''}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}
