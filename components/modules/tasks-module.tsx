@@ -9,6 +9,7 @@ import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
 import { useAuth } from '@/contexts/auth-context'
 import { AsesorFilter } from '@/components/ui/asesor-filter'
+import { CallButtons } from '@/components/calls/call-dock'
 
 interface Lead {
   id: string
@@ -207,6 +208,10 @@ export function TasksModule() {
                           >
                             <MessageSquare className="w-4 h-4" />
                           </Button>
+                          {/* Llamar / videollamar desde la tarea (abre el dock) */}
+                          {user?.role === 'asesor' && (
+                            <CallButtons lead={{ id: lead.id, name: lead.name, phone: lead.phone }} />
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
