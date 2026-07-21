@@ -12,7 +12,9 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Phone, Video, Clock, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react'
-import { useCall } from '@/contexts/call-context'
+import { useCall, type CallKind } from '@/contexts/call-context'
+import { CallConfirmDialog } from '@/components/calls/call-dock'
+import { useState } from 'react'
 
 type Perm = 'ok' | 'warn' | 'no'
 
@@ -52,6 +54,7 @@ const PERM_META: Record<Perm, { cls: string; Icon: typeof ShieldCheck }> = {
 
 export function CallsModule() {
   const { startCall } = useCall()
+  const [pendiente, setPendiente] = useState<{ lead: QueueLead; kind: CallKind } | null>(null)
   const pendientes = COLA.filter((l) => l.perm !== 'no').length
 
   return (
@@ -112,14 +115,14 @@ export function CallsModule() {
                   <button
                     title={bloqueado ? 'Sin permiso de llamada' : 'Llamar'}
                     disabled={bloqueado}
-                    onClick={() => startCall({ id: l.id, name: l.name, phone: l.phone }, 'voice')}
+                    onClick={() => setPendiente({ lead: l, kind: 'voice' })}
                     className="w-9 h-9 rounded-lg grid place-items-center border border-border text-foreground hover:text-emerald-600 hover:border-emerald-500 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
                   >
                     <Phone className="w-4 h-4" />
                   </button>
                   <button
                     title="Videollamada"
-                    onClick={() => startCall({ id: l.id, name: l.name, phone: l.phone }, 'video')}
+                    onClick={() => setPendiente({ lead: l, kind: 'video' })}
                     className="w-9 h-9 rounded-lg grid place-items-center border border-border text-foreground hover:text-primary hover:border-primary transition-colors"
                   >
                     <Video className="w-4 h-4" />
@@ -134,6 +137,19 @@ export function CallsModule() {
           Las llamadas quedan registradas en el <strong className="text-foreground">Resumen de la gestión</strong> de
           cada lead, con su duración y grabación.
         </p>
+
+        {pendiente && (
+          <CallConfirmDialog
+            lead={pendiente.lead}
+            kind={pendiente.kind}
+            onCancel={() => setPendiente(null)}
+            onConfirm={() => {
+              const { lead, kind } = pendiente
+              startCall({ id: lead.id, name: lead.name, phone: lead.phone }, kind)
+              setPendiente(null)
+            }}
+          />
+        )}
       </div>
     </div>
   )

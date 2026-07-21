@@ -8,8 +8,9 @@
  * tomar notas) MIENTRAS habla. Al colgar pide la disposicion de la gestion.
  */
 
-import { useCall } from '@/contexts/call-context'
+import { useCall, type CallKind } from '@/contexts/call-context'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import {
   Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Minus, X, Clock, Send,
 } from 'lucide-react'
@@ -169,24 +170,110 @@ export function CallDock() {
   )
 }
 
+/**
+ * Confirmacion antes de llamar.
+ *
+ * Voz y video funcionan distinto (una entra como llamada de WhatsApp, la otra
+ * manda un link a la conversacion), asi que conviene decirlo explicito antes de
+ * disparar nada. z-[70] para quedar por encima de los modales del CRM (z-50) y
+ * del dock (z-60).
+ */
+export function CallConfirmDialog({
+  lead,
+  kind,
+  onCancel,
+  onConfirm,
+}: {
+  lead: { name: string; phone: string }
+  kind: CallKind
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  const esVideo = kind === 'video'
+  const puntos = esVideo
+    ? [
+        'Le llega un enlace a su chat de WhatsApp; lo abre en el navegador, sin instalar nada.',
+        'Entras a la sala apenas el lead se conecte.',
+        'Queda grabada y registrada en el resumen de la gestión.',
+      ]
+    : [
+        'Al lead le entra como una llamada de WhatsApp, desde el número de Maqui+.',
+        'Se graba y queda registrada en el resumen de la gestión, con su duración.',
+        'Puedes seguir usando el CRM mientras hablas.',
+      ]
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4"
+      onClick={onCancel}
+      role="dialog"
+      aria-modal="true"
+    >
+      <Card className="w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start gap-3">
+          <div
+            className="w-11 h-11 rounded-full grid place-items-center flex-none text-white"
+            style={{ background: 'linear-gradient(135deg,#1B5E7E,#2E8BB0)' }}
+          >
+            {esVideo ? <Video className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-foreground leading-tight">
+              {esVideo ? 'Iniciar videollamada' : 'Llamar por WhatsApp'}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {lead.name} · <span className="font-mono">{lead.phone}</span>
+            </p>
+          </div>
+        </div>
+
+        <p className="text-sm text-foreground mt-4">
+          {esVideo
+            ? 'Se enviará un enlace de videollamada al chat de WhatsApp del lead.'
+            : 'Se iniciará una llamada de voz por WhatsApp con el lead.'}
+        </p>
+
+        <ul className="mt-3 space-y-2">
+          {puntos.map((p) => (
+            <li key={p} className="flex gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5 flex-none">•</span>
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex justify-end gap-2 mt-6">
+          <Button variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} className="gap-2">
+            {esVideo ? <Send className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+            {esVideo ? 'Enviar enlace' : 'Llamar ahora'}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 /** Botones de accion reutilizables (fila del lead / header de conversacion). */
 export function CallButtons({
   lead,
-  size = 'sm',
   variant = 'ghost',
 }: {
   lead: { id: string; name: string; phone: string }
-  size?: 'sm' | 'icon'
   variant?: 'ghost' | 'outline'
 }) {
   const { startCall } = useCall()
+  const [pendiente, setPendiente] = useState<CallKind | null>(null)
+
   return (
     <>
       <Button
         variant={variant}
         size="sm"
         title="Llamar"
-        onClick={(e) => { e.stopPropagation(); startCall(lead, 'voice') }}
+        onClick={(e) => { e.stopPropagation(); setPendiente('voice') }}
         className="text-foreground hover:text-emerald-600 hover:bg-secondary"
       >
         <Phone className="w-4 h-4" />
@@ -195,11 +282,20 @@ export function CallButtons({
         variant={variant}
         size="sm"
         title="Videollamada"
-        onClick={(e) => { e.stopPropagation(); startCall(lead, 'video') }}
+        onClick={(e) => { e.stopPropagation(); setPendiente('video') }}
         className="text-foreground hover:text-primary hover:bg-secondary"
       >
         <Video className="w-4 h-4" />
       </Button>
+
+      {pendiente && (
+        <CallConfirmDialog
+          lead={lead}
+          kind={pendiente}
+          onCancel={() => setPendiente(null)}
+          onConfirm={() => { startCall(lead, pendiente); setPendiente(null) }}
+        />
+      )}
     </>
   )
 }
