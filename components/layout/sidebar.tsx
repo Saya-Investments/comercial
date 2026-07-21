@@ -23,7 +23,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
     { id: 'leads', label: 'Leads', icon: MessageSquare, roles: ['admin', 'asesor', 'call center', 'supervisor'] as string[] },
     { id: 'tasks', label: 'Tareas', icon: ListTasks, roles: ['admin', 'asesor', 'supervisor'] as string[] },
     { id: 'campaigns', label: 'Campañas', icon: Mail, roles: ['admin'] as string[] },
-    { id: 'calls', label: 'Llamadas', icon: Phone, roles: ['admin'] as string[] },
+    { id: 'calls', label: 'Llamadas', icon: Phone, roles: ['admin', 'asesor'] as string[] },
     { id: 'calendar', label: 'Calendario', icon: Calendar, roles: ['admin', 'asesor', 'call center', 'supervisor'] as string[] },
     { id: 'templates', label: 'Plantillas', icon: Mail, roles: ['admin'] as string[] },
     { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, roles: ['admin', 'supervisor'] as string[] },

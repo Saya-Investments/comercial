@@ -25,7 +25,7 @@ import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel' | 'funnel-campanas' | 'my-prospects' | 'calls' | 'version'
 
-const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'funnel-campanas', 'calls', 'version']
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'funnel-campanas', 'version']
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
