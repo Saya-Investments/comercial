@@ -2,6 +2,7 @@
 
 import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard, Headphones, RefreshCw, Filter, GitBranch, Building2, GitMerge, Phone } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { puedeUsarLlamadas } from '@/lib/demo-access'
 import { Button } from '@/components/ui/button'
 
 interface SidebarProps {
@@ -36,7 +37,13 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
     { id: 'version', label: 'Versión', icon: GitBranch, roles: ['admin'] as string[] },
   ]
 
-  const modules = allModules.filter(m => user?.role && m.roles.includes(user.role))
+  const modules = allModules.filter(m => {
+    if (!user?.role || !m.roles.includes(user.role)) return false
+    // "Llamadas" sigue en demo: solo visible en el perfil de prueba, para que
+    // los asesores reales no vean una funcion que todavia no marca.
+    if (m.id === 'calls') return puedeUsarLlamadas(user)
+    return true
+  })
 
   return (
     <aside className={`${isCollapsed ? 'w-20' : 'w-[18rem] max-w-[85vw] md:w-64'} bg-primary text-primary-foreground flex flex-col border-r border-border h-screen transition-all duration-300`}>

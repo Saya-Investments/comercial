@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { X, Paperclip, Send, Bot, PauseCircle, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { CallButtons } from '@/components/calls/call-dock'
+import { puedeUsarLlamadas } from '@/lib/demo-access'
 
 interface ConversationModalProps {
   lead: {
@@ -234,7 +235,7 @@ export function ConversationModal({ lead, onClose }: ConversationModalProps) {
           <div className="flex items-center gap-1 shrink-0">
             {/* Llamar desde la conversacion: es el gesto mas natural — estas
                 leyendo el chat del lead y lo llamas, como en WhatsApp. */}
-            {user?.role === 'asesor' && <CallButtons lead={lead} />}
+            {puedeUsarLlamadas(user) && <CallButtons lead={lead} />}
             <button
               onClick={() => fetchConv()}
               disabled={loading}

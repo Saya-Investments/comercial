@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { puedeUsarLlamadas } from '@/lib/demo-access'
 import { LoginForm } from '@/components/auth/login-form'
 import { Sidebar } from '@/components/layout/sidebar'
 import { LeadsModule } from '@/components/modules/leads-module'
@@ -141,7 +142,7 @@ export default function Home() {
           {activeModule === 'my-prospects' && <MyProspectsModule />}
           {activeModule === 'bot-cost' && <BotCostModule initialLeads={150} />}
           {activeModule === 'routing-rules' && <RoutingRulesModule />}
-          {activeModule === 'calls' && <CallsModule />}
+          {activeModule === 'calls' && puedeUsarLlamadas(user) && <CallsModule />}
           {activeModule === 'version' && <VersionModule />}
         </div>
       </main>

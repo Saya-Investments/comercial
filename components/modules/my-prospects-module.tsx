@@ -8,6 +8,7 @@ import { LeadDetailModal } from './modals/lead-detail-modal'
 import { ActionModal } from './modals/action-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { CallButtons } from '@/components/calls/call-dock'
+import { puedeUsarLlamadas } from '@/lib/demo-access'
 import {
   TrendingUp,
   CheckCircle2,
@@ -395,7 +396,7 @@ export function MyProspectsModule() {
                                 <MessageSquare className="w-4 h-4" />
                               </Button>
                               {/* Llamar / videollamar desde el prospecto (abre el dock) */}
-                              {user?.role === 'asesor' && (
+                              {puedeUsarLlamadas(user) && (
                                 <CallButtons
                                   lead={{
                                     id: lead.id_lead,

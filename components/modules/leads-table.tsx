@@ -9,6 +9,7 @@ import { ProspectModal } from './modals/prospect-modal'
 import { ConversationModal } from './modals/conversation-modal'
 import { LeadDetailModal } from './modals/lead-detail-modal'
 import { CallButtons } from '@/components/calls/call-dock'
+import { puedeUsarLlamadas } from '@/lib/demo-access'
 import { useAuth } from '@/contexts/auth-context'
 
 interface Lead {
@@ -348,7 +349,7 @@ export function LeadsTable({
                         <MessageSquare className="w-4 h-4" />
                       </Button>
                       {/* Llamar / videollamar sin salir de la lista (abre el dock) */}
-                      {user?.role === 'asesor' && (
+                      {puedeUsarLlamadas(user) && (
                         <CallButtons lead={{ id: lead.id, name: lead.name, phone: lead.phone }} />
                       )}
                       <Button variant="ghost" size="sm" onClick={() => handleAction(lead, 'detail')} className="text-foreground hover:bg-secondary" title="Ver detalle">
