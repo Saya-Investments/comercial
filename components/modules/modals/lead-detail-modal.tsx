@@ -4,6 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { X, Phone, CalendarClock, ArrowRight, Loader2, TrendingUp, TrendingDown, Minus, MessageSquare, Clock } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { puedeUsarLlamadas } from '@/lib/demo-access'
+
+interface HistEstado {
+  id: string
+  estadoAnterior: string | null
+  estadoNuevo: string
+  fecha: string
+  usuario: string
+  tipoAccion: string
+  observaciones: string | null
+}
 
 interface LeadDetailModalProps {
   lead: {
@@ -106,22 +118,36 @@ const ESTADO_COLORS: Record<string, string> = {
 }
 
 export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
-  const [tab, setTab] = useState<'info' | 'gestion' | 'scoring'>('info')
+  const { user } = useAuth()
+  // La vista unificada ("Resumen de la gestión") sigue en prueba: solo el perfil
+  // demo la ve. Los asesores reales mantienen las dos pestañas de siempre.
+  const vistaUnificada = puedeUsarLlamadas(user)
+
+  const [tab, setTab] = useState<'info' | 'gestion' | 'acciones' | 'historial' | 'scoring'>('info')
   const [acciones, setAcciones] = useState<AccionComercial[]>([])
+  const [historial, setHistorial] = useState<HistEstado[]>([])
   const [histScoring, setHistScoring] = useState<HistScoring[]>([])
   const [loadingAcciones, setLoadingAcciones] = useState(false)
+  const [loadingHistorial, setLoadingHistorial] = useState(false)
   const [loadingScoring, setLoadingScoring] = useState(false)
 
   useEffect(() => {
     // "Resumen de la gestión" se arma sobre las acciones comerciales: cada accion
     // ya trae su estado, y la transicion (anterior -> nuevo) se deriva del orden
     // cronologico, que es exactamente lo que guarda hist_estado_asesor.
-    if (tab === 'gestion' && acciones.length === 0) {
+    if ((tab === 'gestion' || tab === 'acciones') && acciones.length === 0) {
       setLoadingAcciones(true)
       fetch(`/api/acciones-comerciales?leadId=${lead.id}`)
         .then((r) => r.json())
         .then(setAcciones)
         .finally(() => setLoadingAcciones(false))
+    }
+    if (tab === 'historial' && historial.length === 0) {
+      setLoadingHistorial(true)
+      fetch(`/api/hist-estado-asesor?leadId=${lead.id}`)
+        .then((r) => r.json())
+        .then(setHistorial)
+        .finally(() => setLoadingHistorial(false))
     }
     if (tab === 'scoring' && histScoring.length === 0) {
       setLoadingScoring(true)
@@ -130,7 +156,7 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
         .then(setHistScoring)
         .finally(() => setLoadingScoring(false))
     }
-  }, [tab, lead.id, acciones.length, histScoring.length])
+  }, [tab, lead.id, acciones.length, historial.length, histScoring.length])
 
   const formatDuracion = (seg: number | null) => {
     if (seg === null || seg === undefined) return null
@@ -180,7 +206,10 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
 
         {/* Tabs */}
         <div className="flex border-b border-border flex-shrink-0">
-          {(['info', 'gestion', 'scoring'] as const).map((t) => (
+          {(vistaUnificada
+            ? (['info', 'gestion', 'scoring'] as const)
+            : (['info', 'acciones', 'historial', 'scoring'] as const)
+          ).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -190,7 +219,15 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {t === 'info' ? 'Informacion' : t === 'gestion' ? 'Resumen de la gestión' : 'Historial Scoring'}
+              {t === 'info'
+                ? 'Informacion'
+                : t === 'gestion'
+                  ? 'Resumen de la gestión'
+                  : t === 'acciones'
+                    ? 'Acciones Comerciales'
+                    : t === 'historial'
+                      ? 'Historial Estado'
+                      : 'Historial Scoring'}
             </button>
           ))}
         </div>
@@ -327,6 +364,84 @@ export function LeadDetailModal({ lead, onClose }: LeadDetailModalProps) {
                     </div>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* TAB: Acciones Comerciales (vista clasica, asesores de produccion) */}
+          {tab === 'acciones' && (
+            <div className="space-y-3">
+              {loadingAcciones ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : acciones.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No hay acciones comerciales registradas</p>
+              ) : (
+                acciones.map((a) => {
+                  const Icon = TIPO_ICONS[a.tipoAccion] || Phone
+                  return (
+                    <div key={a.id} className="p-4 border border-border rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium text-foreground text-sm">
+                            {TIPO_LABELS[a.tipoAccion] || a.tipoAccion}
+                          </span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[a.estadoAsesor] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                          {ESTADO_LABELS[a.estadoAsesor] || a.estadoAsesor}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {a.userName} - {formatDate(a.fecha)}
+                      </div>
+                      {a.observaciones && (
+                        <p className="text-sm text-foreground bg-secondary/50 p-2 rounded">{a.observaciones}</p>
+                      )}
+                      {a.cita && (
+                        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100">
+                          Cita: {a.cita.fecha} a las {a.cita.hora} ({a.cita.estado})
+                          {a.cita.tipo ? ` - ${a.cita.tipo}` : ''}
+                          {a.cita.ubicacion ? ` - ${a.cita.ubicacion}` : ''}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          )}
+
+          {/* TAB: Historial Estado Asesor (vista clasica, asesores de produccion) */}
+          {tab === 'historial' && (
+            <div className="space-y-3">
+              {loadingHistorial ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : historial.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No hay historial de estados</p>
+              ) : (
+                historial.map((h) => (
+                  <div key={h.id} className="p-4 border border-border rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[h.estadoAnterior || ''] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                        {h.estadoAnterior ? (ESTADO_LABELS[h.estadoAnterior] || h.estadoAnterior) : 'Sin estado'}
+                      </span>
+                      <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${ESTADO_COLORS[h.estadoNuevo] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                        {ESTADO_LABELS[h.estadoNuevo] || h.estadoNuevo}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {h.usuario} via {TIPO_LABELS[h.tipoAccion] || h.tipoAccion} - {formatDate(h.fecha)}
+                    </div>
+                    {h.observaciones && (
+                      <p className="text-sm text-foreground bg-secondary/50 p-2 rounded">{h.observaciones}</p>
+                    )}
+                  </div>
+                ))
               )}
             </div>
           )}
