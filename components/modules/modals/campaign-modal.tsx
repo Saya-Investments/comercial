@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { X, Loader2, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { BQ_NULL_SENTINEL } from '@/lib/bq-constants'
+import { ESCALONES_CAMPANA, ETIQUETA_ESCALON, type EscalonTibia } from '@/lib/tibia-constants'
 
 interface Template {
   id: string
@@ -23,7 +24,7 @@ interface CampaignModalProps {
   onCreated?: () => void
 }
 
-type CampaignSource = 'bigquery' | 'recordatorio'
+type CampaignSource = 'bigquery' | 'recordatorio' | 'tibia'
 
 const PREVIEW_COLUMN_SPECS = [
   { label: 'Nombres', candidates: ['Nombres', 'nombres'] },
@@ -43,6 +44,21 @@ const RECORDATORIO_PREVIEW_COLUMNS = [
 ]
 
 const RECORDATORIO_COLUMNS: BQColumn[] = [
+  { name: 'nombre', type: 'STRING' },
+  { name: 'apellido', type: 'STRING' },
+  { name: 'numero', type: 'STRING' },
+  { name: 'correo', type: 'STRING' },
+]
+
+const TIBIA_PREVIEW_COLUMNS = [
+  { label: 'Nombre', key: 'nombre' },
+  { label: 'Apellido', key: 'apellido' },
+  { label: 'Telefono', key: 'numero' },
+  { label: 'Correo', key: 'correo' },
+  { label: 'Situacion', key: 'escalon' },
+]
+
+const TIBIA_COLUMNS: BQColumn[] = [
   { name: 'nombre', type: 'STRING' },
   { name: 'apellido', type: 'STRING' },
   { name: 'numero', type: 'STRING' },
@@ -82,6 +98,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     estadosAsociadosFondos: [] as string[],
     estadosProspecto: [] as string[],
     bases: [] as string[],
+    escalonesTibia: [] as EscalonTibia[],
     templateId: '',
   })
 
@@ -94,6 +111,8 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
   const [estadoProspectoOptions, setEstadoProspectoOptions] = useState<string[]>([])
   const [baseOptions, setBaseOptions] = useState<string[]>([])
   const [loadingProspectoFilters, setLoadingProspectoFilters] = useState(false)
+  const [tibiaBreakdown, setTibiaBreakdown] = useState<Record<string, number> | null>(null)
+  const [loadingTibiaBreakdown, setLoadingTibiaBreakdown] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [columns, setColumns] = useState<BQColumn[]>([])
   const [leadCount, setLeadCount] = useState<number | null>(null)
@@ -170,6 +189,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       .finally(() => setLoadingProspectoFilters(false))
   }, [formData.source, step])
 
+  useEffect(() => {
+    if (step !== 'config' || formData.source !== 'tibia') return
+
+    setLoadingTibiaBreakdown(true)
+    fetch('/api/tibia-campaign?action=breakdown')
+      .then(res => res.json())
+      .then(data => setTibiaBreakdown(data.breakdown || {}))
+      .catch(console.error)
+      .finally(() => setLoadingTibiaBreakdown(false))
+  }, [formData.source, step])
+
   const buildFilterParams = useCallback(() => {
     const params = new URLSearchParams()
     params.set('table', formData.table)
@@ -185,6 +215,12 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     formData.bases.forEach(b => params.append('bases', b))
     return params
   }, [formData.estadosProspecto, formData.bases])
+
+  const buildTibiaParams = useCallback(() => {
+    const params = new URLSearchParams()
+    formData.escalonesTibia.forEach(e => params.append('escalones', e))
+    return params
+  }, [formData.escalonesTibia])
 
   useEffect(() => {
     if (step !== 'config' && step !== 'preview') return
@@ -205,6 +241,22 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       return
     }
 
+    if (formData.source === 'tibia') {
+      if (formData.escalonesTibia.length === 0) {
+        setLeadCount(0)
+        return
+      }
+      setLoadingCount(true)
+      const params = buildTibiaParams()
+      params.set('action', 'count')
+      fetch(`/api/tibia-campaign?${params}`)
+        .then(res => res.json())
+        .then(data => setLeadCount(data.total ?? null))
+        .catch(() => setLeadCount(null))
+        .finally(() => setLoadingCount(false))
+      return
+    }
+
     if (!formData.table) return
     setLoadingCount(true)
     const params = buildFilterParams()
@@ -214,7 +266,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       .then(data => setLeadCount(data.total ?? null))
       .catch(() => setLeadCount(null))
       .finally(() => setLoadingCount(false))
-  }, [formData.source, formData.table, buildFilterParams, buildRecordatorioParams, step])
+  }, [
+    formData.source,
+    formData.table,
+    buildFilterParams,
+    buildRecordatorioParams,
+    buildTibiaParams,
+    step,
+  ])
 
   useEffect(() => {
     if (step !== 'preview') return
@@ -238,6 +297,22 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       return
     }
 
+    if (formData.source === 'tibia') {
+      if (formData.escalonesTibia.length === 0) {
+        setPreviewLeads([])
+        setLoadingPreview(false)
+        return
+      }
+      const params = buildTibiaParams()
+      params.set('action', 'leads')
+      fetch(`/api/tibia-campaign?${params}`)
+        .then(res => res.json())
+        .then(data => setPreviewLeads(data.leads || []))
+        .catch(console.error)
+        .finally(() => setLoadingPreview(false))
+      return
+    }
+
     if (!formData.table) {
       setLoadingPreview(false)
       return
@@ -249,7 +324,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       .then(data => setPreviewLeads(data.leads || []))
       .catch(console.error)
       .finally(() => setLoadingPreview(false))
-  }, [formData.source, buildFilterParams, buildRecordatorioParams, step, formData.table])
+  }, [
+    formData.source,
+    formData.table,
+    buildFilterParams,
+    buildRecordatorioParams,
+    buildTibiaParams,
+    step,
+  ])
 
   const selectedTemplate = templates.find(t => t.id === formData.templateId)
   const templateVars = selectedTemplate ? extractVariables(selectedTemplate.content) : []
@@ -271,6 +353,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       estadosAsociadosFondos: [],
       estadosProspecto: [],
       bases: [],
+      escalonesTibia: [],
     }))
     setLeadCount(null)
     setPreviewLeads([])
@@ -321,6 +404,15 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     })
   }
 
+  const handleEscalonTibiaChange = (escalon: EscalonTibia, checked: boolean) => {
+    setFormData({
+      ...formData,
+      escalonesTibia: checked
+        ? [...formData.escalonesTibia, escalon]
+        : formData.escalonesTibia.filter(e => e !== escalon),
+    })
+  }
+
   const formatEstadoAsociadoFondos = (estado: string) =>
     estado === BQ_NULL_SENTINEL ? '(Sin estado)' : estado
 
@@ -328,7 +420,12 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     setVariableMapping(prev => ({ ...prev, [variable]: column }))
   }
 
-  const activeColumns = formData.source === 'recordatorio' ? RECORDATORIO_COLUMNS : columns
+  const activeColumns =
+    formData.source === 'recordatorio'
+      ? RECORDATORIO_COLUMNS
+      : formData.source === 'tibia'
+        ? TIBIA_COLUMNS
+        : columns
 
   const handleSubmit = async () => {
 
@@ -353,6 +450,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
           source: 'recordatorio',
           estadosProspecto: formData.estadosProspecto,
           bases: formData.bases,
+          templateId: formData.templateId || null,
+          variables: templateVars.length > 0 ? variableMapping : {},
+        }
+      } else if (formData.source === 'tibia') {
+        body = {
+          name: formData.name,
+          source: 'tibia',
+          escalones: formData.escalonesTibia,
           templateId: formData.templateId || null,
           variables: templateVars.length > 0 ? variableMapping : {},
         }
@@ -392,10 +497,26 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     else if (step === 'preview') setStep('config')
   }
 
-  const previewColumns = PREVIEW_COLUMN_SPECS.map((column) => ({
-    label: column.label,
-    key: resolvePreviewColumn(columns, column.candidates),
-  }))
+  const previewColumns: { label: string; key: string | undefined }[] =
+    formData.source === 'recordatorio'
+      ? [...RECORDATORIO_PREVIEW_COLUMNS]
+      : formData.source === 'tibia'
+        ? [...TIBIA_PREVIEW_COLUMNS]
+        : PREVIEW_COLUMN_SPECS.map((column) => ({
+            label: column.label,
+            key: resolvePreviewColumn(columns, column.candidates),
+          }))
+
+  // En base tibia la columna "Situacion" viene como codigo (P5/P6/P7): se muestra
+  // con la misma etiqueta descriptiva que en los filtros.
+  const formatPreviewCell = (key: string | undefined, lead: Record<string, unknown>) => {
+    if (!key) return ''
+    const value = lead[key]
+    if (key === 'escalon') {
+      return ETIQUETA_ESCALON[value as EscalonTibia] ?? String(value ?? '')
+    }
+    return String(value ?? '')
+  }
 
   const pagedLeads = previewLeads.slice(
     previewPage * previewPageSize,
@@ -491,6 +612,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     }`}
                   >
                     Recordatorio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSourceChange('tibia')}
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      formData.source === 'tibia'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    Base tibia
                   </button>
                 </div>
               </div>
@@ -672,7 +804,55 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                 </>
               )}
 
-              {/* Plantilla y variables (comun a ambas fuentes) */}
+              {/* Filtros Base tibia */}
+              {formData.source === 'tibia' && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Situacion del lead en la base tibia
+                  </label>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Leads calientes de Lima que el asesor ya trabajo entre el 14 de marzo y el 14 de
+                    junio de 2026 y que todavia no se inscriben. Elige a quienes reactivar.
+                  </p>
+                  <div className="space-y-2">
+                    {ESCALONES_CAMPANA.map((escalon) => (
+                      <label
+                        key={escalon.code}
+                        className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 hover:bg-secondary/30"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.escalonesTibia.includes(escalon.code)}
+                          onChange={(e) => handleEscalonTibiaChange(escalon.code, e.target.checked)}
+                          className="mt-0.5 rounded border-border"
+                        />
+                        <span className="flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-foreground">{escalon.label}</span>
+                            {loadingTibiaBreakdown ? (
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            ) : tibiaBreakdown ? (
+                              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                                {(tibiaBreakdown[escalon.code] ?? 0).toLocaleString()} leads
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {escalon.help}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    El universo se calcula por la ultima gestion del asesor, asi que se va reduciendo
+                    a medida que el equipo sigue trabajando estos leads: el total puede variar de un
+                    dia a otro.
+                  </p>
+                </div>
+              )}
+
+              {/* Plantilla y variables (comun a todas las fuentes) */}
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Plantilla de Mensaje</label>
                 <select
@@ -732,7 +912,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
               <div className="rounded-lg border border-border bg-secondary/50 p-4">
                 <p className="mb-2 text-sm font-semibold text-foreground">Resumen de Configuracion</p>
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <p>Fuente: {formData.source === 'recordatorio' ? 'Recordatorio (funnel de prospectos)' : `BigQuery — ${formData.table}`}</p>
+                  <p>
+                    Fuente:{' '}
+                    {formData.source === 'recordatorio'
+                      ? 'Recordatorio (funnel de prospectos)'
+                      : formData.source === 'tibia'
+                        ? 'Base tibia (leads calientes ya trabajados)'
+                        : `BigQuery — ${formData.table}`}
+                  </p>
                   {formData.source === 'bigquery' && (
                     <>
                       <p>Buckets: {formData.buckets.length > 0 ? formData.buckets.join(', ') : 'Todos'}</p>
@@ -757,6 +944,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                           : 'Ninguno seleccionado'}
                       </p>
                     </>
+                  )}
+                  {formData.source === 'tibia' && (
+                    <p>
+                      Situacion:{' '}
+                      {formData.escalonesTibia.length > 0
+                        ? formData.escalonesTibia.map((e) => ETIQUETA_ESCALON[e]).join(', ')
+                        : 'Ninguna seleccionada'}
+                    </p>
                   )}
                   <p>Plantilla: {selectedTemplate?.name || 'Sin seleccionar'}</p>
                   <p className="font-semibold text-foreground">
@@ -784,7 +979,12 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     <p className="mt-1 text-sm text-green-700">
                       Se vincularon <span className="font-bold">{importResult.leadsImported.toLocaleString()}</span> leads
                       a la campana (de {importResult.totalBQ?.toLocaleString() ?? '?'}{' '}
-                      {importResult.source === 'recordatorio' ? 'prospectos seleccionados' : 'registros en BigQuery'}).
+                      {importResult.source === 'recordatorio'
+                        ? 'prospectos seleccionados'
+                        : importResult.source === 'tibia'
+                          ? 'leads de la base tibia'
+                          : 'registros en BigQuery'}
+                      ).
                     </p>
                     {((importResult.skippedNoPhone ?? 0) > 0 || (importResult.skippedDuplicate ?? 0) > 0 || (importResult.errors ?? 0) > 0) && (
                       <p className="mt-1 text-xs text-green-600">
@@ -807,7 +1007,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {formData.source === 'recordatorio'
                         ? `Vinculando ${leadCount?.toLocaleString() ?? ''} prospectos. Esto puede tomar un momento.`
-                        : `Importando ${leadCount?.toLocaleString() ?? ''} leads desde BigQuery. Esto puede tomar un momento.`}
+                        : formData.source === 'tibia'
+                          ? `Vinculando ${leadCount?.toLocaleString() ?? ''} leads de la base tibia. Esto puede tomar un momento.`
+                          : `Importando ${leadCount?.toLocaleString() ?? ''} leads desde BigQuery. Esto puede tomar un momento.`}
                     </p>
                   </div>
                 </div>
@@ -833,6 +1035,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                           )}
                           {formData.estadosProspecto.length > 0 && (
                             <> | Estados: <span className="font-medium text-foreground">{formData.estadosProspecto.join(', ')}</span></>
+                          )}
+                        </>
+                      ) : formData.source === 'tibia' ? (
+                        <>
+                          Fuente: <span className="font-medium text-foreground">Base tibia</span>
+                          {formData.escalonesTibia.length > 0 && (
+                            <> | Situacion:{' '}
+                              <span className="font-medium text-foreground">
+                                {formData.escalonesTibia.map((e) => ETIQUETA_ESCALON[e]).join(', ')}
+                              </span>
+                            </>
                           )}
                         </>
                       ) : (
@@ -868,33 +1081,21 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border bg-secondary">
-                                {formData.source === 'recordatorio'
-                                  ? RECORDATORIO_PREVIEW_COLUMNS.map((col) => (
-                                      <th key={col.label} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">
-                                        {col.label}
-                                      </th>
-                                    ))
-                                  : previewColumns.map((col) => (
-                                      <th key={col.label} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">
-                                        {col.label}
-                                      </th>
-                                    ))}
+                                {previewColumns.map((col) => (
+                                  <th key={col.label} className="whitespace-nowrap px-3 py-2 text-left font-semibold text-foreground">
+                                    {col.label}
+                                  </th>
+                                ))}
                               </tr>
                             </thead>
                             <tbody>
                               {pagedLeads.map((lead, i) => (
                                 <tr key={i} className="border-b border-border hover:bg-secondary/30">
-                                  {formData.source === 'recordatorio'
-                                    ? RECORDATORIO_PREVIEW_COLUMNS.map((col) => (
-                                        <td key={col.label} className="max-w-[200px] truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
-                                          {String(lead[col.key] ?? '')}
-                                        </td>
-                                      ))
-                                    : previewColumns.map((col) => (
-                                        <td key={col.label} className="max-w-[200px] truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
-                                          {col.key ? String(lead[col.key] ?? '') : ''}
-                                        </td>
-                                      ))}
+                                  {previewColumns.map((col) => (
+                                    <td key={col.label} className="max-w-[200px] truncate whitespace-nowrap px-3 py-2 text-muted-foreground">
+                                      {formatPreviewCell(col.key, lead)}
+                                    </td>
+                                  ))}
                                 </tr>
                               ))}
                             </tbody>
@@ -977,7 +1178,8 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                 disabled={
                   saving ||
                   (step === 'basic' && !formData.name.trim()) ||
-                  (step === 'config' && formData.source === 'recordatorio' && formData.estadosProspecto.length === 0)
+                  (step === 'config' && formData.source === 'recordatorio' && formData.estadosProspecto.length === 0) ||
+                  (step === 'config' && formData.source === 'tibia' && formData.escalonesTibia.length === 0)
                 }
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >

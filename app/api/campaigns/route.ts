@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchBQLeads, fetchBQTables } from '@/lib/bigquery'
 import { RANGO_DESDE } from '@/lib/prospect-funnel-cross'
+import { TIBIA_CASCADA_CTE } from '@/lib/tibia-cascada'
+import { ESCALONES_CAMPANA, esEscalonTibia, type EscalonTibia } from '@/lib/tibia-constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -408,6 +410,124 @@ async function handleRecordatorioCampaign(body: RecordatorioCampaignBody): Promi
   }
 }
 
+type TibiaCampaignBody = {
+  name: string
+  source: 'tibia'
+  escalones: string[]
+  templateId?: string
+  variables?: Record<string, string>
+}
+
+type TibiaLeadRow = {
+  id_lead: string
+  escalon: string
+}
+
+// Campana sobre la base tibia: los leads ya existen en bd_leads, aqui solo se
+// resuelve la cascada P1-P7 y se vinculan los escalones elegidos.
+async function handleTibiaCampaign(body: TibiaCampaignBody): Promise<Response> {
+  const seleccionables = new Set(ESCALONES_CAMPANA.map((e) => e.code as string))
+  const escalones = (body.escalones || []).filter(
+    (value) => esEscalonTibia(value) && seleccionables.has(value)
+  ) as EscalonTibia[]
+
+  if (escalones.length === 0) {
+    return NextResponse.json(
+      { error: 'Al menos un filtro de base tibia es requerido' },
+      { status: 400 }
+    )
+  }
+
+  let tibiaLeads: TibiaLeadRow[]
+
+  try {
+    tibiaLeads = await prisma.$queryRawUnsafe<TibiaLeadRow[]>(
+      `${TIBIA_CASCADA_CTE}
+       SELECT id_lead::text, escalon
+       FROM cascada
+       WHERE escalon = ANY($1::text[])`,
+      escalones
+    )
+  } catch (err) {
+    console.error('Error fetching tibia leads:', err)
+    return NextResponse.json(
+      { error: 'Failed to fetch leads from base tibia. No campaign was created.' },
+      { status: 500 }
+    )
+  }
+
+  if (tibiaLeads.length === 0) {
+    return NextResponse.json(
+      { error: 'No se encontraron leads con los filtros seleccionados' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const campana = await tx.crm_campanas.create({
+          data: {
+            nombre: body.name,
+            base_datos: 'tibia',
+            filtros: JSON.stringify({ escalones }),
+            total_leads: 0,
+            id_plantilla: body.templateId || null,
+            variables: body.variables ? normalizeVariables(body.variables) : {},
+          },
+        })
+
+        const campaignLinks = tibiaLeads.map((lead) => ({
+          id_campana: campana.id_campana,
+          id_lead: lead.id_lead,
+          estado_envio: 'pendiente',
+        }))
+
+        let leadsImported = 0
+        for (const linkChunk of chunkArray(campaignLinks, LINK_BATCH_SIZE)) {
+          const linkResult = await tx.crm_campana_leads.createMany({
+            data: linkChunk,
+            skipDuplicates: true,
+          })
+          leadsImported += linkResult.count
+        }
+
+        await tx.crm_campanas.update({
+          where: { id_campana: campana.id_campana },
+          data: { total_leads: leadsImported },
+        })
+
+        return { id: campana.id_campana, leadsImported }
+      },
+      { maxWait: 10000, timeout: 120000 }
+    )
+
+    console.log(
+      `Tibia campaign ${result.id}: ${result.leadsImported} linked from ${tibiaLeads.length} leads (${escalones.join(', ')})`
+    )
+
+    return NextResponse.json(
+      {
+        id: result.id,
+        leadsImported: result.leadsImported,
+        totalBQ: tibiaLeads.length,
+        leadsCreated: 0,
+        updatedExisting: 0,
+        skippedNoPhone: 0,
+        skippedDuplicate: tibiaLeads.length - result.leadsImported,
+        source: 'tibia',
+      },
+      { status: 201 }
+    )
+  } catch (err) {
+    console.error('Error creating tibia campaign:', err)
+    return NextResponse.json(
+      { error: 'Failed to create campaign. No campaign or relations were saved.' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function GET() {
   const campanas = await prisma.crm_campanas.findMany({
     include: {
@@ -437,6 +557,10 @@ export async function POST(req: NextRequest) {
 
   if (body.source === 'recordatorio') {
     return handleRecordatorioCampaign(body)
+  }
+
+  if (body.source === 'tibia') {
+    return handleTibiaCampaign(body)
   }
 
   const table = body.database as string
