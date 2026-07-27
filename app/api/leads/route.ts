@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { esEmailDemo } from '@/lib/demo-access'
 
 type LeadMetadataRow = {
   id_lead: string
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
   // acciones por el actor correcto (asesor o CC).
   let viewerAsesorId: string | null = null
   let viewerCallCenterId: string | null = null
+  let viewerEmail: string | null = null
 
   // Filter by specific asesor (admin filtering)
   if (asesorId) {
@@ -41,8 +43,9 @@ export async function GET(req: NextRequest) {
   } else if (userId && role === 'asesor') {
     const usuario = await prisma.crm_usuarios.findUnique({
       where: { id_usuario: userId },
-      select: { id_asesor: true },
+      select: { id_asesor: true, email: true },
     })
+    viewerEmail = usuario?.email ?? null
 
     if (usuario?.id_asesor) {
       // Get lead IDs assigned to this asesor via matching (asignado = true)
@@ -240,6 +243,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Reactivación de base tibia ("gestionar primero"): SOLO para el perfil demo
+  // mientras está en prueba. Para los asesores reales, reactMap queda vacío y
+  // la vista se comporta exactamente como antes.
+  type ReactInfo = { escalon: string; ola: number }
+  let reactMap = new Map<string, ReactInfo>()
+  if (esEmailDemo(viewerEmail) && leadIds.length > 0) {
+    const react = await prisma.$queryRaw<{ id_lead: string; escalon: string; ola: number }[]>`
+      SELECT id_lead, escalon, ola FROM comercial.reactivacion_tibia
+      WHERE id_lead = ANY(${leadIds}::uuid[]) AND activo = true
+    `
+    reactMap = new Map(react.map((r) => [r.id_lead, { escalon: r.escalon, ola: Number(r.ola) }]))
+  }
+
   const mapped = leads.map((l) => {
     const fechaAsignacion = l.matching[0]?.fecha_asignacion ?? null
     const maxAccion = maxAccionByLead.get(l.id_lead) ?? null
@@ -271,8 +287,24 @@ export async function GET(req: NextRequest) {
       ultimoMensajeLead: ultimoMsgByLead.get(l.id_lead)?.toISOString() || null,
       gestionado,
       estadoFunnel: funnelByPhone.get(phone9) ?? null,
+      reactivacion: reactMap.get(l.id_lead) ?? null,
     }
   })
+
+  // Los marcados "gestionar primero" flotan al tope (por escalón P1..P4);
+  // el resto conserva el orden por fecha. sort de V8 es estable → los no
+  // marcados mantienen su orden original.
+  if (reactMap.size > 0) {
+    const escOrder: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4 }
+    mapped.sort((a, b) => {
+      if (a.reactivacion && !b.reactivacion) return -1
+      if (!a.reactivacion && b.reactivacion) return 1
+      if (a.reactivacion && b.reactivacion) {
+        return (escOrder[a.reactivacion.escalon] ?? 9) - (escOrder[b.reactivacion.escalon] ?? 9)
+      }
+      return 0
+    })
+  }
 
   return NextResponse.json(mapped)
 }

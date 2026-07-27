@@ -1,18 +1,28 @@
 /**
  * Acceso a funcionalidades en prueba.
  *
- * Mientras las llamadas/videollamadas esten en fase de demo (todavia NO marcan
- * de verdad: falta integrar la WhatsApp Calling API), la funcion debe verse
- * SOLO en el perfil de prueba. Los asesores reales no deben toparse con botones
- * que simulan una llamada.
+ * Mientras una función está en fase de demo, debe verse SOLO en el perfil de
+ * prueba, para que los asesores reales no se topen con experimentos.
+ * Se filtra por email en vez de por rol justamente para aislar el experimento.
  *
- * Se filtra por email en vez de por rol justamente para que el experimento
- * quede aislado de los asesores de produccion.
+ * Funciones en demo hoy: llamadas/videollamadas, y la reactivación de la base
+ * tibia ("gestionar primero" en la bandeja).
  */
 
-const EMAILS_DEMO = ['danielcastillorios811@gmail.com']
+export const EMAILS_DEMO = ['danielcastillorios811@gmail.com']
 
+/** Chequeo base por email (sirve en cliente y en API/servidor). */
+export function esEmailDemo(email?: string | null): boolean {
+  const e = email?.toLowerCase().trim()
+  return !!e && EMAILS_DEMO.includes(e)
+}
+
+/** ¿Este usuario es el perfil de prueba? */
+export function esPerfilDemo(user?: { email?: string | null } | null): boolean {
+  return esEmailDemo(user?.email)
+}
+
+/** Alias histórico usado por los botones de llamada. */
 export function puedeUsarLlamadas(user?: { email?: string | null } | null): boolean {
-  const email = user?.email?.toLowerCase().trim()
-  return !!email && EMAILS_DEMO.includes(email)
+  return esEmailDemo(user?.email)
 }

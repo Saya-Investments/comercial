@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Eye, MessageSquare, Briefcase, UserCheck, Clock, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
@@ -32,6 +32,15 @@ interface Lead {
   ultimoMensajeLead?: string | null
   gestionado?: boolean
   estadoFunnel?: string | null
+  reactivacion?: { escalon: string; ola: number } | null
+}
+
+// Reactivación de base tibia: motivo visible por escalón.
+const REACT_MOTIVO: Record<string, string> = {
+  P1: 'Proforma pendiente',
+  P2: 'Respondió campaña',
+  P3: 'Es prospecto',
+  P4: 'Señal viva',
 }
 
 interface LeadsTableProps {
@@ -134,6 +143,7 @@ export function LeadsTable({
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE))
   const safePage = Math.min(currentPage, totalPages - 1)
   const pagedLeads = filteredLeads.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+  const totalReactivacion = filteredLeads.filter((l) => l.reactivacion).length
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail' | 'prospect') => {
     setSelectedLead(lead)
@@ -280,17 +290,44 @@ export function LeadsTable({
               </tr>
             </thead>
             <tbody>
-              {pagedLeads.length > 0 ? pagedLeads.map((lead) => (
+              {pagedLeads.length > 0 ? pagedLeads.map((lead, i) => {
+                const react = lead.reactivacion
+                const showReactHeader = !!react && i === 0
+                const showNormalHeader = !react && i > 0 && !!pagedLeads[i - 1]?.reactivacion
+                return (
+                <Fragment key={lead.id}>
+                  {showReactHeader && (
+                    <tr className="bg-amber-50 dark:bg-amber-900/25 border-b border-amber-200 dark:border-amber-800">
+                      <td colSpan={12} className="px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                        ⚡ Gestionar primero — Reactivación ({totalReactivacion})
+                      </td>
+                    </tr>
+                  )}
+                  {showNormalHeader && (
+                    <tr className="bg-secondary/50 border-b border-border">
+                      <td colSpan={12} className="px-6 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Mis leads
+                      </td>
+                    </tr>
+                  )}
                 <tr
-                  key={lead.id}
                   className={`border-b border-border transition-colors ${
-                    isProspect(lead)
-                      ? 'bg-emerald-50/80 hover:bg-emerald-100/80'
-                      : 'hover:bg-secondary/50'
+                    react
+                      ? 'bg-amber-50/70 dark:bg-amber-900/15 hover:bg-amber-100/70 dark:hover:bg-amber-900/25 shadow-[inset_3px_0_0_#f59e0b]'
+                      : isProspect(lead)
+                        ? 'bg-emerald-50/80 hover:bg-emerald-100/80'
+                        : 'hover:bg-secondary/50'
                   }`}
                 >
                   <td className="px-6 py-4 font-mono text-foreground">{lead.dni}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">{lead.name}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">
+                    {lead.name}
+                    {react && (
+                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 border border-amber-300 dark:border-amber-700 align-middle">
+                        🔥 {REACT_MOTIVO[react.escalon] || 'Gestionar primero'}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-foreground">{lead.phone}</td>
                   <td className="px-6 py-4">{getScoreBadge(lead.score)}</td>
                   <td className="px-6 py-4">
@@ -377,7 +414,9 @@ export function LeadsTable({
                     </div>
                   </td>
                 </tr>
-              )) : (
+                </Fragment>
+                )
+              }) : (
                 <tr>
                   <td colSpan={12} className="px-6 py-12 text-center text-muted-foreground">No se encontraron leads con los filtros aplicados</td>
                 </tr>
