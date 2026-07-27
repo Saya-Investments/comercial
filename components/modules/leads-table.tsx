@@ -329,7 +329,11 @@ export function LeadsTable({
                     )}
                   </td>
                   <td className="px-6 py-4 text-foreground">{lead.phone}</td>
-                  <td className="px-6 py-4">{getScoreBadge(lead.score)}</td>
+                  <td className="px-6 py-4">
+                    {lead.reactivacion
+                      ? <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">Alta</span>
+                      : getScoreBadge(lead.score)}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>{lead.status}</span>
                   </td>
@@ -350,7 +354,7 @@ export function LeadsTable({
                     }
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.priority)}`}>{lead.priority}</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(lead.reactivacion ? 'Alta' : lead.priority)}`}>{lead.reactivacion ? 'Alta' : lead.priority}</span>
                   </td>
                   {user?.role === 'admin' && (
                     <td className="px-6 py-4">
