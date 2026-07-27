@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { esEmailDemo } from '@/lib/demo-access'
 
 type LeadMetadataRow = {
   id_lead: string
@@ -243,12 +242,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Reactivación de base tibia ("gestionar primero"): SOLO para el perfil demo
-  // mientras está en prueba. Para los asesores reales, reactMap queda vacío y
-  // la vista se comporta exactamente como antes.
+  // Reactivación de base tibia ("gestionar primero"): los leads marcados en
+  // reactivacion_tibia (activo=true) flotan al tope de la bandeja del asesor.
+  // Solo aplica en contexto de asesor (asesor viendo lo suyo, o admin filtrando
+  // por asesor); en la vista agregada de admin/supervisor no se pinnea.
   type ReactInfo = { escalon: string; ola: number }
   let reactMap = new Map<string, ReactInfo>()
-  if (esEmailDemo(viewerEmail) && leadIds.length > 0) {
+  if (viewerAsesorId && leadIds.length > 0) {
     const react = await prisma.$queryRaw<{ id_lead: string; escalon: string; ola: number }[]>`
       SELECT id_lead, escalon, ola FROM comercial.reactivacion_tibia
       WHERE id_lead = ANY(${leadIds}::uuid[]) AND activo = true
