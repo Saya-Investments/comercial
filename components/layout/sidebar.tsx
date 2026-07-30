@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard, Headphones, RefreshCw, Filter, GitBranch, Building2, GitMerge, Phone } from 'lucide-react'
+import { Users, ListChecks as ListTasks, Mail, MessageSquare, Users2, Calendar, LogOut, DollarSign, Settings, ChevronLeft, ChevronRight, TrendingUp, LayoutDashboard, Headphones, RefreshCw, Filter, GitBranch, Building2, GitMerge, Phone, Flame } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { puedeUsarLlamadas } from '@/lib/demo-access'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,7 @@ export function Sidebar({ activeModule, onModuleChange, isMobile, collapsed = fa
     { id: 'advisors-activity', label: 'Asesores', icon: TrendingUp, roles: ['admin', 'supervisor'] as string[] },
     { id: 'prospects-funnel', label: 'Funnel Prospectos', icon: Filter, roles: ['admin'] as string[] },
     { id: 'funnel-campanas', label: 'Funnel Campañas', icon: GitMerge, roles: ['admin'] as string[] },
+    { id: 'reactivacion-tibia', label: 'Base Tibia', icon: Flame, roles: ['admin', 'supervisor'] as string[] },
     { id: 'reassignment', label: 'Reasignación', icon: RefreshCw, roles: ['admin'] as string[] },
     // { id: 'bot-cost', label: 'Costo Bot', icon: DollarSign, roles: ['admin'] as string[] },
     { id: 'routing-rules', label: 'Enrutamiento', icon: Settings, roles: ['admin'] as string[] },

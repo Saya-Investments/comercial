@@ -14,6 +14,12 @@
 export const VENTANA_TIBIA_DESDE = '2026-03-14T00:00:00-05:00'
 export const VENTANA_TIBIA_HASTA = '2026-06-15T00:00:00-05:00'
 
+// Momento en que la seccion "Gestionar primero" quedo visible para los asesores
+// reales en produccion (deploy del commit 425feb5, que quito el gate demo).
+// Es la linea de corte para medir si un lead priorizado se gestiono DESPUES de
+// que el asesor pudo verlo marcado.
+export const REACTIVACION_LIVE = '2026-07-27T20:43:03Z'
+
 export type EscalonTibia = 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6' | 'P7'
 
 export const ESCALONES_TIBIA: EscalonTibia[] = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7']
