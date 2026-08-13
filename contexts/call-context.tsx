@@ -119,6 +119,33 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  /**
+   * Avisa al servidor que la llamada termino.
+   *
+   * Corta del lado de Meta, detiene la grabacion y cierra el registro con su
+   * duracion. Tiene que correr cuelgue QUIEN cuelgue: si solo se ejecutara al
+   * pulsar "Colgar", las llamadas que corta el lead quedarian vivas del lado de
+   * Meta (facturando hasta su limpieza automatica) y sin duracion en la BD.
+   *
+   * Es seguro llamarlo dos veces: el servidor solo cierra las filas que siguen
+   * en estado 'iniciada'.
+   */
+  const avisarFin = useCallback(() => {
+    const datos = datosRef.current
+    if (!datos.whatsappCallId && !datos.room) return
+    // No se espera la respuesta: la UI no debe quedarse colgada esperando a Meta.
+    fetch('/api/calls/hangup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        whatsappCallId: datos.whatsappCallId,
+        room: datos.room,
+        idLlamada: datos.idLlamada,
+        conecto: Boolean(datos.conecto),
+      }),
+    }).catch(() => {})
+  }, [])
+
   /** Desconecta la sala y suelta el audio. Idempotente. */
   const limpiar = useCallback(async () => {
     const room = roomRef.current
@@ -206,7 +233,9 @@ export function CallProvider({ children }: { children: ReactNode }) {
         })
 
         // Si el lead cuelga, su participante desaparece de la sala.
+        // El lead colgo: se cierra todo igual que si hubiera colgado el asesor.
         room.on(RoomEvent.ParticipantDisconnected, () => {
+          avisarFin()
           setCall((c) => (c && c.status !== 'ended' ? { ...c, status: 'ended' } : c))
           limpiar()
         })
@@ -286,28 +315,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
         limpiar()
       }
     },
-    [user?.id, limpiar, intentarGrabar],
+    [user?.id, limpiar, intentarGrabar, avisarFin],
   )
 
   const endCall = useCallback(() => {
-    const datos = datosRef.current
-    if (datos.whatsappCallId || datos.room) {
-      // No se espera la respuesta: colgar del lado del asesor es instantaneo
-      // y el corte remoto puede tardar. La UI no debe quedarse esperando.
-      fetch('/api/calls/hangup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          whatsappCallId: datos.whatsappCallId,
-          room: datos.room,
-          idLlamada: datos.idLlamada,
-          conecto: Boolean(datos.conecto),
-        }),
-      }).catch(() => {})
-    }
+    avisarFin()
     setCall((c) => (c ? { ...c, status: 'ended' } : null))
     limpiar()
-  }, [limpiar])
+  }, [limpiar, avisarFin])
 
   const dismissCall = useCallback(() => {
     limpiar()
