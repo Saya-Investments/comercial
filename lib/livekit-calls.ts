@@ -146,9 +146,35 @@ export async function iniciarGrabacion(room: string, idLlamada: string): Promise
   }
 
   const { credentials, bucket } = credencialesParaLiveKit()
-  const participantes = await rooms().listParticipants(room)
   const cliente = egress()
   let iniciadas = 0
+
+  /**
+   * Espera a que LiveKit registre las DOS pistas de audio antes de grabar.
+   *
+   * Un listado en un instante puntual puede encontrar solo una: el servidor
+   * tarda un momento en reflejar la pista del asesor. Si se graba con lo que
+   * haya, queda una llamada sin la voz del asesor — que ya paso una vez.
+   * Se reintenta ~3 s y despues se graba lo que exista, porque media grabacion
+   * es mejor que ninguna.
+   */
+  async function pistasDeAudio() {
+    for (let intento = 0; intento < 6; intento++) {
+      const ps = await rooms().listParticipants(room)
+      const pistas = ps.flatMap((p) =>
+        p.tracks.filter((t) => t.type === 0).map((t) => ({ identity: p.identity, sid: t.sid })),
+      )
+      if (pistas.length >= 2) return pistas
+      if (intento === 5) {
+        console.warn(`[livekit] solo ${pistas.length} pista(s) tras esperar; se graba igual`)
+        return pistas
+      }
+      await new Promise((r) => setTimeout(r, 500))
+    }
+    return []
+  }
+
+  const pistas = await pistasDeAudio()
 
   // Ademas de las pistas sueltas, una MEZCLA de la conversacion completa: es lo
   // que uno quiere escuchar (un solo archivo, las dos voces, en orden). Las
@@ -169,28 +195,23 @@ export async function iniciarGrabacion(room: string, idLlamada: string): Promise
     console.error('[livekit] egress de la mezcla fallo:', e)
   }
 
-  for (const p of participantes) {
-    for (const track of p.tracks) {
-      // type 0 = AUDIO. La llamada es solo voz; si mas adelante hay video,
-      // esto lo ignora en vez de grabar pantallas por accidente.
-      if (track.type !== 0) continue
+  for (const pista of pistas) {
+    const salida = new DirectFileOutput({
+      filepath: `${carpetaDeLlamada(idLlamada)}/${pista.identity.replace(/[^\w.-]/g, '_')}.ogg`,
+      output: { case: 'gcp', value: new GCPUpload({ credentials, bucket }) },
+    })
 
-      const salida = new DirectFileOutput({
-        filepath: `${carpetaDeLlamada(idLlamada)}/${p.identity.replace(/[^\w.-]/g, '_')}.ogg`,
-        output: { case: 'gcp', value: new GCPUpload({ credentials, bucket }) },
-      })
-
-      try {
-        await cliente.startTrackEgress(room, salida, track.sid)
-        iniciadas++
-      } catch (e) {
-        // Que falle una pista no debe tumbar la llamada: es peor quedarse sin
-        // conversacion que sin grabacion.
-        console.error(`[livekit] egress de ${p.identity} fallo:`, e)
-      }
+    try {
+      await cliente.startTrackEgress(room, salida, pista.sid)
+      iniciadas++
+    } catch (e) {
+      // Que falle una pista no debe tumbar la llamada: es peor quedarse sin
+      // conversacion que sin grabacion.
+      console.error(`[livekit] egress de ${pista.identity} fallo:`, e)
     }
   }
 
+  console.log(`[livekit] grabando ${pistas.length} pista(s) + mezcla en ${room}`)
   return iniciadas
 }
 
