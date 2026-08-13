@@ -115,11 +115,15 @@ model bd_leads {
   motivo_descarte                   String?                    @db.VarChar(50)
   bot_pausado                       Boolean                    @default(false)
   bot_pausado_hasta                 DateTime?                  @db.Timestamptz(6)
+  permiso_llamada_estado            String?                    @db.VarChar(15)
+  permiso_llamada_vence             DateTime?                  @db.Timestamptz(6)
+  permiso_llamada_pedido            DateTime?                  @db.Timestamptz(6)
   bd_call_center                    bd_call_center?            @relation(fields: [asignado_call_center], references: [id_call_center], onUpdate: NoAction)
   bd_asesores                       bd_asesores?               @relation(fields: [ultimo_asesor_asignado], references: [id_asesor], onUpdate: NoAction, map: "fk_leads_asesor")
   crm_acciones_comerciales          crm_acciones_comerciales[]
   crm_campana_leads                 crm_campana_leads[]
   crm_citas                         crm_citas[]
+  crm_llamadas                      crm_llamadas[]
   crm_notas                         crm_notas[]
   crm_tareas                        crm_tareas[]
   hist_asignaciones                 hist_asignaciones[]
@@ -128,8 +132,10 @@ model bd_leads {
   hist_conversaciones               hist_conversaciones[]
   hist_estado_asesor                hist_estado_asesor[]
   hist_scoring                      hist_scoring[]
+  lead_enriquecimiento              lead_enriquecimiento?
   matching                          matching[]
   ranking_routing                   ranking_routing[]
+  reactivacion_tibia                reactivacion_tibia?
 
   @@index([ultimo_asesor_asignado], map: "idx_leads_asesor")
   @@index([dni], map: "idx_leads_dni")
@@ -314,6 +320,7 @@ model crm_usuarios {
   crm_acciones_comerciales crm_acciones_comerciales[]
   crm_campanas             crm_campanas[]
   crm_citas                crm_citas[]
+  crm_llamadas             crm_llamadas[]
   crm_notas                crm_notas[]
   crm_plantillas           crm_plantillas[]
   crm_tareas               crm_tareas[]
@@ -486,6 +493,7 @@ model crm_acciones_comerciales {
   crm_citas          crm_citas?           @relation(fields: [id_cita], references: [id_cita], onUpdate: NoAction, map: "fk_accion_cita")
   bd_leads           bd_leads             @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction, map: "fk_accion_lead")
   crm_usuarios       crm_usuarios         @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction, map: "fk_accion_usuario")
+  crm_llamadas       crm_llamadas[]
   hist_estado_asesor hist_estado_asesor[]
 
   @@index([id_asignacion], map: "idx_acciones_asignacion")
@@ -671,4 +679,171 @@ model nsv_prospectos {
   @@index([fecha_registro], map: "idx_nsv_prospectos_fecha_registro")
   @@index([nro_documento], map: "idx_nsv_prospectos_nro_documento")
   @@index([telefono_norm], map: "idx_nsv_prospectos_telefono_norm")
+}
+
+model enriquecimiento_jsonpe {
+  dni                  String    @id
+  id_lead              String?   @db.Uuid
+  consultado_at        DateTime? @db.Timestamptz(6)
+  tiene_ruc            Boolean?
+  ruc                  String?
+  ruc_estado           String?
+  ruc_condicion        String?
+  departamento         String?
+  provincia            String?
+  distrito             String?
+  ubigeo               String?
+  buen_contribuyente   String?
+  tiene_licencia       Boolean?
+  licencia_categoria   String?
+  licencia_estado      String?
+  licencia_vencimiento String?
+  licencia             Json?
+  raw                  Json?
+  tiene_deuda_coactiva Boolean?
+  deuda_coactiva_monto Decimal?  @db.Decimal
+  deuda_coactiva       Json?
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model lead_enriquecimiento {
+  id_lead           String   @id @db.Uuid
+  rechazo_credito   String?  @db.VarChar(10)
+  uso               String?  @db.VarChar(15)
+  urgencia          String?  @db.VarChar(15)
+  expectativa_fondo String?  @db.VarChar(20)
+  presupuesto       String?  @db.VarChar(100)
+  objecion          String?  @db.VarChar(20)
+  para_quien        String?  @db.VarChar(15)
+  distrito          String?  @db.VarChar(80)
+  tenencia_auto     String?  @db.VarChar(10)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @default(now()) @db.Timestamptz(6)
+  intento_credito   String?  @db.VarChar(10)
+  bd_leads          bd_leads @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model nsv_leads {
+  idAsignacionLead                String    @id
+  fechaAsignacion                 DateTime? @db.Timestamptz(6)
+  idVendedor                      String?
+  vendedor                        String?
+  supervisor                      String?
+  gestor                          String?
+  gerente                         String?
+  idLead                          String?
+  idProspecto                     String?
+  fechaProspecto                  DateTime? @db.Timestamptz(6)
+  estadoProspecto                 String?
+  nombres                         String?
+  apellidos                       String?
+  telefono                        String?
+  email                           String?
+  fechaDescarte                   DateTime? @db.Timestamptz(6)
+  fechaRedesSociales              DateTime? @db.Timestamptz(6)
+  idMotivoDescarteLeads           String?
+  motivoDescarteLeads             String?
+  idAdvertisement                 String?
+  advertisement                   String?
+  idSalesCampaign                 String?
+  salesCampaign                   String?
+  idLinea                         String?
+  linea                           String?
+  idOrigin                        String?
+  origin                          String?
+  idSubOrigin                     String?
+  subOrigin                       String?
+  idSede                          String?
+  sede                            String?
+  estaReasignado                  Boolean?
+  estado                          Int?
+  estadoDescripcion               String?
+  leadEstaReasignado              Boolean?
+  leadEstaReasignadoDescripcion   String?
+  fechaRegistroUltCitaInformativa DateTime? @db.Timestamptz(6)
+  fechaUltCitaInformativa         DateTime? @db.Timestamptz(6)
+  estadoUltCitaInformativa        String?
+  fechaUltCitaCierre              DateTime? @db.Timestamptz(6)
+  estadoUltCitaCierre             String?
+  leadSublinea                    Int?
+  leadLinea                       String?
+  fechaGestion                    DateTime? @db.Timestamptz(6)
+  clasificacionPreguntaRespuesta  String?
+  fecha_carga                     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([fechaAsignacion], map: "idx_nsv_leads_fecha_asignacion")
+  @@index([idLead], map: "idx_nsv_leads_id_lead")
+  @@index([idProspecto], map: "idx_nsv_leads_id_prospecto")
+  @@index([telefono], map: "idx_nsv_leads_telefono")
+}
+
+model nsv_prospectos_completos {
+  id                      String    @id @db.Uuid
+  nro_documento           String?
+  cliente                 String?
+  telefono                String?
+  telefono_norm           String?
+  email                   String?
+  fecha_registro          DateTime? @db.Timestamptz(6)
+  fecha_estado            DateTime? @db.Timestamptz(6)
+  vendedor                String?
+  sede                    String?
+  origen                  String?
+  sub_origen              String?
+  estado_documento_id     String?   @db.Uuid
+  estado_documento        String?
+  nivel_interes           Int?
+  nivel_interes_desc      String?
+  camino                  String?
+  fecha_proforma_creada   DateTime? @db.Timestamptz(6)
+  fecha_proforma_aprobada DateTime? @db.Timestamptz(6)
+  fecha_pago_realizado    DateTime? @db.Timestamptz(6)
+  fecha_firma_cliente     DateTime? @db.Timestamptz(6)
+  fecha_inscrito          DateTime? @db.Timestamptz(6)
+  actualizado_en          DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([fecha_registro], map: "idx_nsv_prospectos_completos_fecha_registro")
+  @@index([nro_documento], map: "idx_nsv_prospectos_completos_nro_documento")
+  @@index([telefono_norm], map: "idx_nsv_prospectos_completos_telefono_norm")
+}
+
+model reactivacion_tibia {
+  id_lead                      String    @id @db.Uuid
+  escalon                      String    @db.VarChar(2)
+  ola                          Int       @db.SmallInt
+  id_asesor_original           String?   @db.Uuid
+  huerfano                     Boolean   @default(false)
+  activo                       Boolean   @default(false)
+  estado_lead_inicial          String?   @db.VarChar(30)
+  ultimo_estado_asesor_inicial String?   @db.VarChar(30)
+  ultima_accion_inicial        DateTime? @db.Timestamptz(6)
+  fecha_marca                  DateTime  @default(now()) @db.Timestamptz(6)
+  bd_leads                     bd_leads  @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model crm_llamadas {
+  id_llamada               String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id_accion                String?                   @db.Uuid
+  id_lead                  String                    @db.Uuid
+  id_usuario               String                    @db.Uuid
+  wa_call_id               String?
+  lk_room                  String?
+  direccion                String                    @default("saliente") @db.VarChar(15)
+  estado                   String                    @db.VarChar(20)
+  motivo_fallo             String?
+  inicio                   DateTime?                 @db.Timestamptz(6)
+  fin                      DateTime?                 @db.Timestamptz(6)
+  duracion_seg             Int?
+  grabacion_url            String?
+  transcript               Json?
+  consentimiento_ts        DateTime?                 @db.Timestamptz(6)
+  fecha_creacion           DateTime                  @default(now()) @db.Timestamptz(6)
+  crm_acciones_comerciales crm_acciones_comerciales? @relation(fields: [id_accion], references: [id_accion], onDelete: NoAction, onUpdate: NoAction)
+  bd_leads                 bd_leads                  @relation(fields: [id_lead], references: [id_lead], onDelete: Cascade, onUpdate: NoAction)
+  crm_usuarios             crm_usuarios              @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([id_accion], map: "idx_llamadas_accion")
+  @@index([id_lead], map: "idx_llamadas_lead")
+  @@index([id_usuario], map: "idx_llamadas_usuario")
+  @@index([wa_call_id], map: "idx_llamadas_wacall")
 }

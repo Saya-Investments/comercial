@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Phone, Video, Clock, ShieldCheck, ShieldAlert, ShieldX, ChevronRight, ChevronDown,
-  X, FileText, Sparkles, Play, Loader2, PhoneCall, Users,
+  X, FileText, Sparkles, Loader2, PhoneCall, Users,
 } from 'lucide-react'
 import { useCall, type CallKind } from '@/contexts/call-context'
 import { CallConfirmDialog } from '@/components/calls/call-dock'
@@ -26,12 +26,22 @@ import { useAuth } from '@/contexts/auth-context'
 
 /* ------------------------------------------------------------------ tipos */
 
+/** Un turno de la transcripcion de Deepgram, ya normalizado. */
+interface Turno {
+  who: 'asesor' | 'lead'
+  text: string
+}
+
 interface CallRow {
   id: string
   fecha: string
   duracionSeg: number | null
   resultado: string
   observaciones: string | null
+  /** Fila de crm_llamadas. Null en las llamadas registradas a mano. */
+  idLlamada: string | null
+  tieneGrabacion: boolean
+  transcript: Turno[] | null
   lead: {
     id: string
     nombre: string
@@ -89,66 +99,105 @@ function iniciales(nombre: string) {
   return nombre.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
 }
 
-/** Transcripcion simulada (vendra de la grabacion). Determinista por llamada. */
-function mockTranscripcion(c: CallRow) {
-  const nombre = c.lead.nombre.split(' ')[0]
-  if (!c.duracionSeg) {
-    return [{ who: 'sistema', text: 'La llamada no fue contestada. Sin audio disponible.' }]
-  }
-  const bien = c.lead.producto || (c.lead.linea === 'INMUEBLES' ? 'un inmueble' : 'un auto')
-  return [
-    { who: 'asesor', text: `Hola ${nombre}, te llamo de Maqui+ por tu consulta sobre ${bien}. ¿Tienes un minuto?` },
-    { who: 'lead', text: 'Sí, claro, justo estaba esperando que me llamaran.' },
-    { who: 'asesor', text: 'Perfecto. Te explico cómo funciona el fondo colectivo: no es un banco ni cobra intereses, aportas una cuota mensual y accedes por sorteo o remate.' },
-    { who: 'lead', text: c.observaciones || '¿Y cuánto sería la cuota mensual?' },
-    { who: 'asesor', text: 'Depende del plan. Te puedo enviar la simulación por WhatsApp y lo revisamos juntos.' },
-    { who: 'lead', text: 'Dale, mándamelo y lo veo.' },
-  ]
-}
-
-/** Resumen simulado de la llamada. */
-function mockResumen(c: CallRow) {
-  if (!c.duracionSeg) {
-    return {
-      texto: 'El lead no contestó la llamada. No hubo conversación que resumir.',
-      puntos: ['Sin contacto efectivo', 'Conviene reintentar en otro horario'],
-      siguiente: 'Reintentar la llamada más tarde o enviar un mensaje por WhatsApp.',
-    }
-  }
-  const porResultado: Record<string, { puntos: string[]; siguiente: string }> = {
-    Interesado: {
-      puntos: ['El lead mostró interés claro en el producto', 'Pidió detalle de cuotas y plazos', 'No presentó objeciones de fondo'],
-      siguiente: 'Enviar la simulación de cuotas y agendar una cita para cerrar.',
-    },
-    Cita_agendada: {
-      puntos: ['Se explicó el funcionamiento del plan', 'El lead aceptó avanzar a una visita', 'Quedó una cita coordinada'],
-      siguiente: 'Confirmar la asistencia a la cita el día previo.',
-    },
-    Seguimiento: {
-      puntos: ['El lead entendió la propuesta pero no decidió', 'Necesita consultarlo antes de avanzar', 'Sigue receptivo al contacto'],
-      siguiente: 'Volver a contactar en unos días con una simulación concreta.',
-    },
-    Contactado: {
-      puntos: ['Primer contacto efectivo', 'Se entregó información general del fondo', 'Falta profundizar en su necesidad'],
-      siguiente: 'Profundizar en qué producto busca y su capacidad de pago.',
-    },
-  }
-  const base = porResultado[c.resultado] ?? {
-    puntos: ['Conversación registrada', 'Ver observaciones del asesor'],
-    siguiente: 'Definir el próximo paso con el lead.',
-  }
-  return {
-    texto: `Llamada de ${fmtDur(c.duracionSeg)} con ${c.lead.nombre}. ${c.observaciones ?? ''}`.trim(),
-    ...base,
-  }
-}
-
 /* ------------------------------------------------------- detalle de llamada */
+
+/**
+ * Reproductor de la grabacion.
+ *
+ * Las pistas del asesor y del lead se graban por separado (asi la atribucion es
+ * exacta), por eso se muestran dos reproductores en vez de uno. Los enlaces se
+ * firman al abrir el detalle y viven 15 minutos: el bucket es privado y no se
+ * guardan URLs permanentes de conversaciones con clientes.
+ */
+function Grabacion({ idLlamada, userId }: { idLlamada: string; userId: string }) {
+  const [pistas, setPistas] = useState<{ nombre: string; url: string; mezcla: boolean }[] | null>(
+    null,
+  )
+  const [estado, setEstado] = useState<'cargando' | 'ok' | 'procesando' | 'error'>('cargando')
+  const [verPistas, setVerPistas] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    fetch(`/api/calls/grabacion?idLlamada=${idLlamada}&userId=${userId}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}))
+        if (!vivo) return
+        if (r.ok && d.pistas?.length) {
+          setPistas(d.pistas)
+          setEstado('ok')
+        } else {
+          // 202 = la egress todavia esta subiendo el archivo a GCS.
+          setEstado(r.status === 202 ? 'procesando' : 'error')
+        }
+      })
+      .catch(() => vivo && setEstado('error'))
+    return () => {
+      vivo = false
+    }
+  }, [idLlamada, userId])
+
+  if (estado === 'cargando') {
+    return (
+      <div className="px-5 py-3 border-b border-border bg-secondary/40 text-xs text-muted-foreground">
+        Cargando grabación…
+      </div>
+    )
+  }
+
+  if (estado !== 'ok' || !pistas) {
+    return (
+      <div className="px-5 py-3 border-b border-border bg-secondary/40 text-xs text-muted-foreground">
+        {estado === 'procesando'
+          ? 'La grabación se está procesando. Volvé a abrir en unos segundos.'
+          : 'No hay grabación disponible para esta llamada.'}
+      </div>
+    )
+  }
+
+  const mezcla = pistas.find((p) => p.mezcla)
+  const sueltas = pistas.filter((p) => !p.mezcla)
+
+  return (
+    <div className="px-5 py-3 border-b border-border bg-secondary/40 space-y-2">
+      {/* La conversacion completa es lo que uno quiere escuchar; las pistas por
+          persona quedan detras de un toggle, para revisar un tramo puntual. */}
+      {mezcla ? (
+        <audio controls preload="none" src={mezcla.url} className="h-9 w-full" />
+      ) : (
+        sueltas.length > 0 && (
+          <p className="text-[11px] text-muted-foreground">
+            No hay mezcla de esta llamada; solo las pistas por separado.
+          </p>
+        )
+      )}
+
+      {sueltas.length > 0 && (
+        <>
+          <button
+            onClick={() => setVerPistas((v) => !v)}
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {verPistas ? 'Ocultar' : 'Ver'} pistas por persona
+          </button>
+          {verPistas &&
+            sueltas.map((p) => (
+              <div key={p.url} className="flex items-center gap-3">
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground w-14 flex-none">
+                  {p.nombre}
+                </span>
+                <audio controls preload="none" src={p.url} className="h-9 flex-1 min-w-0" />
+              </div>
+            ))}
+        </>
+      )}
+    </div>
+  )
+}
 
 function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void }) {
   const [vista, setVista] = useState<'resumen' | 'transcripcion'>('resumen')
-  const resumen = mockResumen(call)
-  const transcripcion = mockTranscripcion(call)
+  const { user } = useAuth()
+  const transcripcion = call.transcript
 
   return (
     <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
@@ -189,17 +238,15 @@ function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void
         </div>
 
         {/* grabacion */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-secondary/40">
-          <button className="w-9 h-9 rounded-full grid place-items-center bg-primary text-primary-foreground flex-none hover:brightness-110 transition">
-            <Play className="w-4 h-4" />
-          </button>
-          <div className="flex-1 flex items-center gap-[2px] h-6 overflow-hidden">
-            {Array.from({ length: 70 }).map((_, i) => (
-              <span key={i} className="w-[3px] rounded-sm bg-border" style={{ height: `${5 + ((i * 11) % 18)}px` }} />
-            ))}
+        {call.idLlamada && call.tieneGrabacion && user?.id ? (
+          <Grabacion idLlamada={call.idLlamada} userId={user.id} />
+        ) : (
+          <div className="px-5 py-3 border-b border-border bg-secondary/40 text-xs text-muted-foreground">
+            {call.duracionSeg
+              ? 'Esta llamada no tiene grabación (se registró antes de que el CRM grabara).'
+              : 'La llamada no fue contestada: no hay audio.'}
           </div>
-          <span className="text-xs font-mono text-muted-foreground">{fmtDur(call.duracionSeg)}</span>
-        </div>
+        )}
 
         {/* tabs */}
         <div className="flex border-b border-border">
@@ -217,52 +264,68 @@ function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void
 
         <div className="p-5 overflow-y-auto flex-1">
           {vista === 'resumen' ? (
+            // Solo datos reales. El resumen automatico de la conversacion
+            // llegara cuando exista la transcripcion; inventarlo mientras tanto
+            // seria poner en boca del lead cosas que no dijo.
             <div className="space-y-4">
-              <p className="text-sm text-foreground">{resumen.texto}</p>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Puntos clave</p>
-                <ul className="space-y-1.5">
-                  {resumen.puntos.map((p) => (
-                    <li key={p} className="flex gap-2 text-sm text-foreground">
-                      <span className="text-primary flex-none">•</span>{p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                <p className="text-[11px] uppercase tracking-wider text-primary font-semibold">Próximo paso</p>
-                <p className="text-sm text-foreground mt-1">{resumen.siguiente}</p>
-              </div>
-              {call.observaciones && (
+              <p className="text-sm text-foreground">
+                {call.duracionSeg
+                  ? `Llamada de ${fmtDur(call.duracionSeg)} con ${call.lead.nombre}.`
+                  : `Intento de llamada a ${call.lead.nombre}, sin contestar.`}
+              </p>
+
+              {call.observaciones ? (
                 <div className="rounded-lg bg-secondary p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Nota del asesor</p>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Nota del asesor
+                  </p>
                   <p className="text-sm text-foreground mt-1">{call.observaciones}</p>
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">El asesor no dejó una nota.</p>
               )}
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Producto</p>
+                  <p className="text-foreground mt-0.5">{call.lead.producto || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Estado del lead</p>
+                  <p className="text-foreground mt-0.5">
+                    {ESTADO_LABELS[call.lead.estado] || call.lead.estado || '—'}
+                  </p>
+                </div>
+              </div>
             </div>
-          ) : (
+          ) : transcripcion?.length ? (
             <div className="space-y-3">
               {transcripcion.map((t, i) => (
                 <div key={i} className={`flex ${t.who === 'asesor' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
                     t.who === 'asesor'
                       ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : t.who === 'lead'
-                        ? 'bg-secondary text-foreground rounded-bl-sm'
-                        : 'bg-muted text-muted-foreground italic mx-auto'
+                      : 'bg-secondary text-foreground rounded-bl-sm'
                   }`}>
-                    {t.who !== 'sistema' && (
-                      <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${
-                        t.who === 'asesor' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        {t.who === 'asesor' ? 'Asesor' : call.lead.nombre.split(' ')[0]}
-                      </p>
-                    )}
+                    <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${
+                      t.who === 'asesor' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                      {t.who === 'asesor' ? 'Asesor' : call.lead.nombre.split(' ')[0]}
+                    </p>
                     {t.text}
                   </div>
                 </div>
               ))}
               <p className="text-[11px] text-muted-foreground text-center pt-2">
                 Transcripción generada a partir de la grabación.
+              </p>
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">
+                {call.tieneGrabacion
+                  ? 'Esta llamada todavía no está transcrita.'
+                  : 'Sin grabación, no hay nada que transcribir.'}
               </p>
             </div>
           )}
