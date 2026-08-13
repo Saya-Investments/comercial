@@ -197,7 +197,46 @@ function Grabacion({ idLlamada, userId }: { idLlamada: string; userId: string })
 function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void }) {
   const [vista, setVista] = useState<'resumen' | 'transcripcion'>('resumen')
   const { user } = useAuth()
-  const transcripcion = call.transcript
+  const [transcripcion, setTranscripcion] = useState<Turno[] | null>(call.transcript)
+  const [transcribiendo, setTranscribiendo] = useState(false)
+  const [errorTr, setErrorTr] = useState<string | null>(null)
+
+  /**
+   * Se transcribe al abrir la pestaña, no antes.
+   *
+   * El cron termina transcribiendo todo, pero implica esperar hasta 7 minutos.
+   * Cuando alguien quiere LEER la llamada no puede esperar eso, asi que se pide
+   * en el momento. De paso no se gasta Deepgram en llamadas que nadie abre.
+   */
+  useEffect(() => {
+    if (vista !== 'transcripcion') return
+    if (transcripcion || transcribiendo) return
+    if (!call.idLlamada || !call.tieneGrabacion || !user?.id) return
+
+    let vivo = true
+    setTranscribiendo(true)
+    setErrorTr(null)
+
+    fetch('/api/calls/transcribir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idLlamada: call.idLlamada, userId: user.id }),
+    })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}))
+        if (!vivo) return
+        if (r.ok && d.turnos) setTranscripcion(d.turnos)
+        else if (d.error === 'procesando' || d.error === 'en_curso')
+          setErrorTr('La grabación todavía se está procesando. Probá en unos segundos.')
+        else setErrorTr('No se pudo transcribir la llamada.')
+      })
+      .catch(() => vivo && setErrorTr('No se pudo transcribir la llamada.'))
+      .finally(() => vivo && setTranscribiendo(false))
+
+    return () => {
+      vivo = false
+    }
+  }, [vista, transcripcion, transcribiendo, call.idLlamada, call.tieneGrabacion, user?.id])
 
   return (
     <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
@@ -319,13 +358,20 @@ function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void
                 Transcripción generada a partir de la grabación.
               </p>
             </div>
+          ) : transcribiendo ? (
+            <div className="py-8 text-center">
+              <Loader2 className="w-6 h-6 text-muted-foreground animate-spin mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">Transcribiendo la llamada…</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Suele tardar unos segundos.</p>
+            </div>
           ) : (
             <div className="py-8 text-center">
               <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
-                {call.tieneGrabacion
-                  ? 'Esta llamada todavía no está transcrita.'
-                  : 'Sin grabación, no hay nada que transcribir.'}
+                {errorTr ??
+                  (call.tieneGrabacion
+                    ? 'Esta llamada todavía no está transcrita.'
+                    : 'Sin grabación, no hay nada que transcribir.')}
               </p>
             </div>
           )}
