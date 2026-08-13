@@ -12,7 +12,7 @@
  * existen en BD: saldran de la grabacion cuando se integre la Calling API.
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -200,6 +200,15 @@ function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void
   const [transcripcion, setTranscripcion] = useState<Turno[] | null>(call.transcript)
   const [transcribiendo, setTranscribiendo] = useState(false)
   const [errorTr, setErrorTr] = useState<string | null>(null)
+  /**
+   * Guarda si ya se pidio la transcripcion.
+   *
+   * Va en una ref y no en el estado a proposito: si `transcribiendo` estuviera
+   * en las dependencias del efecto, marcarlo lo volveria a ejecutar, la
+   * limpieza abortaria la peticion en vuelo y el resultado se descartaria —
+   * quedaba guardado en la BD pero no se pintaba hasta refrescar.
+   */
+  const pedida = useRef(false)
 
   /**
    * Se transcribe al abrir la pestaña, no antes.
@@ -209,11 +218,11 @@ function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void
    * en el momento. De paso no se gasta Deepgram en llamadas que nadie abre.
    */
   useEffect(() => {
-    if (vista !== 'transcripcion') return
-    if (transcripcion || transcribiendo) return
+    if (vista !== 'transcripcion' || pedida.current) return
+    if (transcripcion) return
     if (!call.idLlamada || !call.tieneGrabacion || !user?.id) return
 
-    let vivo = true
+    pedida.current = true
     setTranscribiendo(true)
     setErrorTr(null)
 
@@ -224,19 +233,22 @@ function CallDetailModal({ call, onClose }: { call: CallRow; onClose: () => void
     })
       .then(async (r) => {
         const d = await r.json().catch(() => ({}))
-        if (!vivo) return
-        if (r.ok && d.turnos) setTranscripcion(d.turnos)
-        else if (d.error === 'procesando' || d.error === 'en_curso')
+        if (r.ok && d.turnos) {
+          setTranscripcion(d.turnos)
+        } else if (d.error === 'procesando' || d.error === 'en_curso') {
           setErrorTr('La grabación todavía se está procesando. Probá en unos segundos.')
-        else setErrorTr('No se pudo transcribir la llamada.')
+          pedida.current = false // que se pueda reintentar sin cerrar el modal
+        } else {
+          setErrorTr('No se pudo transcribir la llamada.')
+          pedida.current = false
+        }
       })
-      .catch(() => vivo && setErrorTr('No se pudo transcribir la llamada.'))
-      .finally(() => vivo && setTranscribiendo(false))
-
-    return () => {
-      vivo = false
-    }
-  }, [vista, transcripcion, transcribiendo, call.idLlamada, call.tieneGrabacion, user?.id])
+      .catch(() => {
+        setErrorTr('No se pudo transcribir la llamada.')
+        pedida.current = false
+      })
+      .finally(() => setTranscribiendo(false))
+  }, [vista, transcripcion, call.idLlamada, call.tieneGrabacion, user?.id])
 
   return (
     <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>

@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/transcribir-llamadas",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 * * * *"
     }
   ]
 }
