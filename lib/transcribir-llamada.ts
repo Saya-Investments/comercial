@@ -1,18 +1,14 @@
 /**
  * Transcripcion de llamadas con Deepgram.
  *
- * Se transcribe la MEZCLA de la conversacion con diarizacion (Deepgram agrupa
- * por voz y devuelve "hablante 0", "hablante 1"), y despues se mapea cada
- * hablante a asesor o lead.
+ * Se transcriben las pistas POR SEPARADO (asesor y lead), no la mezcla. Cada
+ * archivo contiene una sola voz, asi que la atribucion es exacta por
+ * construccion: no hace falta diarizacion, que agrupa por timbre y se equivoca
+ * justo cuando mas importa — cuando los dos hablan encimados, que en una
+ * llamada de ventas pasa todo el tiempo.
  *
- * Antes se transcribian las pistas por separado, lo que daba atribucion exacta
- * por construccion. Se dejo de hacer porque grabar una pista por persona
- * implicaba 3 grabaciones concurrentes por llamada y el plan de LiveKit permite
- * 2: con dos asesores llamando a la vez, algunas fallaban en silencio.
- *
- * El costo de este cambio: la diarizacion ADIVINA. Se equivoca sobre todo
- * cuando los dos hablan encimados, que en una llamada de ventas pasa seguido.
- * Si mas adelante se sube de plan, conviene volver a las pistas separadas.
+ * Despues los turnos se intercalan por marca de tiempo para reconstruir la
+ * conversacion.
  *
  * Ver cambios_yomira/ESTADO_CRM_LLAMADAS.md
  */
@@ -40,44 +36,56 @@ function storage(): Storage {
   return new Storage({ projectId: cred.project_id, credentials: cred })
 }
 
-/**
- * Transcribe una llamada completa.
- *
- * Devuelve null si la grabacion todavia no esta en el bucket (la egress tarda
- * unos segundos en subirla despues de colgar).
- */
-export async function transcribirLlamada(idLlamada: string): Promise<Turno[] | null> {
-  if (!transcripcionConfigurada()) return null
-
-  const [archivos] = await storage()
-    .bucket(BUCKET)
-    .getFiles({ prefix: `llamadas/${idLlamada}/` })
-
-  // La mezcla es la que se transcribe. Se aceptan las pistas sueltas como
-  // respaldo para las llamadas grabadas con el esquema anterior.
-  const mezcla =
-    archivos.find((f) => f.name.endsWith('conversacion.ogg')) ??
-    archivos.find((f) => f.name.endsWith('.ogg'))
-
-  if (!mezcla) return null
-
+/** Transcribe un archivo mono y devuelve sus turnos, todos del mismo hablante. */
+async function transcribirPista(objeto: string, who: 'asesor' | 'lead'): Promise<Turno[]> {
   const dg = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY! })
 
   // Se descarga a memoria en vez de pasarle una URL a Deepgram: el bucket es
   // privado y firmar una URL publica para que un tercero la lea es exponer la
   // grabacion mas de lo necesario. Una llamada de 10 min pesa ~2 MB.
-  const [buffer] = await storage().bucket(BUCKET).file(mezcla.name).download()
+  const [buffer] = await storage().bucket(BUCKET).file(objeto).download()
 
   const res = await dg.listen.v1.media.transcribeFile(buffer, {
     model: 'nova-3',
     language: 'es',
     smart_format: true, // puntuacion y mayusculas: sin esto es un bloque ilegible
     utterances: true, // turnos en vez de una tirada de palabras
-    diarize: true, // separa hablantes por voz; devuelve numeros, no nombres
+    // Sin diarize NI multichannel: el archivo ya es de una sola persona.
   })
 
   // La v5 envuelve la respuesta segun el metodo; se contemplan las dos formas
   // para que un cambio menor del SDK no deje la transcripcion en silencio.
+  const r = res as unknown as {
+    result?: { results?: { utterances?: { transcript?: string; start?: number }[] } }
+    results?: { utterances?: { transcript?: string; start?: number }[] }
+  }
+  const utterances = r.result?.results?.utterances ?? r.results?.utterances ?? []
+
+  return utterances
+    .filter((u) => (u.transcript || '').trim().length > 0)
+    .map((u) => ({ who, text: (u.transcript || '').trim(), t: Number(u.start) || 0 }))
+}
+
+/**
+ * Respaldo: transcribe la mezcla cuando no hay pistas por persona.
+ *
+ * Aca si hace falta diarizacion, y con ella la atribucion pasa a ser una
+ * suposicion: se asume que en una llamada saliente habla primero el asesor
+ * (saluda y se presenta). Si el lead atiende diciendo "alo", queda invertida.
+ * Por eso es el camino B, no el principal.
+ */
+async function transcribirMezcla(objeto: string): Promise<Turno[] | null> {
+  const dg = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY! })
+  const [buffer] = await storage().bucket(BUCKET).file(objeto).download()
+
+  const res = await dg.listen.v1.media.transcribeFile(buffer, {
+    model: 'nova-3',
+    language: 'es',
+    smart_format: true,
+    utterances: true,
+    diarize: true,
+  })
+
   type Utt = { transcript?: string; start?: number; speaker?: number }
   const r = res as unknown as {
     result?: { results?: { utterances?: Utt[] } }
@@ -89,18 +97,49 @@ export async function transcribirLlamada(idLlamada: string): Promise<Turno[] | n
 
   if (utterances.length === 0) return null
 
-  /**
-   * Deepgram devuelve numeros de hablante, no nombres. El mapeo se hace por
-   * orden: en una llamada saliente habla primero el asesor (saluda y se
-   * presenta), asi que el primer hablante es el asesor y el resto, el lead.
-   *
-   * Es una heuristica. Si el lead atiende diciendo "alo", queda invertido.
-   */
-  const primerHablante = utterances[0].speaker ?? 0
-
+  const primero = utterances[0].speaker ?? 0
   return utterances.map((u) => ({
-    who: (u.speaker ?? 0) === primerHablante ? 'asesor' : 'lead',
+    who: (u.speaker ?? 0) === primero ? 'asesor' : 'lead',
     text: (u.transcript || '').trim(),
     t: Number(u.start) || 0,
   }))
+}
+
+/**
+ * Transcribe una llamada completa.
+ *
+ * Usa las pistas por persona (atribucion exacta) y cae a la mezcla con
+ * diarizacion solo si no existen. Devuelve null si todavia no hay nada en el
+ * bucket: la egress tarda unos segundos en subir despues de colgar.
+ */
+export async function transcribirLlamada(idLlamada: string): Promise<Turno[] | null> {
+  if (!transcripcionConfigurada()) return null
+
+  const [archivos] = await storage()
+    .bucket(BUCKET)
+    .getFiles({ prefix: `llamadas/${idLlamada}/` })
+
+  const pistas = archivos.filter(
+    (f) => f.name.endsWith('.ogg') && !f.name.endsWith('conversacion.ogg'),
+  )
+
+  if (pistas.length === 0) {
+    // Sin pistas por persona, pero puede haber mezcla: es el caso de las
+    // llamadas grabadas mientras se probo el esquema de un solo archivo, y
+    // tambien el de cualquier llamada donde las pistas fallen. Se transcribe
+    // con diarizacion, que adivina quien habla — peor que nada no es.
+    const mezcla = archivos.find((f) => f.name.endsWith('conversacion.ogg'))
+    if (!mezcla) return null
+    return transcribirMezcla(mezcla.name)
+  }
+
+  const partes = await Promise.all(
+    pistas.map((f) => {
+      const base = f.name.split('/').pop() || ''
+      return transcribirPista(f.name, base.startsWith('asesor') ? 'asesor' : 'lead')
+    }),
+  )
+
+  // Intercalar por tiempo: es lo que convierte dos monologos en una conversacion.
+  return partes.flat().sort((a, b) => a.t - b.t)
 }
