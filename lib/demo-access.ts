@@ -9,7 +9,10 @@
  * tibia ("gestionar primero" en la bandeja).
  */
 
-export const EMAILS_DEMO = ['danielcastillorios811@gmail.com']
+export const EMAILS_DEMO = [
+  'danielcastillorios811@gmail.com',
+  'rossanaslzr9@gmail.com',
+]
 
 /** Chequeo base por email (sirve en cliente y en API/servidor). */
 export function esEmailDemo(email?: string | null): boolean {
