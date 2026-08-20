@@ -45,6 +45,8 @@ interface CallState {
   conecto?: boolean
   /** La grabacion arranco de verdad (el dock no debe decirlo si no). */
   grabando?: boolean
+  /** Momento en que el lead atendio, para destacar el aviso unos segundos. */
+  contestadaEn?: number
 }
 
 interface CallContextValue {
@@ -118,6 +120,70 @@ export function CallProvider({ children }: { children: ReactNode }) {
       console.error('[call] no se pudo grabar:', e)
     }
   }, [])
+
+  /** Corta la red de seguridad de "contesto sin hablar". */
+  const timeoutContestoRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /**
+   * Sonido corto para avisar que el lead atendio.
+   *
+   * Se genera con WebAudio en vez de un archivo: el asesor puede estar mirando
+   * otro modulo del CRM mientras suena, y un cambio visual solo no alcanza.
+   */
+  const sonarAviso = useCallback(() => {
+    try {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const ctx = new Ctx()
+      const osc = ctx.createOscillator()
+      const vol = ctx.createGain()
+      osc.frequency.value = 880
+      vol.gain.setValueAtTime(0.0001, ctx.currentTime)
+      vol.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.02)
+      vol.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25)
+      osc.connect(vol).connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.26)
+      osc.onended = () => ctx.close()
+    } catch {
+      // Si el navegador bloquea el audio, el aviso visual igual queda.
+    }
+  }, [])
+
+  /**
+   * El lead atendio: arranca el cronometro y se le avisa al asesor.
+   *
+   * Idempotente: la señal puede llegar por voz o por la red de seguridad, y no
+   * queremos contar dos veces ni repetir el aviso.
+   */
+  const marcarContestada = useCallback(() => {
+    if (datosRef.current.conecto) return
+    datosRef.current.conecto = true
+
+    if (timeoutContestoRef.current) {
+      clearTimeout(timeoutContestoRef.current)
+      timeoutContestoRef.current = null
+    }
+
+    // La duracion util es la conversacion, no el tiempo que estuvo sonando:
+    // el servidor la calcula desde `inicio`, asi que se corre hasta aca.
+    const { idLlamada } = datosRef.current
+    if (idLlamada) {
+      fetch('/api/calls/answered', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idLlamada }),
+      }).catch(() => {})
+    }
+
+    sonarAviso()
+    setCall((c) =>
+      c && c.status === 'ringing'
+        ? { ...c, status: 'active', conecto: true, contestadaEn: Date.now() }
+        : c,
+    )
+  }, [sonarAviso])
 
   /**
    * Avisa al servidor que la llamada termino.
@@ -215,21 +281,38 @@ export function CallProvider({ children }: { children: ReactNode }) {
           audioRef.current = el
         }
 
-        // El lead entra a la sala como un participante mas. Cuando publica su
-        // audio, recien ahi la llamada esta "activa" de verdad: es el momento
-        // en que contesto, no cuando el CRM mando a marcar.
+        /**
+         * El lead publica su pista de audio cuando el conector entra a la sala,
+         * que NO es lo mismo que haber contestado: mientras suena, la pista ya
+         * existe pero no fluye voz. Por eso aca solo se engancha el audio y se
+         * arranca la grabacion; la llamada se marca contestada mas abajo,
+         * cuando llega voz de verdad.
+         */
         room.on(RoomEvent.TrackSubscribed, (track) => {
           if (track.kind === Track.Kind.Audio && audioRef.current) {
             track.attach(audioRef.current)
-            // El lead contesto: recien ahora se puede grabar. Arrancar antes
-            // dejaria archivos vacios de las llamadas que nadie atiende.
-            datosRef.current.conecto = true
             intentarGrabar()
 
-            setCall((c) =>
-              c && c.status === 'ringing' ? { ...c, status: 'active', conecto: true } : c,
-            )
+            // Red de seguridad: si el lead contesta y no dice nada, no habria
+            // señal de voz y el dock se quedaria en "Llamando..." para siempre.
+            // A los 45 s se da por contestada igual.
+            if (timeoutContestoRef.current) clearTimeout(timeoutContestoRef.current)
+            timeoutContestoRef.current = setTimeout(() => {
+              console.warn('[call] sin voz tras 45 s: se asume contestada')
+              marcarContestada()
+            }, 45_000)
           }
+        })
+
+        /**
+         * Primera voz del lado del lead = contesto.
+         *
+         * Es la señal mas cercana al momento real: antes de que atienda no hay
+         * medios fluyendo, asi que no puede haber hablante activo remoto.
+         */
+        room.on(RoomEvent.ActiveSpeakersChanged, (hablantes) => {
+          const local = room.localParticipant.identity
+          if (hablantes.some((h) => h.identity !== local)) marcarContestada()
         })
 
         // Si el lead cuelga, su participante desaparece de la sala.

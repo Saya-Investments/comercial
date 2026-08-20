@@ -50,7 +50,9 @@ export async function POST(req: NextRequest) {
         select: { inicio: true, estado: true },
       })
 
-      if (previa && previa.estado === 'iniciada') {
+      // 'conectada' la pone /api/calls/answered cuando el lead atiende. Ambos
+      // son estados "abiertos"; los demas ya estan cerrados y no se tocan.
+      if (previa && ['iniciada', 'conectada'].includes(previa.estado)) {
         const fin = new Date()
         const seg = previa.inicio
           ? Math.max(0, Math.round((fin.getTime() - previa.inicio.getTime()) / 1000))

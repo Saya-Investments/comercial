@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Phone, Video, Clock, ShieldCheck, ShieldAlert, ShieldX, ChevronRight, ChevronDown,
+  Phone, Clock, ShieldCheck, ShieldAlert, ShieldX, ChevronRight, ChevronDown,
   X, FileText, Sparkles, Loader2, PhoneCall, Users,
 } from 'lucide-react'
 import { useCall, type CallKind } from '@/contexts/call-context'
@@ -618,10 +618,8 @@ export function CallsModule() {
                           className="w-9 h-9 rounded-lg grid place-items-center border border-border text-foreground hover:text-emerald-600 hover:border-emerald-500 disabled:opacity-35 disabled:cursor-not-allowed transition-colors">
                           <Phone className="w-4 h-4" />
                         </button>
-                        <button title="Videollamada" onClick={() => setPendiente({ lead: l, kind: 'video' })}
-                          className="w-9 h-9 rounded-lg grid place-items-center border border-border text-foreground hover:text-primary hover:border-primary transition-colors">
-                          <Video className="w-4 h-4" />
-                        </button>
+                        {/* Videollamada oculta: sigue siendo simulacion. Ver
+                            el comentario en components/calls/call-dock.tsx */}
                       </div>
                     </div>
                   )

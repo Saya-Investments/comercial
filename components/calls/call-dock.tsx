@@ -120,6 +120,21 @@ export function CallDock() {
   }, [call?.status, call?.lead.id])
 
   /**
+   * Destello de "contestó" durante unos segundos.
+   *
+   * Si el asesor tenia el dock minimizado, se abre solo: es el momento en que
+   * tiene que empezar a hablar y no puede perderselo.
+   */
+  const [recienContesto, setRecienContesto] = useState(false)
+  useEffect(() => {
+    if (!call?.contestadaEn) return
+    setRecienContesto(true)
+    setMinimized(false)
+    const id = setTimeout(() => setRecienContesto(false), 6000)
+    return () => clearTimeout(id)
+  }, [call?.contestadaEn])
+
+  /**
    * Registra la gestion en el CRM (misma tabla donde ya viven las llamadas).
    * Solo persiste si el lead tiene id real; los leads de ejemplo de la cola
    * simplemente cierran el dock.
@@ -185,7 +200,9 @@ export function CallDock() {
             <span className="relative rounded-full h-2.5 w-2.5 bg-red-500" />
           </span>
           <span className="text-sm font-medium">{call.lead.name.split(' ')[0]}</span>
-          <span className="font-mono text-sm tabular-nums text-sky-200">{fmt(call.seconds)}</span>
+          <span className="font-mono text-sm tabular-nums text-sky-200">
+            {call.status === 'ringing' ? 'Llamando…' : fmt(call.seconds)}
+          </span>
         </button>
       </div>
     )
@@ -302,12 +319,32 @@ export function CallDock() {
               <p className="text-slate-300 text-xs font-mono">{call.lead.phone}</p>
             </div>
             <div className="ml-auto text-right">
-              <p className="font-mono text-lg text-white tabular-nums leading-none">{fmt(call.seconds)}</p>
-              <p className="text-[10px] text-sky-300 uppercase tracking-wider mt-1">
-                {call.status === 'ringing' ? 'Llamando…' : esVideo ? 'En video' : 'En llamada'}
-              </p>
+              {/* Mientras suena no se muestra cronometro: contar desde que se
+                  marca hace creer que ya se esta hablando. */}
+              {call.status === 'ringing' ? (
+                <p className="text-sm text-sky-200">Llamando…</p>
+              ) : (
+                <>
+                  <p className="font-mono text-lg text-white tabular-nums leading-none">
+                    {fmt(call.seconds)}
+                  </p>
+                  <p className="text-[10px] text-sky-300 uppercase tracking-wider mt-1">
+                    {esVideo ? 'En video' : 'En llamada'}
+                  </p>
+                </>
+              )}
             </div>
           </div>
+
+          {/* Aviso de que atendio: el asesor puede estar en otro modulo del CRM
+              y necesita saber que ya hay alguien del otro lado. Dura unos
+              segundos, junto con el sonido que emite el contexto. */}
+          {recienContesto && (
+            <div className="mt-3 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-[12px] text-emerald-100 flex items-center gap-2 animate-pulse">
+              <Check className="w-3.5 h-3.5 flex-none" />
+              <span className="font-medium">{call.lead.name.split(' ')[0]} contestó</span>
+            </div>
+          )}
 
           {esVideo && (
             <div className="mt-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-200 flex items-center gap-2">
@@ -451,15 +488,11 @@ export function CallButtons({
       >
         <Phone className="w-4 h-4" />
       </Button>
-      <Button
-        variant={variant}
-        size="sm"
-        title="Videollamada"
-        onClick={(e) => { e.stopPropagation(); setPendiente('video') }}
-        className="text-foreground hover:text-primary hover:bg-secondary"
-      >
-        <Video className="w-4 h-4" />
-      </Button>
+      {/* El boton de videollamada esta oculto a proposito: la videollamada
+          sigue siendo una simulacion (ver call-context). En produccion, un
+          asesor lo pulsaria, veria correr el cronometro y al colgar el CRM le
+          ofreceria guardar la gestion — registrando como real una llamada que
+          nunca ocurrio. Se vuelve a mostrar cuando exista de verdad. */}
 
       {pendiente && (
         <CallConfirmDialog
