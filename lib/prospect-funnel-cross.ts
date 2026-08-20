@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 // Rango fijo del piloto: desde 14-abr-2026.
@@ -21,6 +22,8 @@ export type ProspectMatch = {
   responsable_gestion: string | null
   vendedor_nsv: string | null
   estado: string
+  /** Método B: alguna vez tuvo fecha_inscrito y su estado actual no es 'Devuelto'. */
+  es_venta: boolean
   mes: string
   mes_cierre: string | null
   // Reactivacion por bot: ultima accion Mensaje_WSP con [REACTIVACION] en obs.
@@ -74,9 +77,34 @@ type RawMatch = {
   estado: string
   fecha_registro_prosp: Date | null
   fecha_inscrito: Date | null
+  es_venta: boolean
   bot_intervino_fecha: Date | null
   bot_observaciones: string | null
 }
+
+// Método B para contar ventas (ver documentos/METODO_actualizar_numeros.md).
+// Una venta es "alguna vez tuvo fecha_inscrito y su estado más reciente no es
+// Devuelto", NO "su estado actual dice Inscrito". Los dos casos que rescata:
+//   · Anulados — se inscribieron y pagaron; la anulación es posterior.
+//   · Recurrentes — compraron y volvieron a empezar otro proceso, así que su
+//     registro más reciente está en una etapa temprana y tapaba la venta.
+// Se consulta `nsv_prospectos_completos` porque tiene el historial completo,
+// que es lo que necesita un "alguna vez".
+const SQL_ES_VENTA = `
+            EXISTS (
+              SELECT 1 FROM comercial.nsv_prospectos_completos nc
+              WHERE nc.telefono_norm = RIGHT(
+                      REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+                AND nc.fecha_registro > l.fecha_creacion
+                AND nc.fecha_inscrito IS NOT NULL
+            )
+            AND COALESCE((
+              SELECT TRIM(nc2.estado_documento) FROM comercial.nsv_prospectos_completos nc2
+              WHERE nc2.telefono_norm = RIGHT(
+                      REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+                AND nc2.fecha_registro > l.fecha_creacion
+              ORDER BY nc2.fecha_registro DESC LIMIT 1
+            ), '') <> 'Devuelto' AS es_venta`
 
 export async function crossProspectsWithLeads(options?: {
   idAsesor?: string
@@ -113,6 +141,7 @@ export async function crossProspectsWithLeads(options?: {
             p.fecha_registro       AS fecha_registro_prosp,
             p.fecha_inscrito       AS fecha_inscrito,
             p.vendedor             AS vendedor_nsv,
+            ${Prisma.raw(SQL_ES_VENTA)},
             b.fecha_creacion       AS bot_intervino_fecha,
             b.observaciones        AS bot_observaciones
           FROM comercial.bd_leads l
@@ -185,6 +214,7 @@ export async function crossProspectsWithLeads(options?: {
             p.fecha_registro       AS fecha_registro_prosp,
             p.fecha_inscrito       AS fecha_inscrito,
             p.vendedor             AS vendedor_nsv,
+            ${Prisma.raw(SQL_ES_VENTA)},
             b.fecha_creacion       AS bot_intervino_fecha,
             b.observaciones        AS bot_observaciones
           FROM comercial.bd_leads l
@@ -280,6 +310,7 @@ export async function crossProspectsWithLeads(options?: {
       responsable_gestion,
       vendedor_nsv: r.vendedor_nsv,
       estado: r.estado?.trim() || '(sin estado)',
+      es_venta: Boolean(r.es_venta),
       mes: leadMonthLima(r.fecha_creacion),
       mes_cierre: r.fecha_inscrito ? leadMonthLima(r.fecha_inscrito) : null,
       bot_intervino: r.bot_intervino_fecha !== null,

@@ -28,8 +28,17 @@ export async function GET(request: Request) {
     return rest
   })
 
+  // Ventas por Método B (ver documentos/METODO_actualizar_numeros.md): no es
+  // "su estado actual dice Inscrito" sino "alguna vez se inscribió y no fue
+  // devuelto". Rescata anulados (ya habían pagado) y clientes recurrentes,
+  // cuyo registro más reciente pertenece a un proceso nuevo y tapaba la venta.
+  const ventas = filtered.filter((m) => m.es_venta).length
+  const ventasEstadoInscrito = filtered.filter((m) => m.estado === 'Inscrito').length
+
   return NextResponse.json({
     counts,
+    ventas,
+    ventasEstadoInscrito,
     totalCruzados: leadsMatched.length,
     totalLeadsCrm,
     leads: leadsMatched,
