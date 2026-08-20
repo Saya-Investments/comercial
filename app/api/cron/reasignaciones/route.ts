@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
 const HORAS_LIMITE = 24
+const MAX_POR_CORRIDA = 25
 
 // Niveles de cuota (split de Regla 1 en cuotas_semanales)
 type Nivel = 'high' | 'medium' | 'low'
@@ -46,6 +47,13 @@ export async function GET(req: NextRequest) {
         select: { id_lead: true, ultimo_asesor_asignado: true, scoring: true },
       },
     },
+    // Tope por corrida: cada lead implica una transaccion y un email al asesor.
+    // Sin tope, una acumulacion (p.ej. tras destrabar leads que estaban
+    // atascados) se vaciaria de una sola vez, inundando de notificaciones y
+    // arriesgando timeout. Con 25 cada 10 min se drenan 150/hora, que alcanza
+    // de sobra para el ritmo normal (~15-25 leads/dia).
+    orderBy: { fecha_asignacion: 'asc' },   // los mas viejos primero
+    take: MAX_POR_CORRIDA,
   })
 
   let reasignados = 0
@@ -68,22 +76,31 @@ export async function GET(req: NextRequest) {
       // Si ya tiene acciones, el asesor SI gestiono -> no reasignar
       if (acciones) continue
 
-      // 3. Buscar la posicion actual del asesor en el ranking
-      const posicionActual = await prisma.ranking_routing.findFirst({
-        where: { id_lead: leadId, id_asesor: asesorActualId },
-        select: { posicion: true },
-      })
-
-      if (!posicionActual) {
-        errores.push(`Lead ${leadId}: asesor ${asesorActualId} no encontrado en ranking_routing`)
-        continue
-      }
-
-      // 4. Buscar el siguiente asesor disponible en el ranking (posicion mayor, no asignado)
+      // 3. Candidatos: CUALQUIER asesor del ranking que todavia no haya tenido
+      //    este lead. `asignado: false` es lo que evita el ping-pong (no vuelve
+      //    a alguien que ya lo dejo caer); quien decide es el balance de cuota
+      //    de mas abajo, no la posicion.
+      //
+      //    ANTES se exigia `posicion > posicionActual`, y eso causaba dos bugs:
+      //
+      //    a) TRINQUETE — un lead reasignado solo podia bajar en el ranking,
+      //       nunca subir. Como cada posicion usada queda marcada, los leads
+      //       abandonados descendian sin retorno hasta el ULTIMO del ranking y
+      //       ahi se quedaban (no hay "siguiente"). Medido: un asesor recibio
+      //       253 reasignaciones y solo perdio 5 — un pozo. Eso le llenaba la
+      //       cuota semanal y el routing dejaba de mandarle leads NUEVOS
+      //       (0 durante dos semanas seguidas), asi que solo trabajaba sobras.
+      //       Que un lead lleve 24h sin gestion no lo hace peor lead: no hay
+      //       razon para mandarlo al peor asesor.
+      //
+      //    b) Si el asesor actual no figuraba en ranking_routing, `posicionActual`
+      //       venia null y se hacia `continue`: sus leads abandonados NUNCA se
+      //       reasignaban. Le pasaba a un asesor que entro despues de calcularse
+      //       el modelo (0 leads reasignados fuera de el en 30 dias).
       const siguientes = await prisma.ranking_routing.findMany({
         where: {
           id_lead: leadId,
-          posicion: { gt: posicionActual.posicion },
+          id_asesor: { not: asesorActualId },
           asignado: false,
         },
         include: {
