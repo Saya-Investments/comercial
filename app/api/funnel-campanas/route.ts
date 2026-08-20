@@ -31,6 +31,8 @@ export const STAGE_LABELS: Record<Stage, string> = {
 // Used in both the summary query and the lead-detail query.
 const STAGE_CASE = `
   CASE
+    WHEN venta.es_venta
+      THEN 'inscrito'
     WHEN nsv.estado_documento IN ('Inscrito', 'Inscrito Parcialmente')
       THEN 'inscrito'
     WHEN nsv.estado_documento IN (
@@ -82,6 +84,28 @@ const LATERAL_JOINS = `
     ORDER BY np.fecha_registro DESC
     LIMIT 1
   ) nsv ON true
+  LEFT JOIN LATERAL (
+    -- Método B (ver documentos/METODO_actualizar_numeros.md): la venta es
+    -- "alguna vez se inscribió y su documento más reciente no está Devuelto".
+    -- Mirar solo el estado actual perdía anulados (que ya habían pagado) y
+    -- recurrentes, cuyo registro más nuevo pertenece a otro proceso.
+    SELECT (
+      EXISTS (
+        SELECT 1 FROM comercial.nsv_prospectos_completos nc
+        WHERE nc.telefono_norm = RIGHT(
+                REGEXP_REPLACE(COALESCE(l.numero,''), '[^0-9]','','g'), 9)
+          AND (NOT ${IS_STOCK_CAMPAIGN} OR nc.fecha_registro > l.fecha_creacion)
+          AND nc.fecha_inscrito IS NOT NULL
+      )
+      AND COALESCE((
+        SELECT TRIM(nc2.estado_documento) FROM comercial.nsv_prospectos_completos nc2
+        WHERE nc2.telefono_norm = RIGHT(
+                REGEXP_REPLACE(COALESCE(l.numero,''), '[^0-9]','','g'), 9)
+          AND (NOT ${IS_STOCK_CAMPAIGN} OR nc2.fecha_registro > l.fecha_creacion)
+        ORDER BY nc2.fecha_registro DESC LIMIT 1
+      ), '') <> 'Devuelto'
+    ) AS es_venta
+  ) venta ON true
   LEFT JOIN LATERAL (
     SELECT a.estado_asesor
     FROM comercial.crm_acciones_comerciales a

@@ -20,6 +20,8 @@ import {
   TrendingDown,
   Users,
   CheckCircle2,
+  HelpCircle,
+  ChevronDown,
   Loader2,
   X,
   Eye,
@@ -225,6 +227,10 @@ type BaseFiltro = 'todas' | 'Caliente' | 'Stock'
 
 type FunnelResponse = {
   counts: Record<string, number>
+  /** Ventas por Método B (alguna vez inscrito y no devuelto). */
+  ventas: number
+  /** Solo los que hoy figuran como 'Inscrito' — para explicar la diferencia. */
+  ventasEstadoInscrito: number
   totalCruzados: number
   totalLeadsCrm: number
   leads: LeadMatch[]
@@ -272,6 +278,9 @@ export function ProspectsFunnelModule() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [leadDetalle, setLeadDetalle] = useState<LeadModalData | null>(null)
+  const [ventas, setVentas] = useState(0)
+  const [ventasEstadoInscrito, setVentasEstadoInscrito] = useState(0)
+  const [verCriterioVenta, setVerCriterioVenta] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -291,6 +300,8 @@ export function ProspectsFunnelModule() {
       .then(data => {
         if (cancelled) return
         setCounts(data.counts ?? {})
+        setVentas(data.ventas ?? 0)
+        setVentasEstadoInscrito(data.ventasEstadoInscrito ?? 0)
         setLeads(data.leads ?? [])
         setMeta({ totalCruzados: data.totalCruzados, totalLeadsCrm: data.totalLeadsCrm, rango: data.rango })
         setMesesDisponibles(data.mesesDisponibles ?? [])
@@ -316,13 +327,12 @@ export function ProspectsFunnelModule() {
 
   const totales = useMemo(() => {
     const enPipeline = etapas.reduce((sum, e) => sum + e.estados.reduce((s, x) => s + x.cantidad, 0), 0)
-    // "Cerrado con éxito" = Inscrito. El pago solo es una fase temprana del flujo
-    // (tras proforma), no representa cierre.
-    const inscripcion = etapas.find(e => e.titulo === 'Inscripción')
-    const exitosos = inscripcion?.estados.find(s => s.nombre === 'Inscrito')?.cantidad ?? 0
+    // "Cerrado con éxito" = ventas por Método B, que las cuenta el backend.
+    // No se deriva del estado actual: un anulado o un cliente recurrente ya
+    // compró aunque hoy su registro más reciente diga otra cosa.
     const caidos = grupos.reduce((sum, g) => sum + g.estados.reduce((s, x) => s + x.cantidad, 0), 0)
-    return { total: enPipeline + caidos, enPipeline, exitosos, caidos }
-  }, [etapas, grupos])
+    return { total: enPipeline + caidos, enPipeline, exitosos: ventas, caidos }
+  }, [etapas, grupos, ventas])
 
   const totalEtapa = (etapa: Etapa) => etapa.estados.reduce((s, x) => s + x.cantidad, 0)
 
@@ -394,6 +404,69 @@ export function ProspectsFunnelModule() {
               accent="text-rose-600"
               accentBg="bg-rose-50"
             />
+          </div>
+
+          {/* Criterio de conteo de ventas — desplegable */}
+          <div className="rounded-lg border border-border bg-muted/30">
+            <button
+              onClick={() => setVerCriterioVenta(v => !v)}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
+            >
+              <HelpCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-foreground">
+                ¿Cómo contamos las ventas?
+              </span>
+              <span className="text-xs text-muted-foreground">
+                — {ventas} ventas ({ventasEstadoInscrito} figuran hoy como “Inscrito”)
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-muted-foreground ml-auto shrink-0 transition-transform ${verCriterioVenta ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {verCriterioVenta && (
+              <div className="px-4 pb-4 pt-1 text-sm text-muted-foreground space-y-3 border-t border-border">
+                <p className="pt-3">
+                  Una venta es un lead que <strong className="text-foreground">alguna vez llegó a inscribirse</strong> y
+                  cuyo documento más reciente <strong className="text-foreground">no está “Devuelto”</strong>. No se
+                  cuenta por el estado actual, porque ese estado puede haber cambiado después de la venta.
+                </p>
+
+                <div>
+                  <p className="text-foreground font-medium mb-1">Casos que se incluyen:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>
+                      <strong className="text-foreground">Inscritos</strong> — hoy figuran como tal.
+                    </li>
+                    <li>
+                      <strong className="text-foreground">Anulados</strong> — se inscribieron y pagaron; la anulación
+                      es posterior y no borra la venta.
+                    </li>
+                    <li>
+                      <strong className="text-foreground">Recurrentes</strong> — compraron y después empezaron otro
+                      proceso, así que su registro más reciente está en una etapa temprana y tapaba la venta anterior.
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="text-foreground font-medium mb-1">Casos que se excluyen:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><strong className="text-foreground">Devueltos</strong> — no se consideran venta.</li>
+                    <li>
+                      Quienes llegaron a <strong className="text-foreground">proforma o pago</strong> pero nunca se
+                      inscribieron: siguen en el pipeline, todavía no son venta.
+                    </li>
+                  </ul>
+                </div>
+
+                <p className="text-xs">
+                  Solo cuentan los procesos de venta que nacieron <strong className="text-foreground">después</strong> de
+                  que el lead entró al CRM. Es el mismo criterio (“Método B”) con el que se reportan los números del
+                  piloto, para que el tab y la presentación no se contradigan.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Pipeline */}
