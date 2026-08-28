@@ -36,24 +36,47 @@ export async function GET(req: NextRequest) {
   // Se excluyen leads que estan actualmente en el Call Center: mientras el
   // CC los trabaja, el timer del asesor backup no debe correr (el cron de
   // derivacion-cc se encarga de liberar al asesor si el CC se pasa de 2h).
-  const matchingsVencidos = await prisma.matching.findMany({
-    where: {
-      asignado: true,
-      fecha_asignacion: { not: null, lt: limite },
-      bd_leads: { asignado_call_center: null },
-    },
+  // El descarte de los ya gestionados va en ESTA consulta, no dentro del loop.
+  // Si se deja para el loop, el tope por corrida se consume con matchings
+  // viejos que el asesor ya trabajo: se descartan uno por uno y el cron nunca
+  // alcanza a los reasignables. Pasaba exactamente eso — los 25 mas viejos
+  // estaban gestionados los 25, asi que cada corrida cerraba con
+  // reasignados=0 y el backlog quedaba intacto.
+  //
+  // Va en SQL crudo porque la condicion compara dos columnas
+  // (acciones.fecha_creacion >= matching.fecha_asignacion), y eso el filtro
+  // relacional de Prisma no lo expresa: obligaria a usar un umbral fijo, que
+  // dejaria pasar leads con gestion vieja y volveria a gastar el cupo.
+  //
+  // El tope existe porque cada lead implica una transaccion y un email al
+  // asesor: sin el, una acumulacion (p.ej. tras destrabar leads atascados) se
+  // vaciaria de golpe, inundando de notificaciones y arriesgando timeout.
+  // Con 25 cada 10 min se drenan 150/hora, de sobra para el ritmo normal.
+  const idsPendientes = await prisma.$queryRaw<Array<{ id_matching: string }>>`
+    SELECT m.id_matching
+    FROM comercial.matching m
+    JOIN comercial.bd_leads l ON l.id_lead = m.id_lead
+    WHERE m.asignado = true
+      AND m.fecha_asignacion IS NOT NULL
+      AND m.fecha_asignacion < ${limite}
+      AND l.asignado_call_center IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM comercial.crm_acciones_comerciales ac
+        WHERE ac.id_lead = m.id_lead
+          AND ac.fecha_creacion >= m.fecha_asignacion
+      )
+    ORDER BY m.fecha_asignacion ASC
+    LIMIT ${MAX_POR_CORRIDA}
+  `
+
+  const matchingsVencidos = idsPendientes.length === 0 ? [] : await prisma.matching.findMany({
+    where: { id_matching: { in: idsPendientes.map((r) => r.id_matching) } },
     include: {
       bd_leads: {
         select: { id_lead: true, ultimo_asesor_asignado: true, scoring: true },
       },
     },
-    // Tope por corrida: cada lead implica una transaccion y un email al asesor.
-    // Sin tope, una acumulacion (p.ej. tras destrabar leads que estaban
-    // atascados) se vaciaria de una sola vez, inundando de notificaciones y
-    // arriesgando timeout. Con 25 cada 10 min se drenan 150/hora, que alcanza
-    // de sobra para el ritmo normal (~15-25 leads/dia).
-    orderBy: { fecha_asignacion: 'asc' },   // los mas viejos primero
-    take: MAX_POR_CORRIDA,
+    orderBy: { fecha_asignacion: 'asc' },
   })
 
   let reasignados = 0
