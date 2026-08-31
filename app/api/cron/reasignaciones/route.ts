@@ -5,7 +5,15 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
-const HORAS_LIMITE = 24
+// Cuanto tiempo tiene el asesor antes de que se le quite el lead.
+// Estaba en 24h, por debajo del ritmo real del equipo: la mediana hasta la
+// primera gestion es de 22 horas, o sea justo pegada al limite. Medido sobre
+// 535 leads gestionados, el corte a 24h dejaba fuera al 48% de los que SI se
+// iban a trabajar; a 48h solo al 29%. Reasignar antes de que el asesor
+// llegue no rescata nada: reinicia el contacto con otro que empieza de cero,
+// y era la causa del rebote (leads pasando por 3 asesores) y del volumen
+// (148 reasignaciones en un dia).
+const HORAS_LIMITE = 48
 const MAX_POR_CORRIDA = 25
 // Un lead sin ningun toque hace mas de esto ya no es material de
 // enrutamiento: va a campana de reactivacion.

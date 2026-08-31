@@ -86,12 +86,13 @@ export async function GET(req: NextRequest) {
           WHERE id_call_center = ${c.id_call_center}::uuid
         `
 
-        // 3. Reiniciar el timer de 24h del asesor backup y marcar
+        // 3. Reiniciar el timer del asesor backup (HORAS_LIMITE del cron de
+        //    reasignaciones) y marcar
         //    notificado_asesor=false para que el cron notificar-asignacion
         //    le envie el email en su proximo tick (es el unico responsable
         //    de notificar al asesor).
         //    Sin el reset de fecha_asignacion, el cron de reasignaciones
-        //    veria un matching de hace >24h y reasignaria al instante.
+        //    veria un matching vencido y reasignaria al instante.
         await tx.matching.updateMany({
           where: {
             id_lead: c.id_lead,
