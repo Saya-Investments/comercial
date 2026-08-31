@@ -92,6 +92,20 @@ export async function GET(req: NextRequest) {
             AND ac.fecha_creacion >= m.fecha_asignacion
         )
       )
+      -- Tiene que existir a donde moverlo. Un lead que ya paso por todos los
+      -- asesores disponibles no se puede reasignar, pero al no moverse su
+      -- fecha_asignacion queda vieja y se amontona al frente de la cola:
+      -- consumia los 25 cupos de cada corrida y los que SI se podian mover
+      -- nunca se procesaban. Medido: 35 inamovibles tapando a 53 movibles,
+      -- con el cron devolviendo sinCapacidad=25 y reasignados=0.
+      AND EXISTS (
+        SELECT 1 FROM comercial.ranking_routing r
+        JOIN comercial.bd_asesores ra ON ra.id_asesor = r.id_asesor
+        WHERE r.id_lead = m.id_lead
+          AND r.id_asesor <> m.id_asesor
+          AND r.asignado = false
+          AND ra.disponibilidad = 'disponible'
+      )
     ORDER BY m.fecha_asignacion ASC
     LIMIT ${MAX_POR_CORRIDA}
   `
