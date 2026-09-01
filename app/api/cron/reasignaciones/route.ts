@@ -5,8 +5,19 @@ import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 const CRON_SECRET = process.env.CRON_SECRET
-const HORAS_LIMITE = 24
+// Cuanto tiempo tiene el asesor antes de que se le quite el lead.
+// Estaba en 24h, por debajo del ritmo real del equipo: la mediana hasta la
+// primera gestion es de 22 horas, o sea justo pegada al limite. Medido sobre
+// 535 leads gestionados, el corte a 24h dejaba fuera al 48% de los que SI se
+// iban a trabajar; a 48h solo al 29%. Reasignar antes de que el asesor
+// llegue no rescata nada: reinicia el contacto con otro que empieza de cero,
+// y era la causa del rebote (leads pasando por 3 asesores) y del volumen
+// (148 reasignaciones en un dia).
+const HORAS_LIMITE = 48
 const MAX_POR_CORRIDA = 25
+// Un lead sin ningun toque hace mas de esto ya no es material de
+// enrutamiento: va a campana de reactivacion.
+const DIAS_FRESCURA = 60
 
 // Niveles de cuota (split de Regla 1 en cuotas_semanales)
 type Nivel = 'high' | 'medium' | 'low'
@@ -36,24 +47,91 @@ export async function GET(req: NextRequest) {
   // Se excluyen leads que estan actualmente en el Call Center: mientras el
   // CC los trabaja, el timer del asesor backup no debe correr (el cron de
   // derivacion-cc se encarga de liberar al asesor si el CC se pasa de 2h).
-  const matchingsVencidos = await prisma.matching.findMany({
-    where: {
-      asignado: true,
-      fecha_asignacion: { not: null, lt: limite },
-      bd_leads: { asignado_call_center: null },
-    },
+  // El descarte de los ya gestionados va en ESTA consulta, no dentro del loop.
+  // Si se deja para el loop, el tope por corrida se consume con matchings
+  // viejos que el asesor ya trabajo: se descartan uno por uno y el cron nunca
+  // alcanza a los reasignables. Pasaba exactamente eso — los 25 mas viejos
+  // estaban gestionados los 25, asi que cada corrida cerraba con
+  // reasignados=0 y el backlog quedaba intacto.
+  //
+  // Va en SQL crudo porque la condicion compara dos columnas
+  // (acciones.fecha_creacion >= matching.fecha_asignacion), y eso el filtro
+  // relacional de Prisma no lo expresa: obligaria a usar un umbral fijo, que
+  // dejaria pasar leads con gestion vieja y volveria a gastar el cupo.
+  //
+  // El tope existe porque cada lead implica una transaccion y un email al
+  // asesor: sin el, una acumulacion (p.ej. tras destrabar leads atascados) se
+  // vaciaria de golpe, inundando de notificaciones y arriesgando timeout.
+  // Con 25 cada 10 min se drenan 150/hora, de sobra para el ritmo normal.
+  const idsPendientes = await prisma.$queryRaw<Array<{ id_matching: string; asesor_inactivo: boolean }>>`
+    SELECT m.id_matching,
+           (asr.disponibilidad IS DISTINCT FROM 'disponible') AS asesor_inactivo
+    FROM comercial.matching m
+    JOIN comercial.bd_leads l ON l.id_lead = m.id_lead
+    JOIN comercial.bd_asesores asr ON asr.id_asesor = m.id_asesor
+    WHERE m.asignado = true
+      -- El asesor DEMO es ficticio (se usa para probar el CRM y el piloto de
+      -- llamadas). Sus leads no deben entrar nunca al enrutamiento real.
+      AND asr.nombre_asesor NOT ILIKE 'DEMO%'
+      AND m.fecha_asignacion IS NOT NULL
+      AND m.fecha_asignacion < ${limite}
+      AND l.asignado_call_center IS NULL
+      AND (
+        -- Asesor que ya no esta en el piloto: se reasigna SIEMPRE, haya sido
+        -- gestionado o no. La regla de las 24h solo cubre al lead que nadie
+        -- toco; un lead trabajado una vez y huerfano despues quedaba con su
+        -- ex-asesor para siempre. Medido: 182 leads en ese limbo (93 de uno
+        -- que salio en junio, 89 de otra que salio en mayo, sin que nadie
+        -- los mirara en ~4 meses).
+        (asr.disponibilidad IS DISTINCT FROM 'disponible'
+         -- ...pero solo si el lead sigue tibio. Un lead helado hace meses no
+         -- se recupera volcandoselo a un asesor como si fuera nuevo: ese es
+         -- material de campana de reactivacion, no de enrutamiento. Sin este
+         -- corte, la regla habria repartido 184 leads con 109-132 dias sin
+         -- que nadie los tocara.
+         AND COALESCE(
+               (SELECT MAX(ac2.fecha_creacion) FROM comercial.crm_acciones_comerciales ac2
+                WHERE ac2.id_lead = m.id_lead),
+               m.fecha_asignacion
+             ) > now() - (${DIAS_FRESCURA} * INTERVAL '1 day'))
+        OR NOT EXISTS (
+          SELECT 1 FROM comercial.crm_acciones_comerciales ac
+          WHERE ac.id_lead = m.id_lead
+            AND ac.fecha_creacion >= m.fecha_asignacion
+        )
+      )
+      -- Tiene que existir a donde moverlo. Un lead que ya paso por todos los
+      -- asesores disponibles no se puede reasignar, pero al no moverse su
+      -- fecha_asignacion queda vieja y se amontona al frente de la cola:
+      -- consumia los 25 cupos de cada corrida y los que SI se podian mover
+      -- nunca se procesaban. Medido: 35 inamovibles tapando a 53 movibles,
+      -- con el cron devolviendo sinCapacidad=25 y reasignados=0.
+      AND EXISTS (
+        SELECT 1 FROM comercial.ranking_routing r
+        JOIN comercial.bd_asesores ra ON ra.id_asesor = r.id_asesor
+        WHERE r.id_lead = m.id_lead
+          AND r.id_asesor <> m.id_asesor
+          AND r.asignado = false
+          AND ra.disponibilidad = 'disponible'
+      )
+    ORDER BY m.fecha_asignacion ASC
+    LIMIT ${MAX_POR_CORRIDA}
+  `
+
+  // Que matchings vienen por la via "asesor inactivo": el loop no debe
+  // descartarlos por tener gestion previa.
+  const porAsesorInactivo = new Set(
+    idsPendientes.filter((r) => r.asesor_inactivo).map((r) => r.id_matching)
+  )
+
+  const matchingsVencidos = idsPendientes.length === 0 ? [] : await prisma.matching.findMany({
+    where: { id_matching: { in: idsPendientes.map((r) => r.id_matching) } },
     include: {
       bd_leads: {
         select: { id_lead: true, ultimo_asesor_asignado: true, scoring: true },
       },
     },
-    // Tope por corrida: cada lead implica una transaccion y un email al asesor.
-    // Sin tope, una acumulacion (p.ej. tras destrabar leads que estaban
-    // atascados) se vaciaria de una sola vez, inundando de notificaciones y
-    // arriesgando timeout. Con 25 cada 10 min se drenan 150/hora, que alcanza
-    // de sobra para el ritmo normal (~15-25 leads/dia).
-    orderBy: { fecha_asignacion: 'asc' },   // los mas viejos primero
-    take: MAX_POR_CORRIDA,
+    orderBy: { fecha_asignacion: 'asc' },
   })
 
   let reasignados = 0
@@ -73,8 +151,10 @@ export async function GET(req: NextRequest) {
         },
       })
 
-      // Si ya tiene acciones, el asesor SI gestiono -> no reasignar
-      if (acciones) continue
+      // Si ya tiene acciones, el asesor SI gestiono -> no reasignar.
+      // Salvo que el asesor ya no este en el piloto: ahi la gestion previa es
+      // irrelevante, porque no va a haber una siguiente.
+      if (acciones && !porAsesorInactivo.has(match.id_matching)) continue
 
       // 3. Candidatos: CUALQUIER asesor del ranking que todavia no haya tenido
       //    este lead. `asignado: false` es lo que evita el ping-pong (no vuelve
