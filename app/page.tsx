@@ -22,19 +22,20 @@ import { MyProspectsModule } from '@/components/modules/my-prospects-module'
 import { FunnelCampanasModule } from '@/components/modules/funnel-campanas-module'
 import { VersionModule } from '@/components/modules/version-module'
 import { CallsModule } from '@/components/modules/calls-module'
+import { AdminCallsModule } from '@/components/modules/admin-calls-module'
 import { ReactivacionTibiaModule } from '@/components/modules/reactivacion-tibia-module'
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
-type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel' | 'funnel-campanas' | 'my-prospects' | 'calls' | 'reactivacion-tibia' | 'version'
+type ModuleType = 'leads' | 'tasks' | 'campaigns' | 'calendar' | 'templates' | 'users' | 'bot-cost' | 'routing-rules' | 'advisors-activity' | 'advisor-dashboard' | 'call-center-dashboard' | 'reassignment' | 'prospects-funnel' | 'funnel-campanas' | 'my-prospects' | 'calls' | 'admin-calls' | 'reactivacion-tibia' | 'version'
 
-const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'funnel-campanas', 'reactivacion-tibia', 'version']
+const ADMIN_ONLY_MODULES: ModuleType[] = ['campaigns', 'templates', 'users', 'bot-cost', 'routing-rules', 'prospects-funnel', 'funnel-campanas', 'reactivacion-tibia', 'admin-calls', 'version']
 
 export default function Home() {
   const { isAuthenticated, loading, user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
-  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel', 'funnel-campanas', 'my-prospects', 'calls', 'reactivacion-tibia', 'version']
+  const ALL_MODULES: ModuleType[] = ['leads', 'tasks', 'campaigns', 'calendar', 'templates', 'users', 'bot-cost', 'routing-rules', 'advisors-activity', 'advisor-dashboard', 'call-center-dashboard', 'reassignment', 'prospects-funnel', 'funnel-campanas', 'my-prospects', 'calls', 'admin-calls', 'reactivacion-tibia', 'version']
 
   const defaultModule: ModuleType = user?.role === 'asesor'
     ? 'advisor-dashboard'
@@ -144,6 +145,9 @@ export default function Home() {
           {activeModule === 'bot-cost' && <BotCostModule initialLeads={150} />}
           {activeModule === 'routing-rules' && <RoutingRulesModule />}
           {activeModule === 'calls' && puedeUsarLlamadas(user) && <CallsModule />}
+          {/* El reporte no pasa por puedeUsarLlamadas: es supervision, no
+              operacion. Quien dirige necesita ver los intentos aunque no llame. */}
+          {activeModule === 'admin-calls' && <AdminCallsModule />}
           {activeModule === 'reactivacion-tibia' && <ReactivacionTibiaModule />}
           {activeModule === 'version' && <VersionModule />}
         </div>
