@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   const now = new Date()
   const limite = new Date(now.getTime() - HORAS_LIMITE * 60 * 60 * 1000)
 
-  // 1. Buscar matchings asignados cuya fecha_asignacion supero las 24h.
+  // 1. Buscar matchings asignados cuya fecha_asignacion supero HORAS_LIMITE.
   // Se excluyen leads que estan actualmente en el Call Center: mientras el
   // CC los trabaja, el timer del asesor backup no debe correr (el cron de
   // derivacion-cc se encarga de liberar al asesor si el CC se pasa de 2h).
@@ -76,24 +76,29 @@ export async function GET(req: NextRequest) {
       AND m.fecha_asignacion IS NOT NULL
       AND m.fecha_asignacion < ${limite}
       AND l.asignado_call_center IS NULL
+      -- CORTE DE FRESCURA, para todos los casos. Un lead helado hace meses no
+      -- se recupera pasandoselo a otro asesor como si fuera nuevo: eso es
+      -- material de campana de reactivacion. Al romperse el trinquete se
+      -- liberaron leads que llevaban meses congelados y empezaron a circular
+      -- como si fueran frescos: de 82 reasignaciones en dos dias, 60 eran de
+      -- leads de mas de 3 meses, y a una asesora le llegaron de abril.
+      --
+      -- Se mide contra la ultima gestion real, y si nunca hubo, contra el
+      -- nacimiento del lead. NO contra fecha_asignacion: esa se actualiza en
+      -- cada rebote, asi que un lead de abril que lleva meses rebotando
+      -- siempre parecia recien llegado y el corte no lo frenaba nunca.
+      AND COALESCE(
+            (SELECT MAX(ac2.fecha_creacion) FROM comercial.crm_acciones_comerciales ac2
+             WHERE ac2.id_lead = m.id_lead),
+            l.fecha_creacion
+          ) > now() - (${DIAS_FRESCURA} * INTERVAL '1 day')
       AND (
         -- Asesor que ya no esta en el piloto: se reasigna SIEMPRE, haya sido
-        -- gestionado o no. La regla de las 24h solo cubre al lead que nadie
+        -- gestionado o no. La regla de las 48h solo cubre al lead que nadie
         -- toco; un lead trabajado una vez y huerfano despues quedaba con su
         -- ex-asesor para siempre. Medido: 182 leads en ese limbo (93 de uno
-        -- que salio en junio, 89 de otra que salio en mayo, sin que nadie
-        -- los mirara en ~4 meses).
-        (asr.disponibilidad IS DISTINCT FROM 'disponible'
-         -- ...pero solo si el lead sigue tibio. Un lead helado hace meses no
-         -- se recupera volcandoselo a un asesor como si fuera nuevo: ese es
-         -- material de campana de reactivacion, no de enrutamiento. Sin este
-         -- corte, la regla habria repartido 184 leads con 109-132 dias sin
-         -- que nadie los tocara.
-         AND COALESCE(
-               (SELECT MAX(ac2.fecha_creacion) FROM comercial.crm_acciones_comerciales ac2
-                WHERE ac2.id_lead = m.id_lead),
-               m.fecha_asignacion
-             ) > now() - (${DIAS_FRESCURA} * INTERVAL '1 day'))
+        -- que salio en junio, 89 de otra que salio en mayo).
+        asr.disponibilidad IS DISTINCT FROM 'disponible'
         OR NOT EXISTS (
           SELECT 1 FROM comercial.crm_acciones_comerciales ac
           WHERE ac.id_lead = m.id_lead
