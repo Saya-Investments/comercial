@@ -15,6 +15,8 @@ export type ProspectMatch = {
   base: string | null
   fecha_creacion: string
   fecha_registro_prosp: string | null
+  /** Primera inscripcion atribuida al lead (MIN sobre el historial), no la
+   *  del registro mas reciente: si no, los recurrentes se quedan sin mes. */
   fecha_inscrito: string | null
   asesor: string | null
   call_center: string | null
@@ -106,6 +108,20 @@ const SQL_ES_VENTA = `
               ORDER BY nc2.fecha_registro DESC LIMIT 1
             ), '') <> 'Devuelto' AS es_venta`
 
+// La fecha de la venta es la PRIMERA inscripcion atribuida al lead, no la del
+// registro mas reciente. Si el cliente volvio y abrio otro proceso, ese registro
+// nuevo tiene fecha_inscrito NULL y la venta se quedaba SIN MES: contaba en el
+// total pero no aparecia en ningun mes del desglose (19 de 153 al 02-sep-2026,
+// y el sesgo crecia con la antiguedad: abril perdia 27% y agosto 6%).
+// Mismo historial que usa SQL_ES_VENTA, por eso los meses suman el total.
+const SQL_FECHA_VENTA = `
+            (SELECT MIN(nc3.fecha_inscrito)
+             FROM comercial.nsv_prospectos_completos nc3
+             WHERE nc3.telefono_norm = RIGHT(
+                     REGEXP_REPLACE(COALESCE(l.numero, ''), '[^0-9]', '', 'g'), 9)
+               AND nc3.fecha_registro > l.fecha_creacion
+               AND nc3.fecha_inscrito IS NOT NULL) AS fecha_inscrito`
+
 export async function crossProspectsWithLeads(options?: {
   idAsesor?: string
 }): Promise<{
@@ -139,7 +155,7 @@ export async function crossProspectsWithLeads(options?: {
             ) AS via_call_center,
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
-            p.fecha_inscrito       AS fecha_inscrito,
+            ${Prisma.raw(SQL_FECHA_VENTA)},
             p.vendedor             AS vendedor_nsv,
             ${Prisma.raw(SQL_ES_VENTA)},
             b.fecha_creacion       AS bot_intervino_fecha,
@@ -212,7 +228,7 @@ export async function crossProspectsWithLeads(options?: {
             ) AS via_call_center,
             p.estado_documento     AS estado,
             p.fecha_registro       AS fecha_registro_prosp,
-            p.fecha_inscrito       AS fecha_inscrito,
+            ${Prisma.raw(SQL_FECHA_VENTA)},
             p.vendedor             AS vendedor_nsv,
             ${Prisma.raw(SQL_ES_VENTA)},
             b.fecha_creacion       AS bot_intervino_fecha,
