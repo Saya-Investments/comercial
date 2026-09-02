@@ -273,12 +273,7 @@ export async function GET(req: NextRequest) {
       base: metadata?.Base || 'Caliente',
       bucket: metadata?.Bucket || '',
       status: l.estado_de_lead || 'lead',
-      // OJO: este campo alimenta la columna de fecha que ve el asesor. Mostraba
-      // `fecha_creacion` (cuando el lead entro al sistema), no cuando se le
-      // asigno a el: en un lead reasignado eso significaba una fecha de meses
-      // atras. Ahora es la asignacion real, con la creacion como respaldo para
-      // los leads que todavia no tienen matching.
-      assignedDate: (fechaAsignacion ?? l.fecha_creacion).toISOString().split('T')[0],
+      assignedDate: l.fecha_creacion.toISOString().split('T')[0],
       product: l.producto || '',
       priority: getPriority(l.scoring),
       score: l.scoring ? Math.round(Number(l.scoring) * 100) : 0,
@@ -296,21 +291,8 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  // Orden de la lista: por cuando el lead LLEGO al asesor, no por cuando nacio.
-  // La consulta ordena por fecha_creacion, y eso funcionaba mientras casi no
-  // hubiera reasignaciones: los leads del dia eran tambien los mas nuevos. Al
-  // empezar a reasignarse leads viejos, a la asesora le aparecian repartidos
-  // por todas las paginas —uno de abril que le llego hoy caia al fondo— y no
-  // podia ver "lo que me entro hoy" de un vistazo. Se ordena aca y no en la
-  // consulta porque fecha_asignacion vive en `matching`, no en `bd_leads`.
-  mapped.sort((a, b) => {
-    const fa = a.fechaAsignacion ?? a.assignedDate
-    const fb = b.fechaAsignacion ?? b.assignedDate
-    return fb.localeCompare(fa)   // mas reciente primero
-  })
-
   // Los marcados "gestionar primero" flotan al tope (por escalón P1..P4);
-  // el resto conserva el orden de arriba. sort de V8 es estable → los no
+  // el resto conserva el orden por fecha. sort de V8 es estable → los no
   // marcados mantienen su orden original.
   if (reactMap.size > 0) {
     const escOrder: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4 }
