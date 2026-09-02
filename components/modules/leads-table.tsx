@@ -176,10 +176,17 @@ export function LeadsTable({
     }
   }
 
+  // Tiene que ser el MISMO valor que HORAS_LIMITE en
+  // app/api/cron/reasignaciones/route.ts. Estaba fijo en 24 cuando el cron
+  // paso a 48: el lead se pintaba "Vencido" y despues seguia un dia entero en
+  // la lista, asi que los asesores veian alarmas de leads que nadie les iba a
+  // quitar. Si se cambia alla, cambiar aca.
+  const HORAS_LIMITE = 48
+
   const getCountdown = (fechaAsignacion?: string | null) => {
     if (!fechaAsignacion) return null
     const asignado = new Date(fechaAsignacion).getTime()
-    const limite = asignado + 24 * 60 * 60 * 1000
+    const limite = asignado + HORAS_LIMITE * 60 * 60 * 1000
     const restante = limite - Date.now()
 
     if (restante <= 0) {
@@ -189,9 +196,12 @@ export function LeadsTable({
     const horas = Math.floor(restante / (1000 * 60 * 60))
     const minutos = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60))
 
-    const color = horas < 4
+    // Los cortes de color son proporcionales a la ventana: rojo en el ultimo
+    // sexto, ambar en la ultima mitad. Estaban fijos en 4h y 12h, calibrados
+    // para una ventana de 24h.
+    const color = horas < HORAS_LIMITE / 6
       ? 'bg-red-50 text-red-600 border border-red-200'
-      : horas < 12
+      : horas < HORAS_LIMITE / 2
         ? 'bg-amber-50 text-amber-600 border border-amber-200'
         : 'bg-green-50 text-green-600 border border-green-200'
 
