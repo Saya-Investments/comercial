@@ -5,6 +5,12 @@ import { fetchBQLeads, fetchBQTables } from '@/lib/bigquery'
 import { RANGO_DESDE } from '@/lib/prospect-funnel-cross'
 import { TIBIA_CASCADA_CTE } from '@/lib/tibia-cascada'
 import { ESCALONES_CAMPANA, esEscalonTibia, type EscalonTibia } from '@/lib/tibia-constants'
+import { NO_ENRUTADA_CTE } from '@/lib/no-enrutada-cascada'
+import {
+  GRUPOS_CAMPANA,
+  esGrupoNoEnrutada,
+  type GrupoNoEnrutada,
+} from '@/lib/no-enrutada-constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -528,6 +534,125 @@ async function handleTibiaCampaign(body: TibiaCampaignBody): Promise<Response> {
   }
 }
 
+type NoEnrutadaCampaignBody = {
+  name: string
+  source: 'noenrutada'
+  grupos: string[]
+  templateId?: string
+  variables?: Record<string, string>
+}
+
+type NoEnrutadaLeadRow = {
+  id_lead: string
+  grupo: string
+}
+
+// Campana sobre la base no enrutada: los leads ya existen en bd_leads, aqui solo
+// se resuelve la segmentacion X1-X7 (con las olas de X1/X2) y se vinculan los
+// grupos elegidos.
+async function handleNoEnrutadaCampaign(body: NoEnrutadaCampaignBody): Promise<Response> {
+  const seleccionables = new Set(GRUPOS_CAMPANA.map((g) => g.code as string))
+  const grupos = (body.grupos || []).filter(
+    (value) => esGrupoNoEnrutada(value) && seleccionables.has(value)
+  ) as GrupoNoEnrutada[]
+
+  if (grupos.length === 0) {
+    return NextResponse.json(
+      { error: 'Al menos un filtro de base no enrutada es requerido' },
+      { status: 400 }
+    )
+  }
+
+  let noEnrutadaLeads: NoEnrutadaLeadRow[]
+
+  try {
+    noEnrutadaLeads = await prisma.$queryRawUnsafe<NoEnrutadaLeadRow[]>(
+      `${NO_ENRUTADA_CTE}
+       SELECT id_lead::text, grupo
+       FROM no_enrutada
+       WHERE grupo = ANY($1::text[])`,
+      grupos
+    )
+  } catch (err) {
+    console.error('Error fetching no enrutada leads:', err)
+    return NextResponse.json(
+      { error: 'Failed to fetch leads from base no enrutada. No campaign was created.' },
+      { status: 500 }
+    )
+  }
+
+  if (noEnrutadaLeads.length === 0) {
+    return NextResponse.json(
+      { error: 'No se encontraron leads con los filtros seleccionados' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const campana = await tx.crm_campanas.create({
+          data: {
+            nombre: body.name,
+            base_datos: 'noenrutada',
+            filtros: JSON.stringify({ grupos }),
+            total_leads: 0,
+            id_plantilla: body.templateId || null,
+            variables: body.variables ? normalizeVariables(body.variables) : {},
+          },
+        })
+
+        const campaignLinks = noEnrutadaLeads.map((lead) => ({
+          id_campana: campana.id_campana,
+          id_lead: lead.id_lead,
+          estado_envio: 'pendiente',
+        }))
+
+        let leadsImported = 0
+        for (const linkChunk of chunkArray(campaignLinks, LINK_BATCH_SIZE)) {
+          const linkResult = await tx.crm_campana_leads.createMany({
+            data: linkChunk,
+            skipDuplicates: true,
+          })
+          leadsImported += linkResult.count
+        }
+
+        await tx.crm_campanas.update({
+          where: { id_campana: campana.id_campana },
+          data: { total_leads: leadsImported },
+        })
+
+        return { id: campana.id_campana, leadsImported }
+      },
+      { maxWait: 10000, timeout: 120000 }
+    )
+
+    console.log(
+      `No enrutada campaign ${result.id}: ${result.leadsImported} linked from ${noEnrutadaLeads.length} leads (${grupos.join(', ')})`
+    )
+
+    return NextResponse.json(
+      {
+        id: result.id,
+        leadsImported: result.leadsImported,
+        totalBQ: noEnrutadaLeads.length,
+        leadsCreated: 0,
+        updatedExisting: 0,
+        skippedNoPhone: 0,
+        skippedDuplicate: noEnrutadaLeads.length - result.leadsImported,
+        source: 'noenrutada',
+      },
+      { status: 201 }
+    )
+  } catch (err) {
+    console.error('Error creating no enrutada campaign:', err)
+    return NextResponse.json(
+      { error: 'Failed to create campaign. No campaign or relations were saved.' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function GET() {
   const campanas = await prisma.crm_campanas.findMany({
     include: {
@@ -561,6 +686,10 @@ export async function POST(req: NextRequest) {
 
   if (body.source === 'tibia') {
     return handleTibiaCampaign(body)
+  }
+
+  if (body.source === 'noenrutada') {
+    return handleNoEnrutadaCampaign(body)
   }
 
   const table = body.database as string

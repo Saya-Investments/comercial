@@ -6,6 +6,11 @@ import { Card } from '@/components/ui/card'
 import { X, Loader2, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { BQ_NULL_SENTINEL } from '@/lib/bq-constants'
 import { ESCALONES_CAMPANA, ETIQUETA_ESCALON, type EscalonTibia } from '@/lib/tibia-constants'
+import {
+  GRUPOS_CAMPANA,
+  ETIQUETA_GRUPO,
+  type GrupoNoEnrutada,
+} from '@/lib/no-enrutada-constants'
 
 interface Template {
   id: string
@@ -24,7 +29,7 @@ interface CampaignModalProps {
   onCreated?: () => void
 }
 
-type CampaignSource = 'bigquery' | 'recordatorio' | 'tibia'
+type CampaignSource = 'bigquery' | 'recordatorio' | 'tibia' | 'noenrutada'
 
 const PREVIEW_COLUMN_SPECS = [
   { label: 'Nombres', candidates: ['Nombres', 'nombres'] },
@@ -65,6 +70,21 @@ const TIBIA_COLUMNS: BQColumn[] = [
   { name: 'correo', type: 'STRING' },
 ]
 
+const NO_ENRUTADA_PREVIEW_COLUMNS = [
+  { label: 'Nombre', key: 'nombre' },
+  { label: 'Apellido', key: 'apellido' },
+  { label: 'Telefono', key: 'numero' },
+  { label: 'Correo', key: 'correo' },
+  { label: 'Grupo', key: 'grupo' },
+]
+
+const NO_ENRUTADA_COLUMNS: BQColumn[] = [
+  { name: 'nombre', type: 'STRING' },
+  { name: 'apellido', type: 'STRING' },
+  { name: 'numero', type: 'STRING' },
+  { name: 'correo', type: 'STRING' },
+]
+
 function extractVariables(content: string): string[] {
   const matches = content.match(/\{\{\d+\}\}/g)
   if (!matches) return []
@@ -99,6 +119,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     estadosProspecto: [] as string[],
     bases: [] as string[],
     escalonesTibia: [] as EscalonTibia[],
+    gruposNoEnrutada: [] as GrupoNoEnrutada[],
     templateId: '',
   })
 
@@ -113,6 +134,8 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
   const [loadingProspectoFilters, setLoadingProspectoFilters] = useState(false)
   const [tibiaBreakdown, setTibiaBreakdown] = useState<Record<string, number> | null>(null)
   const [loadingTibiaBreakdown, setLoadingTibiaBreakdown] = useState(false)
+  const [noEnrutadaBreakdown, setNoEnrutadaBreakdown] = useState<Record<string, number> | null>(null)
+  const [loadingNoEnrutadaBreakdown, setLoadingNoEnrutadaBreakdown] = useState(false)
   const [templates, setTemplates] = useState<Template[]>([])
   const [columns, setColumns] = useState<BQColumn[]>([])
   const [leadCount, setLeadCount] = useState<number | null>(null)
@@ -216,11 +239,28 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     return params
   }, [formData.estadosProspecto, formData.bases])
 
+  useEffect(() => {
+    if (step !== 'config' || formData.source !== 'noenrutada') return
+
+    setLoadingNoEnrutadaBreakdown(true)
+    fetch('/api/no-enrutada-campaign?action=breakdown')
+      .then(res => res.json())
+      .then(data => setNoEnrutadaBreakdown(data.breakdown || {}))
+      .catch(console.error)
+      .finally(() => setLoadingNoEnrutadaBreakdown(false))
+  }, [formData.source, step])
+
   const buildTibiaParams = useCallback(() => {
     const params = new URLSearchParams()
     formData.escalonesTibia.forEach(e => params.append('escalones', e))
     return params
   }, [formData.escalonesTibia])
+
+  const buildNoEnrutadaParams = useCallback(() => {
+    const params = new URLSearchParams()
+    formData.gruposNoEnrutada.forEach(g => params.append('grupos', g))
+    return params
+  }, [formData.gruposNoEnrutada])
 
   useEffect(() => {
     if (step !== 'config' && step !== 'preview') return
@@ -257,6 +297,22 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       return
     }
 
+    if (formData.source === 'noenrutada') {
+      if (formData.gruposNoEnrutada.length === 0) {
+        setLeadCount(0)
+        return
+      }
+      setLoadingCount(true)
+      const params = buildNoEnrutadaParams()
+      params.set('action', 'count')
+      fetch(`/api/no-enrutada-campaign?${params}`)
+        .then(res => res.json())
+        .then(data => setLeadCount(data.total ?? null))
+        .catch(() => setLeadCount(null))
+        .finally(() => setLoadingCount(false))
+      return
+    }
+
     if (!formData.table) return
     setLoadingCount(true)
     const params = buildFilterParams()
@@ -272,6 +328,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     buildFilterParams,
     buildRecordatorioParams,
     buildTibiaParams,
+    buildNoEnrutadaParams,
     step,
   ])
 
@@ -313,6 +370,22 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       return
     }
 
+    if (formData.source === 'noenrutada') {
+      if (formData.gruposNoEnrutada.length === 0) {
+        setPreviewLeads([])
+        setLoadingPreview(false)
+        return
+      }
+      const params = buildNoEnrutadaParams()
+      params.set('action', 'leads')
+      fetch(`/api/no-enrutada-campaign?${params}`)
+        .then(res => res.json())
+        .then(data => setPreviewLeads(data.leads || []))
+        .catch(console.error)
+        .finally(() => setLoadingPreview(false))
+      return
+    }
+
     if (!formData.table) {
       setLoadingPreview(false)
       return
@@ -330,6 +403,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     buildFilterParams,
     buildRecordatorioParams,
     buildTibiaParams,
+    buildNoEnrutadaParams,
     step,
   ])
 
@@ -354,6 +428,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       estadosProspecto: [],
       bases: [],
       escalonesTibia: [],
+      gruposNoEnrutada: [],
     }))
     setLeadCount(null)
     setPreviewLeads([])
@@ -413,6 +488,15 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
     })
   }
 
+  const handleGrupoNoEnrutadaChange = (grupo: GrupoNoEnrutada, checked: boolean) => {
+    setFormData({
+      ...formData,
+      gruposNoEnrutada: checked
+        ? [...formData.gruposNoEnrutada, grupo]
+        : formData.gruposNoEnrutada.filter(g => g !== grupo),
+    })
+  }
+
   const formatEstadoAsociadoFondos = (estado: string) =>
     estado === BQ_NULL_SENTINEL ? '(Sin estado)' : estado
 
@@ -425,7 +509,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       ? RECORDATORIO_COLUMNS
       : formData.source === 'tibia'
         ? TIBIA_COLUMNS
-        : columns
+        : formData.source === 'noenrutada'
+          ? NO_ENRUTADA_COLUMNS
+          : columns
 
   const handleSubmit = async () => {
 
@@ -458,6 +544,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
           name: formData.name,
           source: 'tibia',
           escalones: formData.escalonesTibia,
+          templateId: formData.templateId || null,
+          variables: templateVars.length > 0 ? variableMapping : {},
+        }
+      } else if (formData.source === 'noenrutada') {
+        body = {
+          name: formData.name,
+          source: 'noenrutada',
+          grupos: formData.gruposNoEnrutada,
           templateId: formData.templateId || null,
           variables: templateVars.length > 0 ? variableMapping : {},
         }
@@ -502,18 +596,24 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
       ? [...RECORDATORIO_PREVIEW_COLUMNS]
       : formData.source === 'tibia'
         ? [...TIBIA_PREVIEW_COLUMNS]
-        : PREVIEW_COLUMN_SPECS.map((column) => ({
-            label: column.label,
-            key: resolvePreviewColumn(columns, column.candidates),
-          }))
+        : formData.source === 'noenrutada'
+          ? [...NO_ENRUTADA_PREVIEW_COLUMNS]
+          : PREVIEW_COLUMN_SPECS.map((column) => ({
+              label: column.label,
+              key: resolvePreviewColumn(columns, column.candidates),
+            }))
 
-  // En base tibia la columna "Situacion" viene como codigo (P5/P6/P7): se muestra
-  // con la misma etiqueta descriptiva que en los filtros.
+  // En base tibia la columna "Situacion" viene como codigo (P5/P6/P7) y en base
+  // no enrutada la columna "Grupo" viene como codigo (X1_OLA3, X4, ...): se
+  // muestran con la misma etiqueta descriptiva que en los filtros.
   const formatPreviewCell = (key: string | undefined, lead: Record<string, unknown>) => {
     if (!key) return ''
     const value = lead[key]
     if (key === 'escalon') {
       return ETIQUETA_ESCALON[value as EscalonTibia] ?? String(value ?? '')
+    }
+    if (key === 'grupo') {
+      return ETIQUETA_GRUPO[String(value ?? '')] ?? String(value ?? '')
     }
     return String(value ?? '')
   }
@@ -590,7 +690,7 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
               {/* Selector de fuente */}
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Fuente de leads</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => handleSourceChange('bigquery')}
@@ -623,6 +723,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                     }`}
                   >
                     Base tibia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSourceChange('noenrutada')}
+                    className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                      formData.source === 'noenrutada'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-muted-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    Base no enrutada
                   </button>
                 </div>
               </div>
@@ -852,6 +963,56 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                 </div>
               )}
 
+              {/* Filtros Base no enrutada */}
+              {formData.source === 'noenrutada' && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-foreground">
+                    Grupo del lead en la base no enrutada
+                  </label>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Leads del piloto Retadora que el bot trabajo pero que nunca se asignaron a un
+                    asesor, sin contar a los que ya se inscribieron o estan avanzando en el funnel
+                    NSV. Elige a quienes reactivar por campana.
+                  </p>
+                  <div className="space-y-2">
+                    {GRUPOS_CAMPANA.map((grupo) => (
+                      <label
+                        key={grupo.code}
+                        className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 hover:bg-secondary/30"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.gruposNoEnrutada.includes(grupo.code)}
+                          onChange={(e) => handleGrupoNoEnrutadaChange(grupo.code, e.target.checked)}
+                          className="mt-0.5 rounded border-border"
+                        />
+                        <span className="flex-1">
+                          <span className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-foreground">{grupo.label}</span>
+                            {loadingNoEnrutadaBreakdown ? (
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            ) : noEnrutadaBreakdown ? (
+                              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                                {(noEnrutadaBreakdown[grupo.code] ?? 0).toLocaleString()} leads
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {grupo.help}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Las olas 1 y 2 de X1 y X2 no aparecen aqui: esos leads van a asesor directo.
+                    Provincia y descartados tampoco, porque primero hay que validar cobertura o
+                    revisar el motivo de descarte. Dentro de cada grupo los leads salen ordenados
+                    por score de mayor a menor.
+                  </p>
+                </div>
+              )}
+
               {/* Plantilla y variables (comun a todas las fuentes) */}
               <div>
                 <label className="mb-2 block text-sm font-semibold text-foreground">Plantilla de Mensaje</label>
@@ -918,7 +1079,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                       ? 'Recordatorio (funnel de prospectos)'
                       : formData.source === 'tibia'
                         ? 'Base tibia (leads calientes ya trabajados)'
-                        : `BigQuery — ${formData.table}`}
+                        : formData.source === 'noenrutada'
+                          ? 'Base no enrutada (leads del piloto sin asesor)'
+                          : `BigQuery — ${formData.table}`}
                   </p>
                   {formData.source === 'bigquery' && (
                     <>
@@ -953,6 +1116,14 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                         : 'Ninguna seleccionada'}
                     </p>
                   )}
+                  {formData.source === 'noenrutada' && (
+                    <p>
+                      Grupos:{' '}
+                      {formData.gruposNoEnrutada.length > 0
+                        ? formData.gruposNoEnrutada.map((g) => ETIQUETA_GRUPO[g]).join(', ')
+                        : 'Ninguno seleccionado'}
+                    </p>
+                  )}
                   <p>Plantilla: {selectedTemplate?.name || 'Sin seleccionar'}</p>
                   <p className="font-semibold text-foreground">
                     Leads encontrados:{' '}
@@ -983,7 +1154,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                         ? 'prospectos seleccionados'
                         : importResult.source === 'tibia'
                           ? 'leads de la base tibia'
-                          : 'registros en BigQuery'}
+                          : importResult.source === 'noenrutada'
+                            ? 'leads de la base no enrutada'
+                            : 'registros en BigQuery'}
                       ).
                     </p>
                     {((importResult.skippedNoPhone ?? 0) > 0 || (importResult.skippedDuplicate ?? 0) > 0 || (importResult.errors ?? 0) > 0) && (
@@ -1009,7 +1182,9 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                         ? `Vinculando ${leadCount?.toLocaleString() ?? ''} prospectos. Esto puede tomar un momento.`
                         : formData.source === 'tibia'
                           ? `Vinculando ${leadCount?.toLocaleString() ?? ''} leads de la base tibia. Esto puede tomar un momento.`
-                          : `Importando ${leadCount?.toLocaleString() ?? ''} leads desde BigQuery. Esto puede tomar un momento.`}
+                          : formData.source === 'noenrutada'
+                            ? `Vinculando ${leadCount?.toLocaleString() ?? ''} leads de la base no enrutada. Esto puede tomar un momento.`
+                            : `Importando ${leadCount?.toLocaleString() ?? ''} leads desde BigQuery. Esto puede tomar un momento.`}
                     </p>
                   </div>
                 </div>
@@ -1044,6 +1219,17 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                             <> | Situacion:{' '}
                               <span className="font-medium text-foreground">
                                 {formData.escalonesTibia.map((e) => ETIQUETA_ESCALON[e]).join(', ')}
+                              </span>
+                            </>
+                          )}
+                        </>
+                      ) : formData.source === 'noenrutada' ? (
+                        <>
+                          Fuente: <span className="font-medium text-foreground">Base no enrutada</span>
+                          {formData.gruposNoEnrutada.length > 0 && (
+                            <> | Grupos:{' '}
+                              <span className="font-medium text-foreground">
+                                {formData.gruposNoEnrutada.map((g) => ETIQUETA_GRUPO[g]).join(', ')}
                               </span>
                             </>
                           )}
@@ -1179,7 +1365,8 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                   saving ||
                   (step === 'basic' && !formData.name.trim()) ||
                   (step === 'config' && formData.source === 'recordatorio' && formData.estadosProspecto.length === 0) ||
-                  (step === 'config' && formData.source === 'tibia' && formData.escalonesTibia.length === 0)
+                  (step === 'config' && formData.source === 'tibia' && formData.escalonesTibia.length === 0) ||
+                  (step === 'config' && formData.source === 'noenrutada' && formData.gruposNoEnrutada.length === 0)
                 }
                 className="bg-accent text-accent-foreground hover:bg-accent/90"
               >
