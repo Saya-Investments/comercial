@@ -1031,9 +1031,11 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                   <p className="mt-2 text-xs text-muted-foreground">
                     La ola 1 de X1 y X2 no aparece aqui porque va a asesor directo. La ola 2 se
                     habilito tambien para campanas. Provincia y descartados siguen fuera porque
-                    primero hay que validar cobertura o revisar el motivo. Para usar mensajes
-                    distintos, crea una campana por grupo y selecciona la plantilla aprobada que
-                    corresponda. Dentro de cada grupo los leads salen ordenados por score.
+                    primero hay que validar cobertura o revisar el motivo. Tambien se excluyen
+                    automaticamente quienes dijeron que buscan compra al contado, pago en efectivo,
+                    entrega inmediata u otra modalidad distinta. Para usar mensajes distintos, crea
+                    una campana por grupo y selecciona la plantilla aprobada que corresponda. Dentro
+                    de cada grupo los leads salen ordenados por score.
                   </p>
                 </div>
               )}

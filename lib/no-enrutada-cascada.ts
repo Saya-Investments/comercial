@@ -107,3 +107,38 @@ no_enrutada AS (
     FROM ne_seg
   ) g
 )`
+
+// Universo utilizable por campanas. Conserva la clasificacion tecnica anterior,
+// pero retira a quienes expresaron que buscan compra al contado, pago en
+// efectivo, entrega inmediata u otra modalidad incompatible con la campana.
+//
+// La senal se toma solo de mensajes inbound del lead. Se mantiene separada de
+// NO_ENRUTADA_CTE para que el mapa y las auditorias puedan seguir mostrando el
+// universo tecnico completo, mientras conteo, preview y creacion de campanas
+// usan exactamente el mismo filtro operativo.
+export const NO_ENRUTADA_CAMPANA_CTE = `${NO_ENRUTADA_CTE},
+ne_texto_inbound AS (
+  SELECT h.id_lead,
+    LOWER(REGEXP_REPLACE(
+      STRING_AGG(COALESCE(h.contenido, ''), ' | ' ORDER BY h.timestamp),
+      '[[:space:]]+', ' ', 'g'
+    )) AS texto
+  FROM comercial.hist_conversaciones h
+  WHERE h.direccion = 'inbound'
+  GROUP BY h.id_lead
+),
+ne_modalidad_distinta AS (
+  SELECT id_lead
+  FROM ne_texto_inbound
+  WHERE texto ~* '(quiero|deseo|busco|necesito|prefiero|voy a|pagar|comprar).{0,60}(al contado|en efectivo|entrega inmediata)'
+    OR texto ~* '(al contado|en efectivo|entrega inmediata).{0,60}(quiero|deseo|busco|necesito|prefiero|comprar|pagar)'
+    OR texto ~* '(precio|costo|cu[aá]nto).{0,30}(al contado|en efectivo)'
+    OR texto ~* 'no (quiero|deseo).{0,30}(financ|cr[eé]dito|fondo(s)? colectivo(s)?|sorteo|remate|cuotas)'
+    OR texto ~* '(sin financiamiento|sin cr[eé]dito|quiero el auto ya)'
+),
+no_enrutada_campana AS (
+  SELECT n.*
+  FROM no_enrutada n
+  LEFT JOIN ne_modalidad_distinta m ON m.id_lead = n.id_lead
+  WHERE m.id_lead IS NULL
+)`

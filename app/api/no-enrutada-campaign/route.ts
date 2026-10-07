@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { NO_ENRUTADA_CTE } from '@/lib/no-enrutada-cascada'
+import { NO_ENRUTADA_CAMPANA_CTE } from '@/lib/no-enrutada-cascada'
 import {
   GRUPOS_CAMPANA,
   esGrupoNoEnrutada,
@@ -38,9 +38,9 @@ export async function GET(req: NextRequest) {
   // lado de cada checkbox del modal.
   if (action === 'breakdown') {
     const rows = await prisma.$queryRawUnsafe<{ grupo: string; leads: bigint }[]>(
-      `${NO_ENRUTADA_CTE}
+      `${NO_ENRUTADA_CAMPANA_CTE}
        SELECT grupo, COUNT(*)::bigint AS leads
-       FROM no_enrutada
+       FROM no_enrutada_campana
        GROUP BY 1 ORDER BY 1`
     )
 
@@ -58,9 +58,9 @@ export async function GET(req: NextRequest) {
 
   if (action === 'count') {
     const rows = await prisma.$queryRawUnsafe<[{ total: bigint }]>(
-      `${NO_ENRUTADA_CTE}
+      `${NO_ENRUTADA_CAMPANA_CTE}
        SELECT COUNT(*)::bigint AS total
-       FROM no_enrutada
+       FROM no_enrutada_campana
        WHERE grupo = ANY($1::text[])`,
       grupos
     )
@@ -72,9 +72,9 @@ export async function GET(req: NextRequest) {
     // Dentro de cada grupo se ordena por score de mayor a menor, igual que la
     // recomendacion del slide 3 ("dentro de cada ola: score de mayor a menor").
     const rows = await prisma.$queryRawUnsafe<NoEnrutadaLeadRow[]>(
-      `${NO_ENRUTADA_CTE}
+      `${NO_ENRUTADA_CAMPANA_CTE}
        SELECT l.id_lead::text, l.numero, l.nombre, l.apellido, l.correo, n.grupo
-       FROM no_enrutada n
+       FROM no_enrutada_campana n
        JOIN comercial.bd_leads l ON l.id_lead = n.id_lead
        WHERE n.grupo = ANY($1::text[])
        ORDER BY n.grupo, n.score DESC NULLS LAST

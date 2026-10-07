@@ -5,7 +5,7 @@ import { fetchBQLeads, fetchBQTables } from '@/lib/bigquery'
 import { RANGO_DESDE } from '@/lib/prospect-funnel-cross'
 import { TIBIA_CASCADA_CTE } from '@/lib/tibia-cascada'
 import { ESCALONES_CAMPANA, esEscalonTibia, type EscalonTibia } from '@/lib/tibia-constants'
-import { NO_ENRUTADA_CTE } from '@/lib/no-enrutada-cascada'
+import { NO_ENRUTADA_CAMPANA_CTE } from '@/lib/no-enrutada-cascada'
 import {
   GRUPOS_CAMPANA,
   esGrupoNoEnrutada,
@@ -567,9 +567,9 @@ async function handleNoEnrutadaCampaign(body: NoEnrutadaCampaignBody): Promise<R
 
   try {
     noEnrutadaLeads = await prisma.$queryRawUnsafe<NoEnrutadaLeadRow[]>(
-      `${NO_ENRUTADA_CTE}
+      `${NO_ENRUTADA_CAMPANA_CTE}
        SELECT id_lead::text, grupo
-       FROM no_enrutada
+       FROM no_enrutada_campana
        WHERE grupo = ANY($1::text[])`,
       grupos
     )
@@ -595,7 +595,7 @@ async function handleNoEnrutadaCampaign(body: NoEnrutadaCampaignBody): Promise<R
           data: {
             nombre: body.name,
             base_datos: 'noenrutada',
-            filtros: JSON.stringify({ grupos }),
+            filtros: JSON.stringify({ grupos, excluirModalidadDistinta: true }),
             total_leads: 0,
             id_plantilla: body.templateId || null,
             variables: body.variables ? normalizeVariables(body.variables) : {},
