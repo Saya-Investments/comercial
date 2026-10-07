@@ -90,7 +90,8 @@ export function calcularCiclo(datos: DatosCiclo, ahora: Date = new Date()): {
   ultimaActividad: Date
   /**
    * Reactivado por el bot y el asesor todavia no registro nada desde entonces:
-   * el lead le contesto al bot y esta esperando. Va al tope de la bandeja.
+   * el lead le contesto al bot y esta esperando. La bandeja no muestra
+   * "Gestionado" para estos (la accion la registro el bot, no el asesor).
    */
   esperando: boolean
 } {

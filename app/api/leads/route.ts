@@ -345,6 +345,7 @@ export async function GET(req: NextRequest) {
       // reactivado o devuelto por el CC), no cuando el lead entro al sistema:
       // con fecha_creacion un lead de abril reasignado hoy decia "abril".
       assignedDate: fechaLima(fechaAsignacion ?? l.fecha_creacion),
+      fechaLlegada: (fechaAsignacion ?? l.fecha_creacion).toISOString(),
       product: l.producto || '',
       priority: getPriority(l.scoring),
       score: l.scoring ? Math.round(Number(l.scoring) * 100) : 0,
@@ -373,57 +374,15 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(mapped)
 }
 
-type LeadBandeja = {
-  ciclo: Ciclo | null
-  motivoReactivacion: MotivoReactivacion | null
-  reactivacion: { escalon: string; ola: number } | null
-  gestionado: boolean
-  fechaAsignacion: string | null
-  ultimoMensajeLead: string | null
-  ultimaActividad: string | null
-  esperando: boolean
-  recuperable: boolean
-}
-
 /**
- * Orden de la bandeja:
- *   0. Reactivados que le escribieron al bot y el asesor aun no atendio — el
- *      lead esta esperando. Una vez atendidos pasan al grupo 3.
- *   1. Reactivados de base tibia, P1..P4.
- *   2. Sin gestionar, primero el que esta mas cerca de vencer las 48h.
- *   3. El resto de los activos, por fecha en que le llegaron (reciente primero).
- *   4. Archivados recuperables, 5. el resto de archivados (actividad reciente primero).
+ * Orden de la bandeja: solo por la "Fecha" que ve el asesor (cuando le llego
+ * el lead), la mas reciente primero. Se probo un orden por grupos (reactivados
+ * arriba, sin gestionar por vencimiento...) y en pantalla se leia desordenado:
+ * el asesor no ve los grupos, ve la columna Fecha. La urgencia la marcan la
+ * etiqueta "Reactivado" y la cuenta regresiva, no la posicion.
  */
-function grupoBandeja(l: LeadBandeja): number {
-  if (l.ciclo === 'archivado') return l.recuperable ? 4 : 5
-  if (l.esperando) return 0
-  if (l.reactivacion) return 1
-  if (!l.gestionado) return 2
-  return 3
-}
-
-function ms(iso: string | null): number {
-  return iso ? new Date(iso).getTime() : 0
-}
-
-function compararBandeja(a: LeadBandeja, b: LeadBandeja): number {
-  const ga = grupoBandeja(a)
-  const gb = grupoBandeja(b)
-  if (ga !== gb) return ga - gb
-  switch (ga) {
-    case 0:
-      return ms(b.ultimoMensajeLead) - ms(a.ultimoMensajeLead)
-    case 1: {
-      const esc: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4 }
-      return (esc[a.reactivacion?.escalon ?? ''] ?? 9) - (esc[b.reactivacion?.escalon ?? ''] ?? 9)
-    }
-    case 2:
-      return ms(a.fechaAsignacion) - ms(b.fechaAsignacion)
-    case 3:
-      return ms(b.fechaAsignacion) - ms(a.fechaAsignacion)
-    default:
-      return ms(b.ultimaActividad) - ms(a.ultimaActividad)
-  }
+function compararBandeja(a: { fechaLlegada: string }, b: { fechaLlegada: string }): number {
+  return new Date(b.fechaLlegada).getTime() - new Date(a.fechaLlegada).getTime()
 }
 
 function getPriority(scoring: unknown): 'Alta' | 'Media' | 'Baja' {
