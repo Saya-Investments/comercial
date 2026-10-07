@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { calcularCiclo, esRecuperable, fechaLima, DIAS_CAMPANA_RECIENTE, type Ciclo, type MotivoReactivacion } from '@/lib/ciclo-lead'
 
 type LeadMetadataRow = {
   id_lead: string
@@ -242,13 +243,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Reactivación de base tibia ("gestionar primero"): los leads marcados en
-  // reactivacion_tibia (activo=true) flotan al tope de la bandeja del asesor.
-  // Solo aplica en contexto de asesor (asesor viendo lo suyo, o admin filtrando
-  // por asesor); en la vista agregada de admin/supervisor no se pinnea.
+  // Reactivación de base tibia ("gestionar primero"): marca activa en
+  // reactivacion_tibia. Para el asesor ya no es una etiqueta propia: es uno de
+  // los motivos por los que un lead aparece como "Reactivado".
   type ReactInfo = { escalon: string; ola: number }
   let reactMap = new Map<string, ReactInfo>()
-  if (viewerAsesorId && leadIds.length > 0) {
+  if (leadIds.length > 0) {
     const react = await prisma.$queryRaw<{ id_lead: string; escalon: string; ola: number }[]>`
       SELECT id_lead, escalon, ola FROM comercial.reactivacion_tibia
       WHERE id_lead = ANY(${leadIds}::uuid[]) AND activo = true
@@ -256,12 +256,80 @@ export async function GET(req: NextRequest) {
     reactMap = new Map(react.map((r) => [r.id_lead, { escalon: r.escalon, ola: Number(r.ola) }]))
   }
 
+  // Ciclo Nuevo / Reactivado / Archivado (ver lib/ciclo-lead.ts). No aplica al
+  // call center: su bandeja es una cola de 12h, no una cartera.
+  const conCiclo = !viewerCallCenterId && role !== 'call center'
+  const accionesByLead = new Map<string, Date[]>()
+  const botByLead = new Map<string, Date>()
+  const motivoByLead = new Map<string, string | null>()
+  const campanaReciente = new Set<string>()
+  if (conCiclo && leadIds.length > 0) {
+    // Gestion real: cualquier asesor (no solo el actual — un lead trabajado por
+    // el asesor anterior no esta "olvidado"), sin las acciones que el bot
+    // registra a nombre del asesor cuando reactiva un lead.
+    const [acciones, bot, motivos, campanas] = await Promise.all([
+      prisma.$queryRaw<{ id_lead: string; fechas: Date[] }[]>`
+        SELECT ac.id_lead, array_agg(ac.fecha_creacion ORDER BY ac.fecha_creacion) AS fechas
+        FROM comercial.crm_acciones_comerciales ac
+        JOIN comercial.crm_usuarios u ON u.id_usuario = ac.id_usuario
+        WHERE ac.id_lead = ANY(${leadIds}::uuid[])
+          AND u.rol = 'Asesor'
+          AND COALESCE(ac.observaciones, '') NOT LIKE '[REACTIVACION]%'
+        GROUP BY ac.id_lead
+      `,
+      prisma.$queryRaw<{ id_lead: string; f: Date }[]>`
+        SELECT id_lead, MAX(fecha_creacion) AS f
+        FROM comercial.crm_acciones_comerciales
+        WHERE id_lead = ANY(${leadIds}::uuid[])
+          AND observaciones LIKE '[REACTIVACION]%'
+          AND estado_asesor <> 'No_interesado'
+        GROUP BY id_lead
+      `,
+      prisma.$queryRaw<{ id_lead: string; motivo: string | null }[]>`
+        SELECT DISTINCT ON (id_lead) id_lead, motivo_reasignacion AS motivo
+        FROM comercial.hist_asignaciones
+        WHERE id_lead = ANY(${leadIds}::uuid[])
+        ORDER BY id_lead, fecha_asignacion DESC
+      `,
+      prisma.$queryRaw<{ id_lead: string }[]>`
+        SELECT DISTINCT id_lead
+        FROM comercial.crm_campana_leads
+        WHERE id_lead = ANY(${leadIds}::uuid[])
+          AND COALESCE(fecha_envio, fecha_creacion) > now() - (${DIAS_CAMPANA_RECIENTE} * INTERVAL '1 day')
+      `,
+    ])
+    acciones.forEach((r) => accionesByLead.set(r.id_lead, r.fechas.map((f) => new Date(f))))
+    bot.forEach((r) => botByLead.set(r.id_lead, new Date(r.f)))
+    motivos.forEach((r) => motivoByLead.set(r.id_lead, r.motivo))
+    campanas.forEach((r) => campanaReciente.add(r.id_lead))
+  }
+  const ahora = new Date()
+
   const mapped = leads.map((l) => {
     const fechaAsignacion = l.matching[0]?.fecha_asignacion ?? null
     const maxAccion = maxAccionByLead.get(l.id_lead) ?? null
     const gestionado = !!(fechaAsignacion && maxAccion && maxAccion >= fechaAsignacion)
     const metadata = leadMetadataById.get(l.id_lead)
     const phone9 = (l.numero || '').replace(/\D/g, '').slice(-9)
+    const estadoFunnel = funnelByPhone.get(phone9) ?? null
+    let ciclo: Ciclo | null = null
+    let motivoReactivacion: MotivoReactivacion | null = null
+    let ultimaActividad: string | null = null
+    let esperando = false
+    if (conCiclo) {
+      const c = calcularCiclo({
+        fechaCreacion: l.fecha_creacion,
+        fechaAsignacion,
+        accionesAsesor: accionesByLead.get(l.id_lead) ?? [],
+        reactivacionBot: botByLead.get(l.id_lead) ?? null,
+        motivoUltimaAsignacion: motivoByLead.get(l.id_lead) ?? null,
+        tibia: reactMap.get(l.id_lead) ?? null,
+      }, ahora)
+      ciclo = c.ciclo
+      motivoReactivacion = c.motivo
+      ultimaActividad = c.ultimaActividad.toISOString()
+      esperando = c.esperando
+    }
     return {
       id: l.id_lead,
       dni: l.dni || '',
@@ -273,7 +341,10 @@ export async function GET(req: NextRequest) {
       base: metadata?.Base || 'Caliente',
       bucket: metadata?.Bucket || '',
       status: l.estado_de_lead || 'lead',
-      assignedDate: l.fecha_creacion.toISOString().split('T')[0],
+      // "Fecha" para el asesor = cuando le llego a el (enrutado, reasignado,
+      // reactivado o devuelto por el CC), no cuando el lead entro al sistema:
+      // con fecha_creacion un lead de abril reasignado hoy decia "abril".
+      assignedDate: fechaLima(fechaAsignacion ?? l.fecha_creacion),
       product: l.producto || '',
       priority: getPriority(l.scoring),
       score: l.scoring ? Math.round(Number(l.scoring) * 100) : 0,
@@ -286,27 +357,73 @@ export async function GET(req: NextRequest) {
       fechaAsignacion: fechaAsignacion?.toISOString() || null,
       ultimoMensajeLead: ultimoMsgByLead.get(l.id_lead)?.toISOString() || null,
       gestionado,
-      estadoFunnel: funnelByPhone.get(phone9) ?? null,
+      estadoFunnel,
       reactivacion: reactMap.get(l.id_lead) ?? null,
+      ciclo,
+      motivoReactivacion,
+      ultimaActividad,
+      esperando,
+      enCampana: campanaReciente.has(l.id_lead),
+      recuperable: ciclo === 'archivado' && esRecuperable(l.ultimo_estado_asesor, estadoFunnel),
     }
   })
 
-  // Los marcados "gestionar primero" flotan al tope (por escalón P1..P4);
-  // el resto conserva el orden por fecha. sort de V8 es estable → los no
-  // marcados mantienen su orden original.
-  if (reactMap.size > 0) {
-    const escOrder: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4 }
-    mapped.sort((a, b) => {
-      if (a.reactivacion && !b.reactivacion) return -1
-      if (!a.reactivacion && b.reactivacion) return 1
-      if (a.reactivacion && b.reactivacion) {
-        return (escOrder[a.reactivacion.escalon] ?? 9) - (escOrder[b.reactivacion.escalon] ?? 9)
-      }
-      return 0
-    })
-  }
+  if (conCiclo) mapped.sort(compararBandeja)
 
   return NextResponse.json(mapped)
+}
+
+type LeadBandeja = {
+  ciclo: Ciclo | null
+  motivoReactivacion: MotivoReactivacion | null
+  reactivacion: { escalon: string; ola: number } | null
+  gestionado: boolean
+  fechaAsignacion: string | null
+  ultimoMensajeLead: string | null
+  ultimaActividad: string | null
+  esperando: boolean
+  recuperable: boolean
+}
+
+/**
+ * Orden de la bandeja:
+ *   0. Reactivados que le escribieron al bot y el asesor aun no atendio — el
+ *      lead esta esperando. Una vez atendidos pasan al grupo 3.
+ *   1. Reactivados de base tibia, P1..P4.
+ *   2. Sin gestionar, primero el que esta mas cerca de vencer las 48h.
+ *   3. El resto de los activos, por fecha en que le llegaron (reciente primero).
+ *   4. Archivados recuperables, 5. el resto de archivados (actividad reciente primero).
+ */
+function grupoBandeja(l: LeadBandeja): number {
+  if (l.ciclo === 'archivado') return l.recuperable ? 4 : 5
+  if (l.esperando) return 0
+  if (l.reactivacion) return 1
+  if (!l.gestionado) return 2
+  return 3
+}
+
+function ms(iso: string | null): number {
+  return iso ? new Date(iso).getTime() : 0
+}
+
+function compararBandeja(a: LeadBandeja, b: LeadBandeja): number {
+  const ga = grupoBandeja(a)
+  const gb = grupoBandeja(b)
+  if (ga !== gb) return ga - gb
+  switch (ga) {
+    case 0:
+      return ms(b.ultimoMensajeLead) - ms(a.ultimoMensajeLead)
+    case 1: {
+      const esc: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4 }
+      return (esc[a.reactivacion?.escalon ?? ''] ?? 9) - (esc[b.reactivacion?.escalon ?? ''] ?? 9)
+    }
+    case 2:
+      return ms(a.fechaAsignacion) - ms(b.fechaAsignacion)
+    case 3:
+      return ms(b.fechaAsignacion) - ms(a.fechaAsignacion)
+    default:
+      return ms(b.ultimaActividad) - ms(a.ultimaActividad)
+  }
 }
 
 function getPriority(scoring: unknown): 'Alta' | 'Media' | 'Baja' {

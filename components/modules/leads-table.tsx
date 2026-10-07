@@ -33,14 +33,26 @@ interface Lead {
   gestionado?: boolean
   estadoFunnel?: string | null
   reactivacion?: { escalon: string; ola: number } | null
+  ciclo?: 'nuevo' | 'reactivado' | 'archivado' | null
+  motivoReactivacion?: { tipo: string; detalle: string } | null
+  enCampana?: boolean
+  esperando?: boolean
 }
 
-// Reactivación de base tibia: motivo visible por escalón.
-const REACT_MOTIVO: Record<string, string> = {
-  P1: 'Proforma pendiente',
-  P2: 'Respondió campaña',
-  P3: 'Es prospecto',
-  P4: 'Señal viva',
+type Tab = 'activos' | 'archivados'
+
+// Para el asesor solo existen estas palabras. El motivo de cada reactivacion
+// (base tibia, campana, reasignacion) se muestra solo a admin/supervisor.
+const CICLO_LABEL: Record<string, string> = {
+  nuevo: 'Nuevo',
+  reactivado: 'Reactivado',
+  archivado: 'Archivado',
+}
+
+const CICLO_COLOR: Record<string, string> = {
+  nuevo: 'bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-900/30 dark:text-sky-200 dark:border-sky-800',
+  reactivado: 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700',
+  archivado: 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
 }
 
 interface LeadsTableProps {
@@ -81,7 +93,9 @@ export function LeadsTable({
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [modalType, setModalType] = useState<'action' | 'conversation' | 'detail' | 'prospect' | null>(null)
   const [currentPage, setCurrentPage] = useState(0)
+  const [tab, setTab] = useState<Tab>('activos')
   const PAGE_SIZE = 15
+  const verDetalle = user?.role === 'admin' || user?.role === 'supervisor'
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -122,7 +136,23 @@ export function LeadsTable({
     onEstadoAsesorOptionsChange(unique)
   }, [leads, onEstadoAsesorOptionsChange])
 
+  // Sin ciclo (call center) no hay tabs: se ve la lista completa como antes.
+  const conCiclo = leads.some((l) => !!l.ciclo)
+  // El buscador encuentra en toda la cartera (tambien los archivados), asi el
+  // asesor ubica a un cliente de hace meses que lo llama directo.
+  const buscando = searchTerm.trim().length > 0
+  const esActivo = (l: Lead) => l.ciclo === 'nuevo' || l.ciclo === 'reactivado'
+  // Archivados del asesor: sin los que una campana acaba de contactar, para que
+  // no lo llame a la vez que el bot. Admin/supervisor los ven todos.
+  const enArchivados = (l: Lead) => l.ciclo === 'archivado' && (verDetalle || !l.enCampana)
+  const totalActivos = leads.filter(esActivo).length
+  const totalArchivados = leads.filter(enArchivados).length
+
   const filteredLeads = leads.filter((lead) => {
+    if (conCiclo && !buscando) {
+      if (tab === 'activos' && !esActivo(lead)) return false
+      if (tab === 'archivados' && !enArchivados(lead)) return false
+    }
     const matchesPriority = !filterPriority || lead.priority === filterPriority
     const matchesStatus = !filterStatus || lead.status === filterStatus
     const matchesDate = !filterDate || lead.assignedDate >= filterDate
@@ -138,12 +168,11 @@ export function LeadsTable({
 
   useEffect(() => {
     setCurrentPage(0)
-  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterMsgDate, filterMsgDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor, filterFunnelEstado])
+  }, [searchTerm, filterPriority, filterStatus, filterDate, filterDateTo, filterMsgDate, filterMsgDateTo, filterAsesor, filterCallCenter, filterBase, filterEstadoAsesor, filterFunnelEstado, tab])
 
   const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE))
   const safePage = Math.min(currentPage, totalPages - 1)
   const pagedLeads = filteredLeads.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
-  const totalReactivacion = filteredLeads.filter((l) => l.reactivacion).length
 
   const handleAction = (lead: Lead, type: 'action' | 'conversation' | 'detail' | 'prospect') => {
     setSelectedLead(lead)
@@ -261,8 +290,42 @@ export function LeadsTable({
 
   return (
     <div className="p-6">
+      {conCiclo && (
+        <div className="flex items-end gap-1 mb-4 border-b border-border">
+          {([
+            ['activos', 'Activos', totalActivos],
+            ['archivados', 'Archivados', totalArchivados],
+          ] as const).map(([key, label, total]) => {
+            const activa = !buscando && tab === key
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors ${
+                  activa
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+                <span className={`ml-2 inline-flex items-center justify-center rounded-full px-2 text-xs ${
+                  activa ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                }`}>
+                  {total.toLocaleString()}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-muted-foreground">{filteredLeads.length} leads encontrados</div>
+        <div className="text-sm text-muted-foreground">
+          {conCiclo && buscando
+            ? `${filteredLeads.length} leads encontrados en todos tus leads`
+            : conCiclo
+              ? `${filteredLeads.length} leads ${tab === 'activos' ? 'activos' : 'archivados'}`
+              : `${filteredLeads.length} leads encontrados`}
+        </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -300,41 +363,36 @@ export function LeadsTable({
               </tr>
             </thead>
             <tbody>
-              {pagedLeads.length > 0 ? pagedLeads.map((lead, i) => {
-                const react = lead.reactivacion
-                const showReactHeader = !!react && i === 0
-                const showNormalHeader = !react && i > 0 && !!pagedLeads[i - 1]?.reactivacion
+              {pagedLeads.length > 0 ? pagedLeads.map((lead) => {
+                // En la pestana Archivados todos son archivados: la etiqueta solo
+                // aporta en Activos y en los resultados del buscador.
+                const mostrarCiclo = !!lead.ciclo && (buscando || lead.ciclo !== 'archivado')
+                const tituloCiclo = verDetalle
+                  ? lead.motivoReactivacion?.detalle ?? (lead.enCampana ? 'Contactado por una campaña en los últimos días' : undefined)
+                  : undefined
                 return (
                 <Fragment key={lead.id}>
-                  {showReactHeader && (
-                    <tr className="bg-amber-50 dark:bg-amber-900/25 border-b border-amber-200 dark:border-amber-800">
-                      <td colSpan={12} className="px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
-                        ⚡ Gestionar primero — Reactivación ({totalReactivacion})
-                      </td>
-                    </tr>
-                  )}
-                  {showNormalHeader && (
-                    <tr className="bg-secondary/50 border-b border-border">
-                      <td colSpan={12} className="px-6 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Mis leads
-                      </td>
-                    </tr>
-                  )}
                 <tr
                   className={`border-b border-border transition-colors ${
-                    react
-                      ? 'bg-amber-50/70 dark:bg-amber-900/15 hover:bg-amber-100/70 dark:hover:bg-amber-900/25 shadow-[inset_3px_0_0_#f59e0b]'
-                      : isProspect(lead)
-                        ? 'bg-emerald-50/80 hover:bg-emerald-100/80'
-                        : 'hover:bg-secondary/50'
+                    isProspect(lead)
+                      ? 'bg-emerald-50/80 hover:bg-emerald-100/80'
+                      : 'hover:bg-secondary/50'
                   }`}
                 >
                   <td className="px-6 py-4 font-mono text-foreground">{lead.dni}</td>
                   <td className="px-6 py-4 font-medium text-foreground">
                     {lead.name}
-                    {react && (
-                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 border border-amber-300 dark:border-amber-700 align-middle">
-                        🔥 {REACT_MOTIVO[react.escalon] || 'Gestionar primero'}
+                    {mostrarCiclo && (
+                      <span
+                        title={tituloCiclo}
+                        className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold align-middle ${CICLO_COLOR[lead.ciclo as string]} ${tituloCiclo ? 'cursor-help' : ''}`}
+                      >
+                        {CICLO_LABEL[lead.ciclo as string]}
+                      </span>
+                    )}
+                    {verDetalle && lead.ciclo === 'archivado' && lead.enCampana && (
+                      <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium align-middle bg-violet-50 text-violet-700 border border-violet-200">
+                        En campaña
                       </span>
                     )}
                   </td>
@@ -372,7 +430,12 @@ export function LeadsTable({
                     </td>
                   )}
                   <td className="px-6 py-4 text-center">
-                    {lead.gestionado ? (
+                    {lead.ciclo === 'archivado' || lead.esperando ? (
+                      // Archivado: sin actividad hace +30 dias, no hay plazo que correr.
+                      // Esperando: el bot lo reactivo y registro una accion a nombre del
+                      // asesor; mostrar "Gestionado" seria falso (nadie lo atendio aun).
+                      <span className="text-xs text-muted-foreground">--</span>
+                    ) : lead.gestionado ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle2 className="w-3 h-3" />
                         Gestionado

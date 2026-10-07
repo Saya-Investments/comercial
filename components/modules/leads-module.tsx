@@ -78,8 +78,8 @@ export function LeadsModule() {
     filterFunnelEstado && { key: 'funnelEstado', label: `Funnel: ${filterFunnelEstado}`, onRemove: () => setFilterFunnelEstado('') },
     filterAsesor && { key: 'asesor', label: `Asesor: ${asesorName}`, onRemove: () => setFilterAsesor('') },
     filterCallCenter && { key: 'cc', label: `Call center: ${callCenterName}`, onRemove: () => setFilterCallCenter('') },
-    filterDate && { key: 'dateFrom', label: `Asignado desde: ${filterDate}`, onRemove: () => setFilterDate('') },
-    filterDateTo && { key: 'dateTo', label: `Asignado hasta: ${filterDateTo}`, onRemove: () => setFilterDateTo('') },
+    filterDate && { key: 'dateFrom', label: `Fecha desde: ${filterDate}`, onRemove: () => setFilterDate('') },
+    filterDateTo && { key: 'dateTo', label: `Fecha hasta: ${filterDateTo}`, onRemove: () => setFilterDateTo('') },
     filterMsgDate && { key: 'msgFrom', label: `Últ. msj desde: ${filterMsgDate}`, onRemove: () => setFilterMsgDate('') },
     filterMsgDateTo && { key: 'msgTo', label: `Últ. msj hasta: ${filterMsgDateTo}`, onRemove: () => setFilterMsgDateTo('') },
   ].filter(Boolean) as ActiveChip[]
@@ -270,7 +270,7 @@ export function LeadsModule() {
               <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5">Fechas</p>
               <div className="flex flex-wrap gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs text-muted-foreground">Fecha de asignación</label>
+                  <label className="text-xs text-muted-foreground">Fecha</label>
                   <div className="flex items-center gap-1">
                     <input
                       type="date"
