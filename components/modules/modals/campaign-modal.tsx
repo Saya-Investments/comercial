@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { X, Loader2, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
+import { X, Loader2, ChevronLeft, ChevronRight, CheckCircle2, Copy } from 'lucide-react'
 import { BQ_NULL_SENTINEL } from '@/lib/bq-constants'
 import { ESCALONES_CAMPANA, ETIQUETA_ESCALON, type EscalonTibia } from '@/lib/tibia-constants'
 import {
@@ -1000,15 +1000,40 @@ export function CampaignModal({ onClose, onCreated }: CampaignModalProps) {
                           <span className="mt-0.5 block text-xs text-muted-foreground">
                             {grupo.help}
                           </span>
+                          {formData.gruposNoEnrutada.includes(grupo.code) && (
+                            <span className="mt-3 block rounded-md border border-primary/20 bg-primary/5 p-3">
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-semibold text-primary">
+                                  Mensaje sugerido para la plantilla
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    void navigator.clipboard.writeText(grupo.mensajeSugerido)
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground hover:bg-secondary"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                  Copiar
+                                </button>
+                              </span>
+                              <span className="mt-2 block whitespace-pre-wrap text-xs leading-relaxed text-foreground">
+                                {grupo.mensajeSugerido}
+                              </span>
+                            </span>
+                          )}
                         </span>
                       </label>
                     ))}
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Las olas 1 y 2 de X1 y X2 no aparecen aqui: esos leads van a asesor directo.
-                    Provincia y descartados tampoco, porque primero hay que validar cobertura o
-                    revisar el motivo de descarte. Dentro de cada grupo los leads salen ordenados
-                    por score de mayor a menor.
+                    La ola 1 de X1 y X2 no aparece aqui porque va a asesor directo. La ola 2 se
+                    habilito tambien para campanas. Provincia y descartados siguen fuera porque
+                    primero hay que validar cobertura o revisar el motivo. Para usar mensajes
+                    distintos, crea una campana por grupo y selecciona la plantilla aprobada que
+                    corresponda. Dentro de cada grupo los leads salen ordenados por score.
                   </p>
                 </div>
               )}

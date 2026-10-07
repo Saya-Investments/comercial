@@ -20,8 +20,8 @@ type NoEnrutadaLeadRow = {
   grupo: string
 }
 
-// Solo se aceptan los grupos que el modal ofrece como filtro (olas 3 de X1/X2,
-// X3, X4 y X5). X1/X2 olas 1-2, X6 y X7 no son campanables.
+// Solo se aceptan los grupos que el modal ofrece como filtro (olas 2-3 de X1/X2,
+// X3, X4 y X5). X1/X2 ola 1, X6 y X7 no son campanables.
 function parseGrupos(searchParams: URLSearchParams): GrupoNoEnrutada[] {
   const seleccionables = new Set(GRUPOS_CAMPANA.map((g) => g.code as string))
 
